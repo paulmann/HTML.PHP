@@ -1,0 +1,10 @@
+# Runtime scratch created by the test suite and the examples
+tests/tmp/
+examples/tmp/
+
+# Logs
+*.log
+
+# PHPUnit result cache (the suite is dependency-free, but the file is ignored
+# in case a runner is added later)
+.phpunit.result.cache
