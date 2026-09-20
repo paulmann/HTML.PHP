@@ -1,14 +1,14 @@
 # HTML.PHP — Template Processing Library 🧩⚡
 
-![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)
-![Build](https://img.shields.io/badge/build-2026--09--20.2-informational.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![PHP](https://img.shields.io/badge/php-8.3%2B-purple.svg)
-![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
-![Tests](https://img.shields.io/badge/tests-276%20passing-success.svg)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue.svg)
-![SSI](https://img.shields.io/badge/ssi-apache%20compatible-orange.svg)
-![Style](https://img.shields.io/badge/distribution-single%20file-yellow.svg)
+[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](https://github.com/paulmann/HTML.PHP/releases/latest)
+[![Build](https://img.shields.io/badge/build-2026--09--20.2-informational.svg)](https://github.com/paulmann/HTML.PHP/releases/tag/v2.0.1)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/paulmann/HTML.PHP/blob/main/LICENSE)
+[![PHP](https://img.shields.io/badge/php-8.3%2B-purple.svg)](https://www.php.net/supported-versions.php)
+[![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)](https://github.com/paulmann/HTML.PHP)
+[![Tests](https://img.shields.io/badge/tests-276%20passing-success.svg)](https://github.com/paulmann/HTML.PHP/tree/main/tests)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue.svg)](https://github.com/paulmann/HTML.PHP)
+[![SSI](https://img.shields.io/badge/ssi-apache%20compatible-orange.svg)](https://httpd.apache.org/docs/current/howto/ssi.html)
+[![Style](https://img.shields.io/badge/distribution-single%20file-yellow.svg)](https://github.com/paulmann/HTML.PHP/blob/main/html.php)
 
 > **Production-grade single-file PHP template engine with Apache SSI compatibility, legacy `html4.pl` parity, a hardened security model, and a zero-dependency test suite of 276 tests / 748 assertions. Drop-in replacement — no Composer, no extensions beyond the PHP standard library.**
 
@@ -189,7 +189,7 @@ require __DIR__ . '/lib/html.php';
 #### Option 3 — Clone this project (library + tests + examples)
 
 ```bash
-git clone <repository-url> html-php
+git clone https://github.com/paulmann/HTML.PHP.git html-php
 cd html-php
 php tests/run-tests.php        # verify the library on your PHP build
 php examples/01-quick-start.php
@@ -633,7 +633,7 @@ WriteFile($dir . '/out.htm', $rendered);
 ### Development setup
 
 ```bash
-git clone <repository-url> html-php
+git clone https://github.com/paulmann/HTML.PHP.git html-php
 cd html-php
 php tests/run-tests.php            # green before you start
 php examples/02-ssi-partials.php   # sanity-check the runtime
@@ -698,6 +698,7 @@ SOFTWARE.
 - 🌐 Website: [Deynekin.com](https://deynekin.com)
 - 📧 Email: [Mikhail@Deynekin.com](mailto:Mikhail@Deynekin.com)
 - 🐙 GitHub: [@paulmann](https://github.com/paulmann)
+- 📦 Repository: [paulmann/HTML.PHP](https://github.com/paulmann/HTML.PHP)
 
 ### Support channels
 
@@ -716,6 +717,8 @@ SOFTWARE.
 ### ⭐ Star this project if it saved you a Composer dependency!
 
 **HTML.PHP 2.0.1** — Apache-SSI-compatible templating in a single hardened PHP file 🧩⚡🛡️
+
+[🔖 Latest release](https://github.com/paulmann/HTML.PHP/releases/latest) · [⭐ Star the repository](https://github.com/paulmann/HTML.PHP) · [🐛 Report a bug](https://github.com/paulmann/HTML.PHP/issues/new) · [💡 Request a feature](https://github.com/paulmann/HTML.PHP/issues/new) · [📄 Changelog](https://github.com/paulmann/HTML.PHP/blob/main/CHANGELOG.md)
 
 ---
 
