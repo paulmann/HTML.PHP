@@ -55,6 +55,18 @@ function collect_files(string $dir): array
     return $files;
 }
 
+/** Reads the single source of truth for the release version. */
+function library_version(string $root): string
+{
+    $source = file_get_contents($root . '/src/Version.php');
+
+    if ($source !== false && preg_match("/VERSION\\s*=\\s*'([^']+)'/", $source, $m) === 1) {
+        return $m[1];
+    }
+
+    throw new RuntimeException('Cannot read the library version from src/Version.php.');
+}
+
 /**
  * @return array{ns: string, uses: list<string>, body: string, file: string}
  */
@@ -135,13 +147,14 @@ function build_edition(string $root, string $edition, bool $withOverlays): strin
 
     $editionLabel = $withOverlays ? '8.5' : '8.3';
     $minPhp = $withOverlays ? 80500 : 80300;
+    $version = library_version($root);
 
     $out = "<?php\n";
     $out .= <<<HEADER
 /**
  * HTML.PHP — production template-processing library.
  *
- * VERSION: 4.0.0 (PHP {$editionLabel} edition) — single-file build.
+ * VERSION: {$version} (PHP {$editionLabel} edition) — single-file build.
  *
  * A zero-dependency template engine + Apache SSI processor + gettext i18n:
  *  - `%{NAME|filters}` substitution with auto-escaping, loops, expression
@@ -165,7 +178,7 @@ function build_edition(string $root, string $edition, bool $withOverlays): strin
 namespace {
     if (PHP_VERSION_ID < {$minPhp}) {
         fwrite(STDERR, sprintf(
-            "HTML.PHP 4.0.0 ({$editionLabel} edition) requires PHP {$editionLabel} or newer; running %s." . PHP_EOL,
+            "HTML.PHP {$version} ({$editionLabel} edition) requires PHP {$editionLabel} or newer; running %s." . PHP_EOL,
             PHP_VERSION
         ));
 

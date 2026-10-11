@@ -1,4 +1,4 @@
-# Architecture — HTML.PHP 4
+# Architecture — HTML.PHP 5
 
 ## Layering
 
@@ -62,6 +62,16 @@ Design choices and why:
   semantics (`'2' > '10'` is true, everything is a string); template
   expressions use PHP-like semantics (`2 > 10` is false). Conflating them
   breaks one of the two contracts.
+- **One evaluator, several entry points** (v5). `%{= …}`, `@If`, `@Set`,
+  loop ranges and `@Trans count` all call `Template\Expression::evaluate()`
+  — so inline math in a substitution is not a second language and not a
+  second trust boundary. `Substitution` gained `Config\Limits` for the
+  length cap; nothing else about the pipeline shape changed.
+- **Accessor primitives live in `Scope`, not in the parser** (v5).
+  `Scope::step()` (dotted paths, author-written) and `Scope::index()`
+  (single dynamic key) are the only two ways a template reaches into a
+  value, which keeps the "no objects via dynamic key" rule in exactly one
+  place instead of scattered across evaluators.
 - **No compile-to-PHP step.** The engine renders data-driven documents, not
   application views at Twig scale; the parse memo + output cache cover the
   win, while avoiding an executable-code cache directory (a classic shared-
@@ -105,7 +115,7 @@ bundle; on 8.5-syntax the parse error itself is the guard.
 - `tests/bootstrap.php` — library resolution (`src` or `--lib` bundle),
   fixture helpers, deterministic UTC, `test_engine()`/`test_request()`
   factories.
-- 14 case files, 330 tests, 968 assertions (identical with and without
+- 15 case files, 386 tests, 1286 assertions (identical with and without
   `ext-intl`), covering: config/container,
   support/io, escaping/cleaning, cache/log/events, SSI (core, conditionals,
   exec policies), substitution/filters, structure tags, i18n (incl. binary

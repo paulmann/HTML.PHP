@@ -1,6 +1,6 @@
 {
     "name": "paulmann/html-php",
-    "description": "HTML.PHP 4.0.0 — single-file PHP 8.3 edition: template engine + Apache SSI + gettext i18n. Zero dependencies.",
+    "description": "HTML.PHP 5.0.0 — single-file PHP 8.3 edition: template engine + Apache SSI + gettext i18n. Zero dependencies.",
     "type": "library",
     "license": "MIT",
     "authors": [

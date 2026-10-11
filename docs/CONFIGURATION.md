@@ -1,4 +1,4 @@
-# Configuration Reference — HTML.PHP 4
+# Configuration Reference — HTML.PHP 5
 
 One immutable `Config` value object replaces all `$GLOBALS['HTML_*']` keys
 of v3. Unknown keys throw `ConfigException` at every nesting level.
@@ -49,7 +49,8 @@ $engine = Engine::create([
 | `missing_placeholder_format` | string | `[missing:%s]` | for `placeholder` |
 | `single_braces` | bool | `false` | enable `{NAME}` form (CSS/JS clash risk) |
 | `allow_raw_filter` | bool | `true` | set `false` for user-editable templates |
-| `strict` | bool | `false` | unknown filters / broken conditions throw instead of diagnosing |
+| `strict` | bool | `false` | unknown filters / broken conditions & inline expressions throw instead of diagnosing |
+| `expressions` | bool | `true` | **v5**: allow inline `%{= …}` / `#{= …}` substitutions; `false` leaves such tags untouched (fail-closed, `expr-disabled` diagnostic). Structural directives (`@If`/`@Set`) are unaffected — disable those by not granting template edit rights |
 
 ## `ssi`
 

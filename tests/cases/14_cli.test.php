@@ -49,7 +49,7 @@ test('version prints banner and exits 0', function (): void {
     [$code, $out] = run_cli(['version']);
 
     assertSame(0, $code);
-    assertContains('4.0.0', $out);
+    assertContains(\HtmlPhp\Version::VERSION, $out);
     assertContains(PHP_VERSION, $out);
 });
 
@@ -74,6 +74,19 @@ test('render outputs the rendered template', function (): void {
 
     assertSame(0, $code);
     assertContains('Hi CLI!', $out);
+});
+
+test('render accepts space-separated --var k v (v5 parser)', function (): void {
+    $path = fixture_write('cli/render-vars.html', 'P: %{= done / total * 100 | round:1 }%');
+    [$code, $out] = run_cli(['render', $path, '--var', 'done=37', '--var', 'total=250']);
+
+    assertSame(0, $code);
+    assertContains('P: 14.8%', $out);
+
+    // The = form keeps working; a valueless flag stays a boolean.
+    [$code, $out] = run_cli(['render', $path, '--var=done=1', '--var=total=2']);
+    assertSame(0, $code);
+    assertContains('P: 50.0%', $out);
 });
 
 test('lint exits 0 on clean files and 1 on errors', function (): void {

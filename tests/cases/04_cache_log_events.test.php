@@ -80,7 +80,17 @@ test('round-trips values, honours TTL and cleans up', function (): void {
     assertSame(null, $cache->get('key1'));
 
     $cache->set('k3', 'v3');
-    assertSame(2, $cache->clear()); // k3 plus the expired-but-present key2 file
+
+    // sweep() is the legitimate ~1 %-of-writes lazy GC inside set(): whether
+    // the expired-but-unlinked key2 file is still on disk here is
+    // intentionally nondeterministic, so a fixed expected count made this
+    // test flaky (~1 % of runs). The contract of clear() is the invariant:
+    // it removes exactly what existed immediately before the call, and the
+    // cache is empty afterwards. Both hold whenever sweep() fires or not.
+    $present = $cache->count(); // k3, plus the key2 file when sweep() has not fired
+    assertSame(true, $present === 1 || $present === 2, 'expected k3 (+ maybe expired key2) on disk, got ' . $present);
+    assertSame($present, $cache->clear());
+    assertSame(0, $cache->count());
 });
 
 test('uncreatable directory is reported through diagnostics, not exceptions', function (): void {

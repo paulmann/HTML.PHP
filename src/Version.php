@@ -9,18 +9,18 @@ namespace HtmlPhp;
  */
 final class Version
 {
-    public const string VERSION = '4.0.0';
+    public const string VERSION = '5.0.0';
 
     /** Rewritten to `'8.5'` in the PHP 8.5 bundle by `tools/build.php`. */
     public const string EDITION = '8.3';
 
     public const int MIN_PHP = 80300;
 
-    public const string BUILD_DATE = '2026-10-11';
+    public const string BUILD_DATE = '2026-10-12';
 
     private function __construct() {}
 
-    /** `"4.0.0 (8.3 edition)"` */
+    /** `"5.0.0 (8.3 edition)"` */
     public static function banner(): string
     {
         return self::VERSION . ' (' . self::EDITION . ' edition)';

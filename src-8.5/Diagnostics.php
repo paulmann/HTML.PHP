@@ -28,6 +28,8 @@ final class Diagnostics
     public const string SSI_EXPR_ERROR = 'ssi-expr-error';
     public const string SSI_UNKNOWN_DIRECTIVE = 'ssi-unknown-directive';
     public const string FILTER_UNKNOWN = 'filter-unknown';
+    public const string EXPR_INVALID = 'expr-invalid';
+    public const string EXPR_DISABLED = 'expr-disabled';
     public const string REGEX_FAILED = 'regex-failed';
     public const string CATALOG_PARSE = 'catalog-parse';
     public const string CACHE_IO = 'cache-io';

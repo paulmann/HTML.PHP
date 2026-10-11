@@ -9,20 +9,20 @@ namespace HtmlPhp;
  */
 final class Version
 {
-    public const string VERSION = '4.0.0';
+    public const string VERSION = '5.0.0';
 
     /** This is the PHP 8.5 edition overlay (see tools/build.php). */
     public const string EDITION = '8.5';
 
     public const int MIN_PHP = 80500;
 
-    public const string BUILD_DATE = '2026-10-11';
+    public const string BUILD_DATE = '2026-10-12';
 
     private function __construct()
     {
     }
 
-    /** `"4.0.0 (8.5 edition)"` */
+    /** `"5.0.0 (8.5 edition)"` */
     #[\NoDiscard('The version banner is never meant to be discarded.')]
     public static function banner(): string
     {

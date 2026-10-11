@@ -28,6 +28,19 @@ final class Linter
         'sectionparent' => true, 'break' => true, 'continue' => true,
     ];
 
+    /**
+     * Filters whose arguments must be numeric literals — used for the
+     * "that looks like a variable name" warning (filter arguments are
+     * never resolved against the scope).
+     *
+     * @var array<string, true>
+     */
+    private const array NUMERIC_ARG_FILTERS = [
+        'add' => true, 'sub' => true, 'mul' => true, 'div' => true,
+        'mod' => true, 'pow' => true, 'pct' => true, 'clamp' => true,
+        'round' => true,
+    ];
+
     public function __construct(
         private readonly Config $config,
         private readonly Diagnostics $diagnostics,
@@ -288,6 +301,14 @@ final class Linter
             function (array $m) use ($origin, &$issues): string {
                 $payload = (string) $m[2];
                 $line = 0;
+
+                // `%= { … }` / `#{= …}` — inline expression form (v5).
+                if (($m[1] === '%' || $m[1] === '#') && str_starts_with(ltrim($payload), '=')) {
+                    $this->inlineExpressionIssues(ltrim(substr(ltrim($payload), 1)), $origin, $line, $issues);
+
+                    return $m[0];
+                }
+
                 [$name, $filters] = Substitution::splitFilters($payload);
 
                 if ($m[1] === '@') {
@@ -295,22 +316,95 @@ final class Linter
                 }
 
                 foreach ($filters as [$filterName, $args]) {
-                    $lower = strtolower($filterName);
-
-                    if ($lower === 'raw' && !$this->config->syntax->allowRawFilter) {
-                        $issues[] = new LintIssue('error', 'filter-disabled', 'Filter "raw" is disabled by configuration.', $origin, $line);
-                        continue;
-                    }
-
-                    if (!$this->filters->has($lower)) {
-                        $issues[] = new LintIssue('error', 'unknown-filter', 'Unknown filter "' . $filterName . '".', $origin, $line);
-                    }
+                    $this->filterIssues($filterName, $args, $origin, $line, $issues);
                 }
 
                 return $m[1] . '{' . $payload . '}';
             },
             $text,
         );
+    }
+
+    /**
+     * Validates one inline-expression payload (`%= {…}` form): the config
+     * gate, the expression syntax and the trailing filter chain.
+     *
+     * @param list<LintIssue> $issues
+     */
+    private function inlineExpressionIssues(string $payload, string $origin, int $line, array &$issues): void
+    {
+        if (!$this->config->syntax->expressions) {
+            $issues[] = new LintIssue(
+                'error',
+                'expressions-disabled',
+                'Inline expressions ("%{= …}") are disabled by configuration (syntax.expressions).',
+                $origin,
+                $line,
+                ['expression' => $payload],
+            );
+
+            return;
+        }
+
+        [$source, $filters] = Substitution::splitExpressionPayload($payload);
+
+        if (trim($source) === '') {
+            $issues[] = new LintIssue('error', 'bad-expression', 'Empty inline expression.', $origin, $line, ['expression' => $payload]);
+        } else {
+            $this->expressionIssues($source, $origin, $line, $issues);
+        }
+
+        foreach ($filters as [$filterName, $args]) {
+            $this->filterIssues($filterName, $args, $origin, $line, $issues);
+        }
+    }
+
+    /**
+     * One filter segment: registry check, disabled-`raw` check and the
+     * numeric-argument heuristic (a bare word where a number belongs is
+     * almost always a variable reference that filter arguments do not
+     * support — point the author at `%{= …}`).
+     *
+     * @param list<string> $args
+     * @param list<LintIssue> $issues
+     */
+    private function filterIssues(string $filterName, array $args, string $origin, int $line, array &$issues): void
+    {
+        $lower = strtolower($filterName);
+
+        if ($lower === 'raw' && !$this->config->syntax->allowRawFilter) {
+            $issues[] = new LintIssue('error', 'filter-disabled', 'Filter "raw" is disabled by configuration.', $origin, $line);
+
+            return;
+        }
+
+        if (!$this->filters->has($lower)) {
+            $issues[] = new LintIssue('error', 'unknown-filter', 'Unknown filter "' . $filterName . '".', $origin, $line);
+
+            return;
+        }
+
+        if (!isset(self::NUMERIC_ARG_FILTERS[$lower])) {
+            return;
+        }
+
+        foreach ($args as $argument) {
+            if (preg_match('~^[A-Za-z_][A-Za-z0-9_.]*$~', $argument) === 1) {
+                $issues[] = new LintIssue(
+                    'warning',
+                    'filter-arg-not-numeric',
+                    \sprintf(
+                        'Filter "%s" expects numeric arguments but got "%s" — filter arguments are literals, '
+                        . 'never variable references. Compute with data in an inline expression instead: %%{= …}.',
+                        $filterName,
+                        $argument,
+                    ),
+                    $origin,
+                    $line,
+                    ['filter' => $filterName, 'argument' => $argument],
+                );
+            }
+        }
     }
 
     /** @param list<LintIssue> $issues */

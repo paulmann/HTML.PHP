@@ -3,7 +3,7 @@
  * Plugin Name:       HTML.PHP
  * Plugin URI:        https://github.com/paulmann/HTML.PHP
  * Description:       Template engine + Apache SSI + gettext i18n for WordPress. Shortcodes, theme template loader, maintenance tools, WP-CLI.
- * Version:           4.0.0
+ * Version:           5.0.0
  * Requires at least: 6.0
  * Requires PHP:      8.3
  * Author:            Mikhail Deynekin
@@ -20,7 +20,7 @@ defined('ABSPATH') || exit;
 
 define('HTMLPHP_PLUGIN_FILE', __FILE__);
 define('HTMLPHP_PLUGIN_DIR', __DIR__);
-define('HTMLPHP_VERSION', '4.0.0');
+define('HTMLPHP_VERSION', '5.0.0');
 
 /**
  * Loads the library: Composer autoloader when present, otherwise the

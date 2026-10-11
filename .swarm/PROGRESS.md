@@ -1,3 +1,7 @@
+> **[v5 note · 2026-10-12]** Historical document of the v4.0.0 work —
+> kept unchanged for the record. Current state: **v5.0.0**, see
+> `.swarm/HANDOFF.md` and `CHANGELOG.md`.
+
 # PROGRESS — HTML.PHP v4.0.0 refactor
 
 Legend: [ ] todo · [~] wip · [x] done. Overall % is weighted by stream.

@@ -6,17 +6,19 @@ namespace HtmlPhp\Template;
 
 use HtmlPhp\Exception\TemplateSyntaxException;
 use HtmlPhp\Scope;
+use HtmlPhp\Support\Pcre;
 use HtmlPhp\Support\Str;
 
 /**
  * Safe expression language for `<!--@If-->`, `<!--@Elif-->`, `<!--@Set-->`,
- * loop ranges and `<!--@Trans count-->`.
+ * loop ranges, `<!--@Trans count-->` and (since v5) inline `%{= …}`
+ * substitutions.
  *
  * A hand-written tokenizer + precedence-climbing parser evaluates against
  * the render {@see Scope}. There is **no** `eval()`, no dynamic function
- * calls and no property writes: only literals, dotted names, arithmetic,
- * comparisons, logical operators, ternary/coalesce, `in`, `matches`,
- * string concatenation (`~`) and a whitelist of pure functions.
+ * calls and no property writes: only literals, dotted names, index access,
+ * arithmetic, comparisons, logical operators, ternary/coalesce, `in`,
+ * `matches`, string concatenation (`~`) and a whitelist of pure functions.
  *
  * Grammar (loosest first):
  *   expr      := ternary
@@ -29,8 +31,17 @@ use HtmlPhp\Support\Str;
  *   additive  := concat (('+'|'-') concat)*
  *   concat    := multiplicative ('~' multiplicative)*
  *   multiplicative := unary (('*'|'/'|'%') unary)*
- *   unary     := ('-'|'+') unary | primary
+ *   unary     := ('-'|'+') unary | postfix
+ *   postfix   := primary ('[' expr ']' | '.' name)*   (v5: index/property chains)
  *   primary   := literal | name ('.' name)* | call | '(' expr ')' | range
+ *
+ * Security budget (v5): parse trees are memoized behind a hard FIFO cap,
+ * every walk of host-supplied iterables is capped at
+ * {@see Str::MAX_AGGREGATE_ITEMS}, dynamic keys pass
+ * {@see Scope::index()} and indirect names pass {@see Scope::find()} only
+ * after {@see Str::isValidVariableName()} — an expression can compute with
+ * data but can never touch the filesystem, the network, a class name or a
+ * callable.
  */
 final class Expression
 {
@@ -39,9 +50,17 @@ final class Expression
         'count', 'length', 'empty', 'defined', 'min', 'max', 'abs',
         'round', 'floor', 'ceil', 'int', 'float', 'str', 'lower',
         'upper', 'number', 'default',
+        // v5 — math & indirect access:
+        'pow', 'sqrt', 'sum', 'avg', 'clamp', 'get',
     ];
 
     private const int MAX_DEPTH = 32;
+
+    /** FIFO cap on the memoized-AST registry (unbounded memos are a DoS vector). */
+    private const int MAX_AST_CACHE = 4096;
+
+    /** Ceiling for a dynamic (`get()`) path — a lookup key is data, not a document. */
+    private const int MAX_PATH_LENGTH = 256;
 
     /** @var list<array{0: string, 1: mixed}> */
     private array $tokens = [];
@@ -58,7 +77,9 @@ final class Expression
      * Evaluates `$source` against `$scope`.
      *
      * Parse results are memoized per expression string, so the same
-     * condition inside a 10 000-row loop is parsed once.
+     * condition inside a 10 000-row loop is parsed once. The memo is a
+     * bounded FIFO: a template full of unique expressions can evict old
+     * parses but can never grow the registry without limit.
      *
      * @throws TemplateSyntaxException on malformed expressions (strict
      *         language design: a broken condition is a template bug)
@@ -73,15 +94,25 @@ final class Expression
     {
         $key = $maxLength . '|' . $source;
 
-        return self::$asts[$key] ??= (function () use ($source, $maxLength): array {
-            $expression = new self();
-            $expression->tokens = $expression->tokenize(self::guardLength($source, $maxLength));
-            $expression->position = 0;
-            $tree = $expression->parseExpression();
-            $expression->expectEnd($source);
+        if (isset(self::$asts[$key])) {
+            return self::$asts[$key];
+        }
 
-            return $tree;
-        })();
+        $expression = new self();
+        $expression->tokens = $expression->tokenize(self::guardLength($source, $maxLength));
+        $expression->position = 0;
+        $tree = $expression->parseExpression();
+        $expression->expectEnd($source);
+
+        if (\count(self::$asts) >= self::MAX_AST_CACHE) {
+            $oldest = array_key_first(self::$asts);
+
+            if ($oldest !== null) {
+                unset(self::$asts[$oldest]);
+            }
+        }
+
+        return self::$asts[$key] = $tree;
     }
 
     /** Truthiness used by `<!--@If-->`: PHP rules, `'0'`/`''`/`[]`/null are false. */
@@ -163,8 +194,17 @@ final class Expression
             }
 
             if ($char === '.' && ($source[$index + 1] ?? '') === '.') {
-                $tokens[] = ['..', '..'];
+                $tokens[] = ['op', '..'];
                 $index += 2;
+                continue;
+            }
+
+            // `.name` only tokenizes standalone directly after a postfix
+            // (`rows[0].name`); everywhere else a dot is part of a dotted
+            // name or a numeric literal, both handled above.
+            if ($char === '.' && (ctype_alpha($source[$index + 1] ?? '') || ($source[$index + 1] ?? '') === '_')) {
+                $tokens[] = ['op', '.'];
+                ++$index;
                 continue;
             }
 
@@ -188,7 +228,7 @@ final class Expression
             }
 
             foreach (['===', '!==', '==', '!=', '<=', '>=', '&&', '||', '??', '<', '>', '!',
-                '+', '-', '*', '/', '%', '~', '(', ')', ',', '?', ':'] as $candidate) {
+                '+', '-', '*', '/', '%', '~', '(', ')', '[', ']', ',', '?', ':'] as $candidate) {
                 if (str_starts_with(substr($source, $index), $candidate)) {
                     $tokens[] = ['op', $candidate];
                     $index += \strlen($candidate);
@@ -376,7 +416,49 @@ final class Expression
             return [$operator === '-' ? 'neg' : 'pos', $this->parseUnary()];
         }
 
-        return $this->parsePrimary();
+        return $this->parsePostfix();
+    }
+
+    /**
+     * postfix := primary ('[' expr ']' | '.' name)*
+     *
+     * Index and property chains (`rows[0].name`, `hash[keyVar].total`) hang
+     * off any primary — names, calls and parenthesised expressions alike.
+     * Every `[` opens a nested {@see self::parseExpression()}, so the
+     * existing depth guard bounds arbitrarily chained access.
+     *
+     * @return array<array-key, mixed>
+     */
+    private function parsePostfix(): array
+    {
+        $node = $this->parsePrimary();
+
+        while (true) {
+            if ($this->isOp('[')) {
+                $this->next();
+                $index = $this->parseExpression();
+                $this->expectOp(']');
+                $node = ['index', $node, $index];
+                continue;
+            }
+
+            if ($this->isOp('.')) {
+                $this->next();
+                $token = $this->peek();
+
+                if ($token === null || $token[0] !== 'name') {
+                    throw new TemplateSyntaxException('Expected a property name after ".".');
+                }
+
+                $this->next();
+                $node = ['prop', $node, (string) $token[1]];
+                continue;
+            }
+
+            break;
+        }
+
+        return $node;
     }
 
     /** @return array<array-key, mixed> */
@@ -390,8 +472,16 @@ final class Expression
 
         if ($token[0] === 'num' || $token[0] === 'str' || $token[0] === 'bool' || $token[0] === 'null') {
             $this->next();
+            $node = ['lit', $token[1]];
 
-            return ['lit', $token[1]];
+            // Numeric range literal: `1..10` (integer ranges, loop semantics).
+            if ($token[0] === 'num' && $this->isOp('..')) {
+                $this->next();
+
+                return ['range', $node, $this->parseUnary()];
+            }
+
+            return $node;
         }
 
         if ($token[0] === 'op' && $token[1] === '(') {
@@ -502,6 +592,8 @@ final class Expression
         return match ($op) {
             'lit' => $node[1],
             'name' => $scope->get((string) $node[1]),
+            'index' => self::indexInto(self::reduceNode($node[1], $scope), self::reduceNode($node[2], $scope)),
+            'prop' => self::property(self::reduceNode($node[1], $scope), (string) $node[2]),
             'neg' => -self::numeric(self::reduceNode($node[1], $scope)),
             'pos' => self::numeric(self::reduceNode($node[1], $scope)),
             'not' => !self::truthy(self::reduceNode($node[1], $scope)),
@@ -598,7 +690,13 @@ final class Expression
         }
 
         if ($haystack instanceof \Traversable) {
+            $seen = 0;
+
             foreach ($haystack as $item) {
+                if (++$seen > Str::MAX_AGGREGATE_ITEMS) {
+                    break; // iteration budget: an infinite generator must not hang the render
+                }
+
                 if ($item == $needle) {
                     return true;
                 }
@@ -612,11 +710,41 @@ final class Expression
     {
         $delimited = $pattern;
 
+        // The probe must distinguish "invalid pattern" (false) from "valid
+        // pattern that does not match the empty string" (0) — hence the raw
+        // call here; the real match then goes through the Pcre guard so a
+        // backtrack-limit hit (ReDoS-shaped pattern) is a clean no-match.
         if ($pattern === '' || @preg_match($pattern, '') === false) {
             $delimited = '~' . str_replace('~', '\\~', $pattern) . '~';
         }
 
-        return @preg_match($delimited, Str::stringify($subject)) === 1;
+        return Pcre::match($delimited, Str::stringify($subject));
+    }
+
+    /**
+     * `value[key]` — the nested-variable primitive.
+     *
+     * Keys and container kinds are validated in {@see Scope::index()}:
+     * int/string keys only, arrays / `ArrayAccess` / string offsets only,
+     * capped key length, no dynamic property or method access on objects.
+     * A miss is `null`, never a warning or a fatal.
+     */
+    private static function indexInto(mixed $value, mixed $key): mixed
+    {
+        [$found, $result] = Scope::index($value, $key);
+
+        return $found ? $result : null;
+    }
+
+    /**
+     * `value.name` after a postfix (`rows[0].name`) — the same walk the
+     * dotted-name resolver uses, applied to an intermediate value.
+     */
+    private static function property(mixed $value, string $path): mixed
+    {
+        [$found, $result] = Scope::step($value, $path);
+
+        return $found ? $result : null;
     }
 
     /** @return list<int> */
@@ -662,7 +790,203 @@ final class Expression
             'upper' => Str::upper(Str::stringify($values[0] ?? '')),
             'number' => Str::number(Str::numericValue($values[0] ?? 0), (int) ($values[1] ?? 2)),
             'default' => ($values[0] ?? null) ?? ($values[1] ?? ''),
+            // v5 additions — all pure, all budget-guarded:
+            'pow' => Str::power(Str::numericValue($values[0] ?? 0), Str::numericValue($values[1] ?? 0)),
+            'sqrt' => Str::sqrt(Str::numericValue($values[0] ?? 0)),
+            'sum' => Str::accumulate($values[0] ?? null)[0],
+            'avg' => self::average($values[0] ?? null),
+            'clamp' => self::clamp(
+                Str::numericValue($values[0] ?? 0),
+                Str::numericValue($values[1] ?? 0),
+                Str::numericValue($values[2] ?? 0),
+            ),
+            'get' => self::indirect($values, $scope),
         };
+    }
+
+    /**
+     * `get(name)` / `get(name, default)` — indirect access: resolves a
+     * variable whose *name* is itself template data ("a variable inside a
+     * variable").
+     *
+     * Accepted path grammar (parsed by {@see self::parsePath()}, never
+     * evaluated): a dotted head name plus literal `[…]` segments and
+     * `.name` continuations — `user.email`, `rows[1].name`, `hash['x-1 y']`.
+     * Malformed, overlong or hostile paths (null bytes, unquoted bracket
+     * keys, leading dots/digits) resolve to the default. Lookups go
+     * **only** through the render scope stack — there is no global,
+     * constant, environment or filesystem fallback, so data-controlled
+     * names cannot escape the sandbox.
+     *
+     * @param list<mixed> $values
+     */
+    private static function indirect(array $values, Scope $scope): mixed
+    {
+        $name = $values[0] ?? null;
+        $default = $values[1] ?? null;
+
+        if (!\is_string($name)) {
+            return $default;
+        }
+
+        $path = self::parsePath($name);
+
+        if ($path === null) {
+            return $default;
+        }
+
+        [$found, $value] = $scope->find($path['head']);
+
+        if (!$found) {
+            return $default;
+        }
+
+        foreach ($path['steps'] as $step) {
+            [$found, $value] = $step[0] === 'index'
+                ? Scope::index($value, $step[1])
+                : Scope::step($value, $step[1]);
+
+            if (!$found) {
+                return $default;
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Validates and segments a dynamic path for {@see self::indirect()}.
+     *
+     * Returns `['head' => dotted-name, 'steps' => [['index', int|string] |
+     * ['path', dotted-name], …]]` or `null` when anything about the path is
+     * not strictly well-formed. This is a *parser*, not an evaluator: the
+     * only bracket keys are integer literals or single/double-quoted string
+     * literals (no null bytes, ≤ 255 chars), name runs use the same
+     * character class as {@see Str::isValidVariableName()} and a name run
+     * after `]` must start with `.`.
+     *
+     * @return array{head: string, steps: list<array{0: string, 1: int|string}>}|null
+     */
+    private static function parsePath(string $path): ?array
+    {
+        if ($path === '' || \strlen($path) > self::MAX_PATH_LENGTH || str_contains($path, "\0")) {
+            return null;
+        }
+
+        /** @var list<array{0: string, 1: int|string}> $steps */
+        $steps = [];
+        $length = \strlen($path);
+
+        // Head: a plain dotted name (`user.email`) resolved through Scope::find().
+        if (preg_match('~\A[A-Za-z_][A-Za-z0-9_.-]*~', $path, $m) !== 1) {
+            return null;
+        }
+
+        $head = $m[0];
+
+        if (!self::isSaneDottedRun($head)) {
+            return null;
+        }
+
+        $index = \strlen($head);
+
+        while ($index < $length) {
+            if ($path[$index] === '[') {
+                $close = strpos($path, ']', $index);
+
+                if ($close === false) {
+                    return null;
+                }
+
+                $key = self::parseBracketKey(substr($path, $index + 1, $close - $index - 1));
+
+                if ($key === null) {
+                    return null;
+                }
+
+                $steps[] = ['index', $key];
+                $index = $close + 1;
+                continue;
+            }
+
+            if ($path[$index] === '.') {
+                if (preg_match('~\G\.[A-Za-z0-9_][A-Za-z0-9_.-]*~', $path, $m, 0, $index) !== 1) {
+                    return null;
+                }
+
+                $run = substr($m[0], 1);
+
+                if (!self::isSaneDottedRun($run)) {
+                    return null;
+                }
+
+                $steps[] = ['path', $run];
+                $index += \strlen($m[0]);
+                continue;
+            }
+
+            // A name run directly after `]` (no dot) — rejected: `a[0]b` is
+            // ambiguous nonsense; `a[0].b` is the documented form.
+            return null;
+        }
+
+        return ['head' => $head, 'steps' => $steps];
+    }
+
+    /**
+     * No empty segments (`a..b`), no trailing dots (`a.`). Every segment is
+     * a word run; digits may start any segment but the first — the head's
+     * first character is checked by the caller's anchor regex, mirroring
+     * {@see Str::isValidVariableName()}.
+     */
+    private static function isSaneDottedRun(string $run): bool
+    {
+        foreach (explode('.', $run) as $segment) {
+            if ($segment === '' || preg_match('~^[A-Za-z0-9_][A-Za-z0-9_-]*$~', $segment) !== 1) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** Integer literal or quoted string literal; anything else is rejected. */
+    private static function parseBracketKey(string $raw): int|string|null
+    {
+        if (preg_match('~^-?\d{1,18}$~', $raw) === 1) {
+            return (int) $raw;
+        }
+
+        $quote = $raw[0] ?? '';
+
+        if (($quote === "'" || $quote === '"')
+            && \strlen($raw) >= 2
+            && $raw[\strlen($raw) - 1] === $quote
+            && !str_contains($raw, "\0")
+        ) {
+            $key = substr($raw, 1, -1);
+
+            // No quote of the same kind inside — keeps the literal unambiguous.
+            return str_contains($key, $quote) ? null : ($key === '' ? null : $key);
+        }
+
+        return null;
+    }
+
+    private static function average(mixed $value): float
+    {
+        [$sum, $count] = Str::accumulate($value);
+
+        return $count === 0 ? 0.0 : $sum / $count;
+    }
+
+    private static function clamp(float $value, float $min, float $max): float
+    {
+        if ($min > $max) {
+            [$min, $max] = [$max, $min];
+        }
+
+        return max($min, min($max, $value));
     }
 
     private static function countOf(mixed $value): int
@@ -670,7 +994,9 @@ final class Expression
         return match (true) {
             \is_array($value) => \count($value),
             $value instanceof \Countable => \count($value),
-            $value instanceof \Traversable => iterator_count($value),
+            // Capped walk: an infinite host-supplied generator degrades to
+            // the iteration budget instead of hanging the render.
+            $value instanceof \Traversable => Str::accumulate($value)[1],
             \is_string($value) => Str::length($value),
             default => $value === null ? 0 : 1,
         };

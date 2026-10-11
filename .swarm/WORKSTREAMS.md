@@ -1,3 +1,7 @@
+> **[v5 note · 2026-10-12]** Historical document of the v4.0.0 work —
+> kept unchanged for the record. Current state: **v5.0.0**, see
+> `.swarm/HANDOFF.md` and `CHANGELOG.md`.
+
 # Workstreams (delegation map)
 
 Each stream is independently verifiable. Status: `todo` / `wip` / `done`.

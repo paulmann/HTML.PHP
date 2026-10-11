@@ -7,8 +7,14 @@ namespace HtmlPhp\Config;
 use HtmlPhp\Config;
 
 /**
- * Template language options: delimiters, escaping and the missing-variable
- * policy.
+ * Template language options: delimiters, escaping, the missing-variable
+ * policy and the inline-expression gate.
+ *
+ * `expressions` (v5, default true) controls whether `%{= …}` / `#{= …}`
+ * substitutions may evaluate the safe expression language. Structural
+ * directives (`@If`, `@Set`, loop ranges) always use it — turning the flag
+ * off removes *inline output* of computed values, the recommended hardening
+ * for hosts that render user-editable templates with data-driven markup.
  */
 final readonly class Syntax
 {
@@ -25,6 +31,7 @@ final readonly class Syntax
         public bool $singleBraces = false,
         public bool $allowRawFilter = true,
         public bool $strict = false,
+        public bool $expressions = true,
     ) {}
 
     /** @param array<string, mixed> $config */
@@ -48,6 +55,7 @@ final readonly class Syntax
             singleBraces: Config::bool($config, 'single_braces', false),
             allowRawFilter: Config::bool($config, 'allow_raw_filter', true),
             strict: Config::bool($config, 'strict', false),
+            expressions: Config::bool($config, 'expressions', true),
         );
     }
 
@@ -67,12 +75,13 @@ final readonly class Syntax
             'single_braces' => $this->singleBraces,
             'allow_raw_filter' => $this->allowRawFilter,
             'strict' => $this->strict,
+            'expressions' => $this->expressions,
         ];
     }
 
     public const array KEYS = [
         'var_open', 'var_close', 'alt_open', 'trans_open', 'tag_open', 'tag_close',
         'auto_escape', 'missing_var', 'missing_placeholder_format', 'single_braces',
-        'allow_raw_filter', 'strict',
+        'allow_raw_filter', 'strict', 'expressions',
     ];
 }

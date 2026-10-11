@@ -63,7 +63,9 @@ jobs:
             php $FLAGS tests/run.php --lib=${{ matrix.target }}/html.php
           fi
 
-  # End-to-end smoke of the public API surface (tests/smoke.php).
+  # End-to-end smoke of the public API surface (tests/smoke.php) plus the
+  # runnable examples — they are the documentation's contract, and v5 added
+  # a new one (05-expressions.php).
   smoke:
     name: Smoke (PHP ${{ matrix.php }})
     runs-on: ubuntu-24.04
@@ -79,6 +81,8 @@ jobs:
           extensions: mbstring, intl
           coverage: none
       - run: php tests/smoke.php
+      - name: Examples
+        run: bash examples/run-all.sh php
 
   # MANDATORY gate: level 6 over the full src/ tree (WordPress layer included,
   # analysed against the project's WP stubs), empty baseline, unmatched-ignore

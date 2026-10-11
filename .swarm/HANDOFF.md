@@ -1,7 +1,14 @@
 # HANDOFF — read this first if you are a fresh agent
 
 ## State (updated continuously — keep it truthful!)
-- **Overall progress: 100% — v4.0.0 COMPLETE and verified** (see PROGRESS.md)
+- **Current release: v5.0.0 "Expressions Everywhere" (2026-10-12) — COMPLETE
+  and verified.** Scope: inline `%{= …}` expressions, nested/dynamic variable
+  access (`[…]`, `.prop`, `get()`), math filters/functions, evaluator
+  hardening (bounded AST memo, iteration budgets, dynamic-key containment).
+  Details: `CHANGELOG.md` §5.0.0 and `docs/MIGRATION-4.x-TO-5.0.md`.
+  Gates: suite 386/386 green (matrix 14/14), PHPStan L6 clean, CS-fixer
+  clean, bundles drift-checked, smoke 33/33, examples 5/5.
+- **v4.0.0: 100% — COMPLETE and verified** (historical; see PROGRESS.md)
 - Workspace: `/home/user/html-php` — the v4 deliverable.
 - v3 reference (read-only): `/home/user/ref/HTML.PHP` (symlinked as `.v3-reference`).
   v3 suite passes 502/502 on php8.3 and php8.5 — it is the behaviour baseline.

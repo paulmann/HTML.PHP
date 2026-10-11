@@ -1,4 +1,4 @@
-# Security Model — HTML.PHP 4
+# Security Model — HTML.PHP 5
 
 Design principle: **a template is data, never code.** Nothing in the
 rendering path can execute PHP, spawn a shell, or read a file the host did
@@ -68,11 +68,63 @@ Two independent evaluators, neither uses `eval()`:
   arithmetic/logic/ternary/coalesce, `in`, `matches` (string-literal
   patterns only), `a..b` ranges (capped), and a **whitelisted** function
   set (`count/empty/min/max/abs/round/floor/ceil/int/float/str/lower/upper/
-  number/default/length/defined`). Unknown function ⇒ syntax error. Division
-  and modulo by zero yield `0` (html4.pl semantics, no fatals). Depth and
-  length caps; `syntax.strict` turns expression errors into exceptions.
+  number/default/length/defined` + v5 `pow/sqrt/sum/avg/clamp/get`).
+  Unknown function ⇒ syntax error. Division and modulo by zero yield `0`
+  (html4.pl semantics, no fatals); v5 extends the same degradation to
+  overflow (`pow(10, 9999)`) and domain errors (`sqrt(-1)`) — an expression
+  can never produce `INF`/`NAN` or fatal. Depth and length caps;
+  `syntax.strict` turns expression errors into exceptions.
 - `PluralForms` header expressions: separate mini-evaluator, length-capped,
   fail-safe to form `0` — a malicious PO file cannot execute anything.
+
+### v5: inline expressions (`%{= …}`) — threat model
+
+v5 exposes the *same* evaluator inside substitution tags. This does **not**
+widen the trust boundary: everything computable in `%{= …}` was already
+computable via `<!--@Set v="…"-->%{v}`. What changes is ergonomics, and the
+defences follow the existing design:
+
+- **Explicit opt-in syntax.** The `=` prefix is mandatory; a bare payload
+  stays a name lookup, so no existing template can be reinterpreted as an
+  expression and CSS/JS braces stay inert.
+- **Same sandbox.** No `eval`, no dynamic calls, no writes, no I/O. Results
+  pass through the unchanged filter + auto-escape pipeline, so a string
+  computed in an expression is escaped exactly like a substituted variable.
+- **Kill switch.** `syntax.expressions: false` refuses evaluation entirely
+  (fail-closed: the tag stays visible, an `expr-disabled` diagnostic is
+  recorded). Pair with `allow_raw_filter: false` for user-editable
+  templates.
+- **Fail-visible errors.** A malformed expression never renders half a
+  value: lenient mode keeps the tag in the output and records
+  `expr-invalid`; strict mode throws. The linter catches both in CI
+  (`bad-expression`, `expressions-disabled`).
+- **Quote-aware payload splitting.** The expression/filter split honours
+  string literals and bracket depth, so a `|` inside data or a literal
+  cannot smuggle a filter boundary.
+
+### v5: nested access (`[…]`, `.prop`, `get()`) — containment
+
+Dynamic keys make lookup *data-driven*, so the accessor layer is hardened
+(`Scope::index()`, `Scope::step()`, `Expression::parsePath()`):
+
+- **No objects via dynamic keys.** `[]` works on arrays, `ArrayAccess` and
+  string offsets only. A public property or zero-arg method of a plain
+  object stays reachable exclusively through author-written dotted paths —
+  request data can never be turned into a property/method name.
+  (`obj[key]` with `key='token'` is a miss, verified by the test suite.)
+- **Key hygiene.** Only `int`/`string` keys; strings capped at 256 chars and
+  rejected on null bytes; arrays/objects/`null` as keys are misses; misses
+  are `null`, never warnings or fatals.
+- **`get()` resolves paths, it does not evaluate them.** The name argument
+  passes a strict grammar (dotted word runs + integer/quoted bracket keys)
+  and is looked up **only** in the scope stack — no globals, constants,
+  `$_*`, environment or filesystem fallback exists to find. Hostile inputs
+  (`_SERVER`, `../../etc/passwd`, `a[`, overlong paths) resolve to the
+  caller's default.
+- **String indexing is UTF-8 aware** and returns `null` out of range.
+- **`matches`** routes the actual match through `Support\Pcre`, so a
+  ReDoS-shaped pattern that trips PCRE's backtrack limit is a clean
+  no-match, never a hang or a silent `null`.
 
 ## 5. Resource budgets (DoS)
 
@@ -136,4 +188,7 @@ silent `null`s.
 ## Reporting
 
 Security issues: please report privately to Mikhail@Deynekin.com.
-Supported versions: 4.x on PHP 8.3+ (8.5 edition on PHP 8.5+).
+Supported versions: **5.x** on PHP 8.3+ (8.5 edition on PHP 8.5+).
+4.x receives security-fix backports only — upgrade to 5.x is recommended
+(the 5.0 release is additive: `docs/MIGRATION-4.x-TO-5.0.md`); 3.x and
+earlier are end-of-life.

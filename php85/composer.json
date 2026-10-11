@@ -1,6 +1,6 @@
 {
     "name": "paulmann/html-php85",
-    "description": "HTML.PHP 4.0.0 — single-file PHP 8.5 edition (property hooks, pipe operator, array_find, #[\\NoDiscard]): template engine + Apache SSI + gettext i18n. Zero dependencies.",
+    "description": "HTML.PHP 5.0.0 — single-file PHP 8.5 edition (property hooks, pipe operator, array_find, #[\\NoDiscard]): template engine + Apache SSI + gettext i18n. Zero dependencies.",
     "type": "library",
     "license": "MIT",
     "authors": [

@@ -50,13 +50,34 @@ declare(strict_types=1);
     $args = [];
     $options = [];
 
-    foreach (array_slice($argv, 2) as $token) {
-        if (str_starts_with($token, '--')) {
-            [$key, $value] = array_pad(explode('=', substr($token, 2), 2), 2, true);
-            $options[$key][] = $value;
-        } else {
+    $tokens = array_slice($argv, 2);
+    $tokenCount = count($tokens);
+
+    for ($index = 0; $index < $tokenCount; ++$index) {
+        $token = $tokens[$index];
+
+        if (!str_starts_with($token, '--')) {
             $args[] = $token;
+            continue;
         }
+
+        [$key, $value] = array_pad(explode('=', substr($token, 2), 2), 2, null);
+
+        // Both documented forms work: `--key=value` and `--key value`
+        // (space-separated, unless the next token is itself an option).
+        // A valueless trailing `--key` stays the boolean flag it was.
+        if ($value === null) {
+            $next = $tokens[$index + 1] ?? null;
+
+            if ($next !== null && !str_starts_with($next, '--')) {
+                $value = $next;
+                ++$index;
+            } else {
+                $value = true;
+            }
+        }
+
+        $options[$key][] = $value;
     }
 
     $first = static fn(string $key, ?string $default = null): ?string => isset($options[$key][0]) && $options[$key][0] !== true

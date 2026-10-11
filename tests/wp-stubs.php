@@ -438,6 +438,8 @@ function wp_next_scheduled(string $hook, array $args = []): int|false
 final class WpdbStub
 {
     public string $prefix = 'wp_';
+    /** Mirrors the real `$wpdb->options` (prefixed table name) — `uninstall.php` interpolates it. */
+    public string $options = 'wp_options';
     public string $db_version = '8.0-stub';
     public string $charset = 'utf8mb4';
     public int $queries = 0;

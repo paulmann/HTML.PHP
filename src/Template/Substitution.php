@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HtmlPhp\Template;
 
+use HtmlPhp\Config\Limits;
 use HtmlPhp\Config\MissingVarPolicy;
 use HtmlPhp\Config\Syntax as SyntaxConfig;
 use HtmlPhp\Diagnostics;
@@ -15,12 +16,21 @@ use HtmlPhp\Support\Pcre;
 use HtmlPhp\Support\Str;
 
 /**
- * Variable substitution: `%{NAME|filter:arg}`, `#{NAME}` and `@{KEY}`.
+ * Variable substitution: `%{NAME|filter:arg}`, `%{= expr |filter:arg}`,
+ * `#{NAME}` and `@{KEY}`.
+ *
+ * v5 adds the inline-expression form `%{= …}` (and `#{= …}`): the payload
+ * after `=` is evaluated by the sandboxed {@see Expression} language — the
+ * exact evaluator `@If`/`@Set` already use, so no new trust surface opens:
+ * no `eval()`, no calls outside the function whitelist, no I/O. Results
+ * flow through the same filter chain and auto-escaping as plain names.
+ * The form is gated by `syntax.expressions` for hosts that render
+ * user-editable templates.
  *
  * v4 differences from v3:
  *  - the legacy forms `%[NAME]`, `%{%{NAME}}` and the html4.pl numeric
  *    directives (`.Round`, `.Div`, …) are gone — use filters
- *    (`%{N|round:2}`, `%{A|div:B}` does not exist; compute in `@Set`);
+ *    (`%{N|round:2}`, `%{N|pct:total}`) or inline math (`%{= n / total * 100}`);
  *  - `@{KEY}` goes through the injected {@see TranslatorInterface}
  *    (no `Translate.KEY` globals);
  *  - missing-variable handling follows {@see MissingVarPolicy};
@@ -34,11 +44,12 @@ final class Substitution
         'escape', 'esc', 'e', 'attr', 'url', 'json', 'js', 'css', 'nl2br', 'raw',
     ];
 
-    /** @var array<string, true> names already reported missing this render */
+    /** @var array<string, true> names/expressions already reported this render */
     private array $reported = [];
 
     public function __construct(
         private readonly SyntaxConfig $syntax,
+        private readonly Limits $limits,
         private readonly Filters $filters,
         private readonly Escaper $escaper,
         private readonly TranslatorInterface $translator,
@@ -98,10 +109,10 @@ final class Substitution
             $html,
         );
 
-        // {NAME} — opt-in single-brace form (off by default: clashes with CSS/JS).
+        // {NAME} / {= expr} — opt-in single-brace form (off by default: clashes with CSS/JS).
         if ($this->syntax->singleBraces) {
             $html = Pcre::replaceCallback(
-                '~(?<![%#@\\\\\w])\{([A-Za-z_][A-Za-z0-9_.]*(?:\|[^{}]*)?)\}(?!\w)~',
+                '~(?<![%#@\\\\\w])\{(=[^{}]*|[A-Za-z_][A-Za-z0-9_.]*(?:\|[^{}]*)?)\}(?!\w)~',
                 function (array $matches) use ($scope, $autoEscape, $missingPolicy): string {
                     return $this->substitute((string) $matches[1], $matches[0], $scope, $autoEscape, $missingPolicy);
                 },
@@ -122,6 +133,15 @@ final class Substitution
         bool $autoEscape,
         MissingVarPolicy $missingPolicy,
     ): string {
+        $trimmed = ltrim($payload);
+
+        // `= expr` — inline expression form (v5). Explicit prefix, so a
+        // plain name can never be reinterpreted as an expression and
+        // CSS/JS braces stay untouched.
+        if (str_starts_with($trimmed, '=')) {
+            return $this->substituteExpression(substr($trimmed, 1), $original, $scope, $autoEscape);
+        }
+
         [$name, $filters] = self::splitFilters($payload);
 
         if ($name === '' || !Str::isValidVariableName($name)) {
@@ -136,6 +156,66 @@ final class Substitution
         }
 
         return $this->finish($value, $filters, $autoEscape, $scope);
+    }
+
+    /**
+     * Evaluates one `%{= expr |filters}` payload.
+     *
+     * Failure handling mirrors `@If`: lenient mode records a diagnostic
+     * (once per unique expression) and leaves the tag in the output — a
+     * broken expression is visible, never silently blank; strict mode
+     * throws. A disabled gate (`syntax.expressions: false`) always leaves
+     * the tag untouched without throwing: fail-closed, no evaluation.
+     */
+    private function substituteExpression(
+        string $payload,
+        string $original,
+        Scope $scope,
+        bool $autoEscape,
+    ): string {
+        if (!$this->syntax->expressions) {
+            $this->reportExpression(
+                Diagnostics::EXPR_DISABLED,
+                'Inline expression is disabled by configuration (syntax.expressions).',
+                $payload,
+            );
+
+            return $original;
+        }
+
+        [$source, $filters] = self::splitExpressionPayload($payload);
+
+        try {
+            $value = Expression::evaluate($source, $scope, $this->limits->maxExpressionLength);
+        } catch (TemplateException $error) {
+            $this->reportExpression(
+                Diagnostics::EXPR_INVALID,
+                'Invalid inline expression: ' . $error->getMessage(),
+                $payload,
+            );
+
+            if ($this->syntax->strict) {
+                throw $error;
+            }
+
+            return $original;
+        }
+
+        return $this->finish($value, $filters, $autoEscape, $scope);
+    }
+
+    /** Records an expression problem once per unique payload. */
+    private function reportExpression(string $code, string $message, string $payload): void
+    {
+        $payload = trim($payload);
+        $key = 'expr:' . substr(sha1($payload), 0, 16);
+
+        if (isset($this->reported[$key])) {
+            return;
+        }
+
+        $this->reported[$key] = true;
+        $this->diagnostics->record($code, $message, ['expression' => $payload]);
     }
 
     private function missing(string $name, string $original, MissingVarPolicy $policy): string
@@ -255,6 +335,80 @@ final class Substitution
         $name = trim((string) array_shift($segments));
 
         return [$name, self::parseSegments($segments)];
+    }
+
+    /**
+     * Splits an inline-expression payload `expr | filter:arg | filter2` at
+     * **top-level** pipes only: the first separates the expression from the
+     * filter chain, the rest separate the filters from each other.
+     *
+     * Quote-aware — `'|'` inside a string literal belongs to the expression
+     * (`%{= 'a|b' | upper }`), and pipes inside `()`/`[]` are never treated
+     * as separators (defensive: `|` is not an operator in the expression
+     * language). Unterminated quotes simply yield no split; the expression
+     * parser then reports the payload as invalid.
+     *
+     * @return array{0: string, 1: list<array{0: string, 1: list<string>}>}
+     */
+    public static function splitExpressionPayload(string $payload): array
+    {
+        $cuts = [];
+        $quote = null;
+        $depth = 0;
+        $length = \strlen($payload);
+
+        for ($index = 0; $index < $length; ++$index) {
+            $char = $payload[$index];
+
+            if ($quote !== null) {
+                if ($char === '\\' && $index + 1 < $length) {
+                    ++$index;
+                    continue;
+                }
+
+                if ($char === $quote) {
+                    $quote = null;
+                }
+
+                continue;
+            }
+
+            if ($char === "'" || $char === '"') {
+                $quote = $char;
+                continue;
+            }
+
+            if ($char === '(' || $char === '[') {
+                ++$depth;
+                continue;
+            }
+
+            if ($char === ')' || $char === ']') {
+                $depth = max(0, $depth - 1);
+                continue;
+            }
+
+            if ($char === '|' && $depth === 0) {
+                $cuts[] = $index;
+            }
+        }
+
+        if ($cuts === []) {
+            return [trim($payload), []];
+        }
+
+        $expression = trim(substr($payload, 0, $cuts[0]));
+        $segments = [];
+        $start = $cuts[0] + 1;
+
+        foreach (\array_slice($cuts, 1) as $cut) {
+            $segments[] = substr($payload, $start, $cut - $start);
+            $start = $cut + 1;
+        }
+
+        $segments[] = substr($payload, $start);
+
+        return [$expression, self::parseSegments($segments)];
     }
 
     /**

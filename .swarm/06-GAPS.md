@@ -1,3 +1,7 @@
+> **[v5 note · 2026-10-12]** Historical document of the v4.0.0 work —
+> kept unchanged for the record. Current state: **v5.0.0**, see
+> `.swarm/HANDOFF.md` and `CHANGELOG.md`.
+
 # Gap analysis — what v3 is missing (and v4 adds)
 
 The user asked: "add what I forgot". Verified against v3.0.0 source + docs.

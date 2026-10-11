@@ -38,6 +38,13 @@ final class Str
 
     private const MAX_PRECISION = 100;
 
+    /**
+     * Hard iteration budget for aggregate walks (`sum`/`avg`/`count` over
+     * `Traversable`) — an infinite generator from host code must not hang
+     * a render. Mirrors the expression language's loop-range cap.
+     */
+    public const int MAX_AGGREGATE_ITEMS = 100_000;
+
     private function __construct() {}
 
     /**
@@ -155,6 +162,69 @@ final class Str
         $result = $left / $right;
 
         return is_finite($result) ? $result : 0;
+    }
+
+    /**
+     * Exponentiation with the same fail-safe semantics as {@see self::divide()}:
+     * overflow (`10 ** 9999`), `0 ** -1` and `sqrt`-style `NAN` results
+     * (negative base, fractional exponent) all degrade to `0.0` instead of
+     * poisoning downstream arithmetic with `INF`/`NAN`.
+     */
+    public static function power(float $base, float $exponent): float
+    {
+        if (!is_finite($base) || !is_finite($exponent)) {
+            return 0.0;
+        }
+
+        if ($base === 0.0 && $exponent < 0) {
+            return 0.0; // PHP yields INF; a template dividing by zero is a bug, not a number
+        }
+
+        $result = $base ** $exponent;
+
+        return is_finite($result) ? $result : 0.0;
+    }
+
+    /** Square root; negative and non-finite inputs degrade to `0.0`. */
+    public static function sqrt(float $value): float
+    {
+        return $value > 0.0 && is_finite($value) ? sqrt($value) : 0.0;
+    }
+
+    /**
+     * Sums and counts any template value in one capped pass.
+     *
+     * Arrays and `Traversable`s are walked (each item coerced through
+     * {@see self::numericValue()}); scalars count as a single item; `null`
+     * counts as nothing. The iteration cap keeps an infinite generator
+     * passed from host code from hanging the render — the same budget the
+     * expression language applies to loop ranges.
+     *
+     * @return array{0: float, 1: int} `[sum, count]`, count capped at {@see self::MAX_AGGREGATE_ITEMS}
+     */
+    public static function accumulate(mixed $value): array
+    {
+        if (\is_array($value) || $value instanceof \Traversable) {
+            $sum = 0.0;
+            $count = 0;
+
+            foreach ($value as $item) {
+                if ($count >= self::MAX_AGGREGATE_ITEMS) {
+                    break;
+                }
+
+                $sum += self::numericValue($item);
+                $count++;
+            }
+
+            return [is_finite($sum) ? $sum : 0.0, $count];
+        }
+
+        if ($value === null) {
+            return [0.0, 0];
+        }
+
+        return [self::numericValue($value), 1];
     }
 
     /** `number_format()` with a dot decimal and no `-0` artefacts. */

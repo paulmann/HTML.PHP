@@ -361,7 +361,7 @@ test('SystemInfo and Health include engine state', function (): void {
     $engine->renderString('%{gone}', []); // produce a diagnostic
 
     $info = HtmlPhp\WordPress\Maintenance\SystemInfo::collect($engine);
-    assertSame(true, str_contains((string) $info['engine']['version'], '4.0.0'));
+    assertSame(true, str_contains((string) $info['engine']['version'], \HtmlPhp\Version::VERSION));
     assertSame(1, $info['engine']['pending_errors']);
     assertSame(true, isset($info['wordpress'], $info['php'], $info['server']));
 
@@ -477,7 +477,7 @@ test('CLI info prints engine, PHP and WordPress sections', function (): void {
 
     $log = implode("\n", $GLOBALS['wp_stub_cli_log']);
     assertContains('== ENGINE ==', $log);
-    assertContains('4.0.0', $log);
+    assertContains(\HtmlPhp\Version::VERSION, $log);
     assertContains('== WORDPRESS ==', $log);
 });
 
@@ -566,7 +566,7 @@ test('the plugin loads the library and registers its hooks', function (): void {
     assertSame(true, function_exists('htmlphp_render'));
     assertSame(true, function_exists('htmlphp_t'));
     assertSame(true, defined('HTMLPHP_VERSION'));
-    assertSame('4.0.0', HTMLPHP_VERSION);
+    assertSame(\HtmlPhp\Version::VERSION, HTMLPHP_VERSION);
 
     // In the test suite the library is already autoloaded, so the boot runs;
     // in a bare install without lib/ or vendor/ an admin notice is queued.

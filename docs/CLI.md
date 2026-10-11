@@ -14,12 +14,15 @@ array (same shape as `Engine::create([...])`).
 
 Exit codes: `0` success · `1` lint errors / runtime failure · `2` usage error.
 
+Options accept `--key=value` and (since v5) `--key value`; repeatable options
+(`--var`) accumulate in both forms.
+
 ## Commands
 
 ### `version`
 ```
 $ htmlphp version
-4.0.0 (8.3 edition) · PHP 8.3.35
+5.0.0 (8.3 edition) · PHP 8.3.35
 ```
 
 ### `config:dump`
@@ -39,7 +42,9 @@ templates/card.html:7 ERROR [unknown-filter] Unknown filter "uppr".
 - exits `1` when any `error`-severity issue remains
 
 What it checks: unknown/unbalanced/unclosed tags, orphan `@Else/@Elif/@Plural`,
-unknown or disabled filters, broken `@If/@Set` expressions, unresolvable
+unknown or disabled filters, numeric filter arguments that look like variable
+names (warning, v5), broken `@If/@Set` **and inline `%{= …}`** expressions,
+`%{= …}` while `syntax.expressions` is off (error, v5), unresolvable
 `@Include/@Extends` (when template roots are configured), loop range size,
 `@Trans` shape problems, untranslated `@{}` messages for the active locale,
 and SSI issues (unknown directives, missing `expr=`/`var=`/include targets,
@@ -48,6 +53,13 @@ unparseable `#if` expressions, `#exec` present under a deny policy).
 ### `render TEMPLATE [--var k=v]...`
 Renders a file path or a locator name to stdout. `--var` values are strings;
 for structured data use `--config` + a small PHP driver script instead.
+Both `--var=k=v` and `--var k=v` are accepted (v5): a space-separated value
+is consumed unless the next token is itself an option.
+
+```
+$ htmlphp render stats.html --var=done=37 --var=total=250
+Progress: 14.8%          ← template: %{= done / total * 100 | round:1 }%
+```
 
 ### `ssi FILE [--root=DIR]`
 Runs only the SSI pass over a file, anchored at that file (`file=`

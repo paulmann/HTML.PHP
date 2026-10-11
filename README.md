@@ -1,10 +1,10 @@
 # HTML.PHP — Template Processing Library 🧩⚡
 
-![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-5.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![PHP](https://img.shields.io/badge/php-8.3%20%7C%208.5-purple.svg)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
-![Tests](https://img.shields.io/badge/tests-330%20passing-success.svg)
+![Tests](https://img.shields.io/badge/tests-386%20passing-success.svg)
 ![PHPStan](https://img.shields.io/badge/PHPStan-level%206-success.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue.svg)
 
@@ -12,39 +12,45 @@
 > directive support (`#if` expressions, `#exec` policies, `#printenv`,
 > `#block`/`stub`), a gettext-compatible i18n layer (PO/MO/JSON/PHP
 > catalogues, plural rules for 60+ languages, extraction & audit tooling),
-> layout inheritance, scoped partials, a safe expression language, a render
-> cache, a template linter, profiling stats, an optional WordPress bridge +
-> maintenance toolkit, and a hardened **escape-by-default** security model
-> with **zero `$GLOBALS`, zero superglobal reads in the core, zero
-> dependencies**.
+> layout inheritance, scoped partials, a safe expression language — inline
+> in substitutions since v5 (`%{= a / b * 100}`, nested/dynamic keys,
+> `get()` indirection) — a render cache, a template linter, profiling stats,
+> an optional WordPress bridge + maintenance toolkit, and a hardened
+> **escape-by-default** security model with **zero `$GLOBALS`, zero
+> superglobal reads in the core, zero dependencies**.
 
 ---
 
-## What's new in 4.0.0
+## What's new in 5.0.0
 
-Version 4 is a **clean-break rewrite** of 3.0.0 — no backward compatibility
-with the legacy `html4.pl` API and no hidden global state. See
-[docs/MIGRATION-3.x-TO-4.0.md](docs/MIGRATION-3.x-TO-4.0.md) for the full
-mapping table.
+Version 5 is an **additive** release: every 4.x template renders
+byte-identically. See [docs/MIGRATION-4.x-TO-5.0.md](docs/MIGRATION-4.x-TO-5.0.md).
 
-| 3.x | 4.0 |
-|---|---|
-| ~35 `$GLOBALS['HTML_*']` config keys | one immutable `Config` value object (unknown keys **fail fast**) |
-| static registries (`Hooks`, `Errors`, `Filters::$custom`, static `Translator`) | a small DI `Container`; every service is an instance, engines are independent |
-| `$_SERVER` reads inside SSI | explicit `RequestContext` built once at the edge |
-| `html_render()` global function | `Engine::create(...)->render()` |
-| regex-recursion block processing | real parser: tag stream → node tree (shared by renderer **and** linter) |
-| — | layout inheritance `@Extends`/`@Section`/`@SectionParent` |
-| — | scoped partials `@Include … with="a,b" only ignore-missing` |
-| — | safe expression language in `@If`/`@Elif`/`@Unless`/`@Set`/loop ranges |
-| — | `@Trans` gettext-plural blocks, `@Raw`, `@Comment`, `@Break`, `@Continue` |
-| escape off by default | **auto-escape ON by default**, `\|raw` opt-out (disable-able) |
-| SSI: 10 directives | + `#printenv`, `#block`/`#endblock` + `stub=`, `#echo encoding=base64`, `wait=` accepted, custom directive registry |
-| PO/MO catalogues | + JSON/PHP-array catalogues, multi-path **merge**, `I18n\Extractor`, `I18n\Auditor`, locale-aware `Formats` |
-| file cache hardwired | `CacheInterface`: file / APCu / array / null / **WordPress object cache + transients** / PSR-16 adapter |
-| `html_errors()` statics | injectable `Diagnostics` + PSR-3-shaped `LoggerInterface` + tagged `Event\Dispatcher` |
-| — | template **linter** (CLI + PHP API + WP admin + WP-CLI, CI exit codes) |
-| — | `RenderStats` profiling, `bin/htmlphp` CLI, GitHub Actions matrix, PHPStan level 6 |
+| | 4.x | 5.0 |
+|---|---|---|
+| Math in a substitution tag | compute in `@Set` first | **`%{= done / total * 100 \| round:1 }`** |
+| Hash element by a dynamic key | ❌ static dot paths only | **`%{= prices[currency]}`**, `%{= rows[i].name}` |
+| Variable inside a variable | ❌ | **`%{= get(fieldName)}`**, `%{= get('rows[1].name')}` |
+| Arithmetic filters | `div` only | `add sub mul div mod pow sqrt pct sum avg clamp` |
+| Expression functions | 17 | 23 (`pow sqrt sum avg clamp get`) |
+| `a..b` ranges in expressions | broken (syntax error) | fixed, indexable: `%{= (1..3)[1]}` |
+| Kill switch for inline math | — | `syntax.expressions: false` (fail-closed) |
+
+Hardening that came with it: bounded AST memo (4 096 FIFO), a 100 000-item
+iteration budget on every host-iterable walk, dynamic keys that can never
+reach an object property or method, `get()` paths that resolve against the
+scope stack only, and `INF`/`NAN`-free arithmetic. Inline expressions reuse
+the *existing* sandboxed evaluator — no `eval`, whitelisted functions only,
+auto-escaped output — so they add no new trust surface. Details:
+[docs/SECURITY.md](docs/SECURITY.md) §4.
+
+## Upgrading
+
+- **From 4.x → 5.0:** additive release, no breaking changes, no
+  deprecations — [docs/MIGRATION-4.x-TO-5.0.md](docs/MIGRATION-4.x-TO-5.0.md).
+- **From 3.x:** 4.0 was a clean-break rewrite — see the full mapping table
+  in [docs/MIGRATION-3.x-TO-4.0.md](docs/MIGRATION-3.x-TO-4.0.md), then
+  upgrade to 5.x. Release history: [CHANGELOG.md](CHANGELOG.md).
 
 ## Two editions
 
@@ -55,7 +61,7 @@ mapping table.
 
 Both are generated from the same PSR-4 source tree ([`src/`](src), with
 [`src-8.5/`](src-8.5) overlays) by [`tools/build.php`](tools/build.php), and
-both pass the identical test matrix (330 tests / 968 assertions per leg,
+both pass the identical test matrix (386 tests / 1286 assertions per leg,
 run with **and without** `ext-intl` — the suite is extension-independent).
 
 ## Installation
@@ -111,6 +117,9 @@ echo $engine->render('page.html', [
 
 ```php
 $engine->renderString('%{price|number:2}', ['price' => 1234.5]);   // "1,234.50" (locale-aware)
+$engine->renderString('%{= done / total * 100 | round:1 }%', $v);  // "14.8%" — inline math (v5)
+$engine->renderString('%{= prices[currency]}', $v);                 // dynamic key (v5)
+$engine->renderString('%{= get(fieldName)}', $v);                   // name from data (v5)
 $engine->renderString('<!--@If total > 100 -->FREE<!--@Else-->%{ship|number:2}<!--@EndIf-->', $vars);
 $engine->renderString('<!--@Set total="price * qty-->%{total|round:2}', $vars);
 $engine->render('child.html');                 // <!--@Extends "base.html"--> inheritance
@@ -158,6 +167,7 @@ the `WordPress\*` adapters (which exist to talk to WordPress).
 | [docs/CLI.md](docs/CLI.md) | `bin/htmlphp` commands |
 | [docs/SECURITY.md](docs/SECURITY.md) | threat model & hardening guide |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | layering, pipeline, editions, decisions |
+| [docs/MIGRATION-4.x-TO-5.0.md](docs/MIGRATION-4.x-TO-5.0.md) | 4 → 5 upgrade: new syntax, hardening checklist |
 | [docs/MIGRATION-3.x-TO-4.0.md](docs/MIGRATION-3.x-TO-4.0.md) | 1:1 mapping for every removed function |
 | [CHANGELOG.md](CHANGELOG.md) | release history |
 

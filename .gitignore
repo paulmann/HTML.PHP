@@ -9,4 +9,5 @@
 *.cache
 .ragraf/
 ci-fix/
+.zwork/
 /wiki/

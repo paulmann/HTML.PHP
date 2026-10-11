@@ -57,6 +57,7 @@ final class Renderer
     ) {
         $this->substitution = new Substitution(
             $config->syntax,
+            $config->limits,
             $filters,
             $escaper,
             $translator,

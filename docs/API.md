@@ -1,4 +1,4 @@
-# API Reference — HTML.PHP 4.0.0
+# API Reference — HTML.PHP 5.0.0
 
 Namespace `HtmlPhp\`. Both editions expose the identical API. Everything is
 instance-based; nothing reads globals. Typical wiring is one call:
@@ -27,7 +27,7 @@ $engine = HtmlPhp\Engine::create($configArrayOrObject, $optionalContainerSetup);
 | `clearCache(): int` | Purges render cache + parse memo |
 | `stats(): ?RenderStats` | Profiling of the most recent render |
 | `config() container() renderer() locator() ssi() translator() filters() events() cache() logger() diagnostics() clock() linter() escaper()` | Service accessors (all lazy singletons) |
-| `version(): string` | `"4.0.0 (8.3 edition)"` |
+| `version(): string` | `"5.0.0 (8.3 edition)"` |
 
 ### Template\RenderOptions (readonly, all nullable = "take config")
 
@@ -48,7 +48,8 @@ peakMemoryKb, templates[]` + `toArray()`; the 8.5 edition adds a computed
 `context[]`; `format()` → `file:line SEVERITY [code] message`; `toArray()`.
 
 Codes: `unknown-tag, unclosed-tag, unbalanced-tag, orphan-mid,
-unknown-filter, filter-disabled, bad-expression, unresolved-include,
+unknown-filter, filter-disabled, filter-arg-not-numeric (v5, warning),
+bad-expression, expressions-disabled (v5), unresolved-include,
 unresolved-extends, missing-reference, loop-range-too-large,
 loop-signal-outside-loop, trans-count-without-plural,
 trans-plural-without-count, trans-nested-tag, untranslated-message,
@@ -101,6 +102,20 @@ Engine::create($config, function (Container $c): void {
 `find('a.b.c')` returns `[found, value]` walking arrays, `ArrayAccess`,
 public props and `get*/is*/has*` accessors. No `$GLOBALS` fallback — ever.
 
+Static accessors (v5), used by the expression evaluator and safe to call
+from host code:
+
+- `Scope::step(mixed $value, string $path): array{bool, mixed}` — walks a
+  dotted path through arrays / `ArrayAccess` / public properties and
+  zero-arg accessors (`getX`/`isX`/`hasX`). Read-only.
+- `Scope::index(mixed $value, mixed $key): array{bool, mixed}` — one element
+  by a *dynamic* key. Arrays, `ArrayAccess` and UTF-8 string offsets only;
+  `int`/`string` keys only (≤ 256 chars, no null bytes); plain objects are
+  never indexable by dynamic key. Always `[found, value]`, never a warning.
+- `Substitution::splitFilters()`, `Substitution::splitExpressionPayload()`
+  (quote- and bracket-aware), `Substitution::splitArguments()` and
+  `Substitution::parseSegments()` are public statics for host tooling.
+
 ## RequestContext (readonly)
 
 `RequestContext::fromServer($_SERVER)` (edge) · `::cli($cwd)` ·
@@ -121,7 +136,8 @@ last() clear() clean()`. Capped at `limits.max_diagnostics` (100). Forwards
 to the logger (when `log.forward_diagnostics`) and fires `htmlphp.error`.
 Codes: `missing-var, ssi-include-failed, ssi-include-cycle,
 ssi-limit-reached, ssi-exec-denied, ssi-exec-failed, ssi-expr-error,
-ssi-unknown-directive, filter-unknown, regex-failed, catalog-parse,
+ssi-unknown-directive, filter-unknown, expr-invalid, expr-disabled,
+regex-failed, catalog-parse,
 cache-io, loop-guard, template-lint, wp-bridge`.
 
 ## Event\Dispatcher
@@ -185,6 +201,7 @@ RenderContext, LoopSignal}` — see ARCHITECTURE.md for the pipeline.
 ## Support / Io / Html
 
 `Support\Str` (stringify, numericValue, round/cleanRound/number/divide,
+power/sqrt/accumulate *(v5, INF/NAN-safe, iteration-capped)*,
 truncate, slugify, keepWordChars, normalizeEntities, formatSize,
 isValidVariableName, sanitizeRecursive, upper/lower/ucfirst/words/length/substr)
 · `Support\Pcre` (throwing wrappers; `match/matchAll` degrade to no-match) ·

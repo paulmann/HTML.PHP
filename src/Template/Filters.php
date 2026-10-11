@@ -88,6 +88,11 @@ final class Filters
         'first' => true, 'last' => true, 'reverse' => true, 'sort' => true,
         'unique' => true, 'slice' => true, 'replace' => true, 'trim' => true,
         'base64' => true, 'md5' => true, 'sha1' => true, 'keys' => true,
+        // v5 — arithmetic (arguments are literals; use `%{= a * b}` for
+        // data-driven math): add sub mul mod pow sqrt pct sum avg clamp
+        'add' => true, 'sub' => true, 'mul' => true, 'mod' => true,
+        'pow' => true, 'sqrt' => true, 'pct' => true, 'sum' => true,
+        'avg' => true, 'clamp' => true,
     ];
 
     /**
@@ -146,6 +151,23 @@ final class Filters
             'int' => (string) (int) round(Str::numericValue($value)),
             'float' => Str::stringify(Str::numericValue($value)),
             'div' => Str::stringify(Str::divide($value, $args[0] ?? 0)),
+            'mul' => Str::stringify(self::finite(Str::numericValue($value) * Str::numericValue($args[0] ?? 0))),
+            'add' => Str::stringify(self::finite(Str::numericValue($value) + Str::numericValue($args[0] ?? 0))),
+            'sub' => Str::stringify(self::finite(Str::numericValue($value) - Str::numericValue($args[0] ?? 0))),
+            'mod' => Str::stringify(self::modulo(Str::numericValue($value), Str::numericValue($args[0] ?? 0))),
+            'pow' => Str::stringify(Str::power(Str::numericValue($value), Str::numericValue($args[0] ?? 1))),
+            'sqrt' => Str::stringify(Str::sqrt(Str::numericValue($value))),
+            'pct' => Str::round(
+                self::finite(Str::divide($value, $args[0] ?? 0) * 100),
+                $args[1] ?? 0,
+            ),
+            'sum' => Str::stringify(Str::accumulate($value)[0]),
+            'avg' => Str::stringify(self::average($value)),
+            'clamp' => Str::stringify(self::clamp(
+                Str::numericValue($value),
+                Str::numericValue($args[0] ?? 0),
+                Str::numericValue($args[1] ?? 0),
+            )),
             'abs' => Str::stringify(abs(Str::numericValue($value))),
             'date' => $this->formats->date($value, $args[0] ?? null),
             'ago' => $this->formats->ago($value),
@@ -203,6 +225,37 @@ final class Filters
     private static function isIterableValue(mixed $value): bool
     {
         return \is_array($value) || $value instanceof \Traversable;
+    }
+
+    /** Non-finite arithmetic results degrade to 0 (html4.pl `Divide()` spirit). */
+    private static function finite(float $value): float
+    {
+        return is_finite($value) ? $value : 0.0;
+    }
+
+    /** Integer modulo with the zero-divisor guard (`0`, never a fatal). */
+    private static function modulo(float $value, float $divisor): int
+    {
+        $divisor = (int) $divisor;
+
+        return $divisor === 0 ? 0 : (int) $value % $divisor;
+    }
+
+    /** Capped mean over arrays/iterables (scalars count as one item). */
+    private static function average(mixed $value): float
+    {
+        [$sum, $count] = Str::accumulate($value);
+
+        return $count === 0 ? 0.0 : self::finite($sum / $count);
+    }
+
+    private static function clamp(float $value, float $min, float $max): float
+    {
+        if ($min > $max) {
+            [$min, $max] = [$max, $min];
+        }
+
+        return max($min, min($max, $value));
     }
 
     /** @return array<array-key, mixed> */
