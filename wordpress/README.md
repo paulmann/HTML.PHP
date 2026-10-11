@@ -1,21 +1,26 @@
-# WordPress Integration
+# WordPress distribution
 
-* **[html-wp.php](html-wp.php)** — bridge + maintenance toolkit (require it
-  from your plugin/theme, then call `html_wp_boot()`);
-* **[html-php-maintenance/](html-php-maintenance/)** — ready-made
-  maintenance plugin (Tools → HTML.PHP dashboard, daily health cron,
-  dashboard widget, WP-CLI commands).
+- `html-php/` — the installable plugin (loader, activation hardening,
+  uninstall cleanup, engine-rendered admin views, `htmlphp_render()` /
+  `htmlphp_t()` helpers, `[htmlphp]` shortcode).
 
-Full documentation: [../docs/WORDPRESS.md](../docs/WORDPRESS.md).
-Installation layout expected by the plugin:
+## Shipping the library with the plugin
 
-```text
-wp-content/plugins/html-php/
-├── php83/html.php            # or php85/html.php
-├── wordpress/
-│   ├── html-wp.php
-│   └── html-php-maintenance/ # activate this as the plugin
-```
+The plugin auto-selects its library source:
 
-(Or adjust the single `require_once` in `html-php-maintenance.php` and
-define `HTML_WP_ENGINE` with the absolute path to your `html.php`.)
+1. `html-php/vendor/autoload.php` — when installed via Composer
+   (`composer require paulmann/html-php85` on PHP 8.5+, else
+   `paulmann/html-php`); **or**
+2. `html-php/lib/php85/html.php` on PHP 8.5+, `html-php/lib/php83/html.php`
+   on PHP 8.3/8.4 — copy the built bundle from the repository root
+   (`php83/html.php`, `php85/html.php`) into `lib/php83/` resp. `lib/php85/`.
+
+If neither exists the plugin stays inert and shows a single admin notice —
+it never fatals.
+
+## Plugin authors
+
+Prefer booting the bridge from your own plugin (see
+[docs/WORDPRESS.md](../docs/WORDPRESS.md)) — you get full control over
+config, shortcodes and container overrides; the bundled plugin is the
+zero-config path.

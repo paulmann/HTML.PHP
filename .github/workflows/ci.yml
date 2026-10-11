@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    name: PHP ${{ matrix.php }} ${{ matrix.target }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4', '8.5']
+        target: ['src', 'php83', 'php85']
+        exclude:
+          - php: '8.3'
+            target: 'php85'
+          - php: '8.4'
+            target: 'php85'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring
+          coverage: none
+
+      - name: Build bundles
+        run: php tools/build.php
+
+      - name: Bundle freshness (no drift between src/ and editions)
+        run: php tools/build.php --check
+
+      - name: Test suite
+        run: |
+          if [ "${{ matrix.target }}" = "src" ]; then
+            php tests/run.php
+          else
+            php tests/run.php --lib=${{ matrix.target }}/html.php
+          fi
+
+  static-analysis:
+    name: PHPStan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring
+          coverage: none
+      - run: |
+          curl -sSLo phpstan.phar https://github.com/phpstan/phpstan/releases/latest/download/phpstan.phar
+          php phpstan.phar analyse --no-progress -c phpstan.neon || true
+
+  coding-style:
+    name: PHP-CS-Fixer (dry run)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: php-cs-fixer
+          coverage: none
+      - run: PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer fix --dry-run --diff || true

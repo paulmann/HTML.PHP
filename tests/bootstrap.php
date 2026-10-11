@@ -1,10 +1,14 @@
 <?php
 /**
- * Test suite bootstrap.
+ * Test suite bootstrap (v4).
  *
- * - loads the library under test exactly once,
- * - pins a deterministic environment (UTC, no locale surprises),
- * - offers temp fixture helpers rooted at tests/tmp/.
+ * - loads the library under test exactly once:
+ *     default      → src/ through autoload.php,
+ *     --lib=PATH   → a built single-file bundle (php83/html.php, php85/html.php),
+ *     HTML_PHP_LIB → same via environment variable;
+ * - pins a deterministic environment (UTC);
+ * - offers temp fixture helpers rooted at tests/tmp/;
+ * - offers engine factory helpers shared by every case.
  *
  * Nothing here may depend on the current working directory: every path is
  * derived from __DIR__.
@@ -13,11 +17,7 @@
 declare(strict_types=1);
 
 /**
- * Resolves the library under test.
- *
- * Priority: --lib=PATH (defines HTML_PHP_LIB before this file loads),
- * then the HTML_PHP_LIB environment variable, then the edition matching
- * the running PHP (php85/html.php on PHP 8.5+, php83/html.php otherwise).
+ * Resolves what is under test: 'src' (PSR-4 tree) or a bundle path.
  */
 function library_path(): string
 {
@@ -27,34 +27,36 @@ function library_path(): string
         return $resolved;
     }
 
-    if (defined('HTML_PHP_LIB') && is_string(HTML_PHP_LIB) && HTML_PHP_LIB !== '') {
-        $candidate = HTML_PHP_LIB;
-    } else {
-        $candidate = (string) getenv('HTML_PHP_LIB');
+    $candidate = defined('HTML_PHP_LIB') && is_string(HTML_PHP_LIB) && HTML_PHP_LIB !== ''
+        ? HTML_PHP_LIB
+        : (string) getenv('HTML_PHP_LIB');
+
+    if ($candidate !== '' && is_file($candidate)) {
+        $resolved = (realpath($candidate) ?: $candidate);
+
+        return $resolved;
     }
 
-    if ($candidate === '' || !is_file($candidate)) {
-        $root = dirname(__DIR__);
-        $edition = PHP_VERSION_ID >= 80500 ? 'php85' : 'php83';
-        $candidate = $root . DIRECTORY_SEPARATOR . $edition . DIRECTORY_SEPARATOR . 'html.php';
-    }
-
-    if (!is_file($candidate)) {
-        throw new RuntimeException("Library under test not found: '{$candidate}'.");
-    }
-
-    $resolved = realpath($candidate) ?: $candidate;
+    $resolved = 'src';
 
     return $resolved;
 }
 
-require_once library_path();
+/** True when the suite runs against a single-file bundle. */
+function testing_bundle(): bool
+{
+    return library_path() !== 'src';
+}
+
+if (testing_bundle()) {
+    require_once library_path();
+} else {
+    require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'autoload.php';
+}
 
 date_default_timezone_set('UTC');
 
-/**
- * Absolute path of the runtime scratch directory (tests/tmp).
- */
+/** Absolute path of the runtime scratch directory (tests/tmp). */
 function fixture_dir(): string
 {
     static $directory = null;
@@ -70,9 +72,7 @@ function fixture_dir(): string
     return $directory;
 }
 
-/**
- * Absolute path of a fixture, whether or not it exists yet.
- */
+/** Absolute path of a fixture, whether or not it exists yet. */
 function fixture_path(string $relative): string
 {
     $relative = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($relative, "/\\"));
@@ -84,9 +84,7 @@ function fixture_path(string $relative): string
     return fixture_dir() . DIRECTORY_SEPARATOR . $relative;
 }
 
-/**
- * Writes a fixture file, creating parent directories, and returns its path.
- */
+/** Writes a fixture file, creating parent directories; returns its path. */
 function fixture_write(string $relative, string $body): string
 {
     $path = fixture_path($relative);
@@ -103,12 +101,10 @@ function fixture_write(string $relative, string $body): string
     return $path;
 }
 
-/**
- * Removes a fixture directory tree. Missing paths are not an error.
- */
+/** Removes a directory tree. Missing paths are not an error. */
 function remove_tree(string $path): void
 {
-    if ($path === '' || !file_exists($path) && !is_link($path)) {
+    if ($path === '' || (!file_exists($path) && !is_link($path))) {
         return;
     }
 
@@ -134,9 +130,7 @@ function remove_tree(string $path): void
     @rmdir($path);
 }
 
-/**
- * Deletes every fixture created during the run.
- */
+/** Deletes every fixture created during the run. */
 function cleanup_fixtures(): void
 {
     remove_tree(fixture_dir());
@@ -144,8 +138,6 @@ function cleanup_fixtures(): void
 
 /**
  * Runs a PHP snippet in a fresh interpreter and returns [exitCode, output].
- *
- * proc_open() with an argument vector is used so no shell quoting is involved.
  *
  * @return array{0: int, 1: string}
  */
@@ -159,11 +151,7 @@ function run_isolated_php(string $code): array
         '-r', $code,
     ];
 
-    $descriptors = [
-        1 => ['pipe', 'w'],
-        2 => ['pipe', 'w'],
-    ];
-
+    $descriptors = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
     $process = proc_open($command, $descriptors, $pipes);
 
     if (!is_resource($process)) {
@@ -178,10 +166,81 @@ function run_isolated_php(string $code): array
     return [proc_close($process), $stdout . $stderr];
 }
 
-/**
- * Builds a `php -r` snippet that requires the library under test.
- */
+/** `php -r` prelude that loads the library under test. */
 function isolated_library_include(): string
 {
-    return 'require ' . var_export(library_path(), true) . ';';
+    return testing_bundle()
+        ? 'require ' . var_export(library_path(), true) . ';'
+        : 'require ' . var_export(dirname(__DIR__) . '/autoload.php', true) . ';';
+}
+
+// ---------------------------------------------------------------- test engine
+
+use HtmlPhp\Config\MissingVarPolicy;
+use HtmlPhp\Engine;
+use HtmlPhp\RequestContext;
+use HtmlPhp\Support\FrozenClock;
+use HtmlPhp\Template\RenderOptions;
+
+/**
+ * Builds an engine rooted at the fixture directory with sane test defaults
+ * (auto-escape on, array logger, deterministic clock).
+ *
+ * @param array<string, mixed> $config merged over the defaults
+ */
+function test_engine(array $config = [], ?FrozenClock $clock = null): Engine
+{
+    $base = [
+        'debug' => true,
+        'templates' => ['paths' => [fixture_path('tpl')]],
+        'log' => ['driver' => 'array'],
+        'ssi' => ['document_root' => fixture_path('tpl')],
+    ];
+
+    $engine = Engine::create(array_replace_recursive($base, $config), static function ($container) use ($clock): void {
+        if ($clock !== null) {
+            $container->instance(HtmlPhp\Support\ClockInterface::class, $clock);
+        }
+    });
+
+    if (!is_dir(fixture_path('tpl'))) {
+        @mkdir(fixture_path('tpl'), 0o777, true);
+    }
+
+    return $engine;
+}
+
+/** Request context pinned to deterministic test values. */
+function test_request(array $server = []): RequestContext
+{
+    return RequestContext::fromServer(array_merge([
+        'DOCUMENT_ROOT' => fixture_path('tpl'),
+        'REQUEST_URI' => '/index.shtml?a=1',
+        'SCRIPT_NAME' => '/index.shtml',
+        'QUERY_STRING' => 'a=1',
+        'REQUEST_METHOD' => 'GET',
+        'SERVER_NAME' => 'example.test',
+        'SERVER_PROTOCOL' => 'HTTP/1.1',
+        'REMOTE_ADDR' => '203.0.113.7',
+        'HTTP_USER_AGENT' => 'HtmlPhpTests/4.0',
+        'HTTP_ACCEPT_LANGUAGE' => 'de-DE,de;q=0.9,en;q=0.5',
+    ], $server));
+}
+
+/** Render options with the test request + fixture document root. */
+function test_options(?string $file = null, array $overrides = []): RenderOptions
+{
+    return new RenderOptions(
+        file: $file,
+        root: $overrides['root'] ?? fixture_path('tpl'),
+        request: $overrides['request'] ?? test_request(),
+        ssi: $overrides['ssi'] ?? null,
+        structure: $overrides['structure'] ?? null,
+        autoEscape: $overrides['escape'] ?? null,
+        missingVar: $overrides['missing'] ?? null,
+        cache: $overrides['cache'] ?? null,
+        ttl: $overrides['ttl'] ?? null,
+        locale: $overrides['locale'] ?? null,
+        ssiVars: $overrides['ssi_vars'] ?? null
+    );
 }

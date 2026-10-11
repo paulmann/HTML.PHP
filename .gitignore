@@ -1,8 +1,10 @@
-/tmp/
 /tests/tmp/
-/composer.lock
+/tests/tmp-cli/
 /vendor/
-/.tmp-parts/
-*.zip
-tools/phpstan.phar
+/composer.lock
+/.phpunit.cache/
+/ported/
+/ported-wp/
+/tools/v3-source/
+*.cache
 .ragraf/

@@ -138,7 +138,7 @@ function get_locale(): string
     return determine_locale();
 }
 
-function load_plugin_textdomain(string $domain, string $dir = ''): bool
+function load_plugin_textdomain(string $domain, string|bool $deprecated = false, string $dir = ''): bool
 {
     return true;
 }

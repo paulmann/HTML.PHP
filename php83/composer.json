@@ -1,16 +1,7 @@
 {
     "name": "paulmann/html-php",
-    "description": "Single-file PHP 8.3+ template engine: Apache SSI directives, i18n (PO/MO, plural forms), loops, filters, render cache, html4.pl-compatible legacy API, WordPress bridge \u2014 zero dependencies.",
+    "description": "HTML.PHP 4.0.0 — single-file PHP 8.3 edition: template engine + Apache SSI + gettext i18n. Zero dependencies.",
     "type": "library",
-    "keywords": [
-        "template",
-        "ssi",
-        "i18n",
-        "gettext",
-        "wordpress",
-        "html4.pl",
-        "single-file"
-    ],
     "license": "MIT",
     "authors": [
         {
@@ -20,17 +11,14 @@
         }
     ],
     "require": {
-        "php": ">=8.3"
+        "php": ">=8.3 <8.5"
+    },
+    "conflict": {
+        "paulmann/html-php85": "*"
     },
     "autoload": {
         "files": [
             "html.php"
         ]
-    },
-    "scripts": {
-        "test": "php ../tests/run-tests.php --lib=html.php"
-    },
-    "config": {
-        "sort-packages": true
     }
 }

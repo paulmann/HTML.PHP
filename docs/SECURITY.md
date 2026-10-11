@@ -1,95 +1,139 @@
-# Security Model
+# Security Model — HTML.PHP 4
 
-HTML.PHP is designed to run **untrusted templates against a trusted
-codebase**: template authors may write markup, SSI directives and variable
-references, but must never be able to read secrets, escape the document
-root, execute arbitrary code or exhaust resources. This document lists every
-guard rail; the `04_ssi_security`, `11`, `12` and `18` test groups assert
-them.
+Design principle: **a template is data, never code.** Nothing in the
+rendering path can execute PHP, spawn a shell, or read a file the host did
+not sanction — unless the host explicitly configures it to, and even then
+behind allow-lists, budgets and containment.
 
-## 1. Output escaping
+## 1. Output escaping (XSS)
 
-* `#echo` output is HTML-escaped by default (`HTML_SSI_ECHO_ESCAPE=true`);
-  `encoding="none"` is an explicit per-directive opt-out, `encoding="url"`
-  percent-encodes.
-* `%{VAR}` substitution is raw by default (legacy compatibility) — turn on
-  `HTML_ESCAPE_VARS`, pass `['escape' => true]` to `html_render()`, or use
-  `|escape`/`|attr`/`|url` filters. Shortcodes registered through the WP
-  bridge render with escaping on.
-* `HTML_ESCAPER` lets hosts (e.g. WordPress `esc_html`) own the text
-  escaping policy.
-* `sanitizeXSS()`/`HTML_Sanitized_Input()` double-encode by design and never
-  mutate superglobals; `HTML_AUTO_SANITIZE_INPUT` (mutating) stays opt-in.
+- Auto-escaping is **on by default** (v3: off). Every `%{}`/`#{}`/`@{}`
+  substitution is HTML-escaped (`ENT_QUOTES | ENT_HTML5 | ENT_SUBSTITUTE`,
+  UTF-8, `double_encode: false`) unless the filter chain already produced
+  safe output (`escape/attr/url/json/js/css/nl2br`) or explicitly requested
+  `raw`.
+- Context escapers: `attr`, `url` (encodes `&`/`'` — values, not query
+  strings), `json`/`js` (`JSON_HEX_TAG|APOS|QUOT|AMP` — `</script>`
+  breakout-safe), `css`.
+- `syntax.allow_raw_filter: false` removes the only unescape hatch —
+  recommended whenever templates come from users (multisite editors,
+  database-stored templates).
+- `#echo` output is escaped by default (`ssi.escape_echo`), with explicit
+  `encoding=` opt-outs and an `ssi.echo_allow` name gate.
+- `#exec` output has control bytes stripped (`security.sanitize_exec_output`).
 
-## 2. Variable-name gate
+## 2. Filesystem containment (traversal & source disclosure)
 
-Every template-driven read or write of `$GLOBALS` (`#set`, `#echo`,
-`##echo`, `<!--@var-->`, `<!--@Block-->`) passes
-`Str::isValidVariableName()` (`^[A-Za-z_][A-Za-z0-9_.-]{0,127}$`, no null
-bytes) **and** `Config::isReserved()` (superglobals, every `HTML_*`
-configuration key and engine internals) **and** the built-in-SSI-name
-check. `HTML_SSI_ECHO_ALLOW` optionally narrows readable names further.
-`%{NAME}` resolution is scope-first; the legacy `$GLOBALS` resolver is
-read-only and cannot be used to write.
+All include paths — SSI `file=`/`virtual=`, `@Include`, `@Extends`,
+catalogue files — pass through realpath-based containment:
 
-## 3. Filesystem containment
+- `..` segments and URL schemes are rejected before resolution (unless
+  `ssi.allow_parent_paths`, off by default).
+- After `realpath()` (which also resolves **symlinks**), the target must sit
+  inside a configured root.
+- `security.denied_extensions` (php, phar, phtml, cgi, pl, py, sh, inc,
+  conf, env, htaccess, ini, log, sql, bak, …) and **all dotfiles** are never
+  includable — v3 would happily serve `wp-config.php` sources through
+  `#include`; v4 refuses (verified by the test suite).
+- Absolute paths in template *data* (`@Include "/etc/passwd"`) are rejected
+  outright; only host code (`renderFile`) may pass absolute paths.
+- The WordPress `TemplateLoader` never treats `.php` as a template suffix.
+- Size caps: `limits.max_template_bytes` (16 MiB) and
+  `limits.max_include_bytes` (8 MiB).
 
-* Includes, `#fsize`/`#flastmod` targets and `#if` file tests resolve
-  through one path resolver: normalised, realpath'd, required to stay inside
-  the document root (compared case-insensitively on Windows/macOS), size-
-  capped (`HTML_MAX_INCLUDE_BYTES`), `..` rejected unless
-  `HTML_SSI_ALLOW_PARENT`; URL schemes rejected.
-* `#include file=` never accepts absolute paths.
-* `WriteFile()`/render cache writes are atomic (temp file in the destination
-  directory → verified length → chmod → rename with locked in-place
-  fallback).
+## 3. Code execution (`#exec`)
 
-## 4. Code execution
+- Denied by default (`ssi.exec_mode: deny`) — diagnostics, not silence.
+- `allow-list`: `cmd=` binaries must realpath-match (or basename-match) an
+  explicit allow-list entry; no shell is involved (`proc_open` argv form,
+  quote-aware tokenizer); minimal CGI environment; hard timeout
+  (1–60 s) and output cap (≤16 MiB) enforced via `stream_select`.
+- `cgi=`: document-root-contained scripts with allow-listed extensions
+  only; `spawn` mode runs `php -f` in a subprocess, `include` mode captures
+  output in-process and converts throws into diagnostics.
+- `delegate`: host callable decides per directive (`true`/`false`/literal
+  output) — the recommended way to integrate a job runner safely.
 
-* `#exec` is **deny by default** (`HTML_SSI_EXEC=false`).
-* `cmd=` additionally requires an allow-list (`HTML_SSI_EXEC_CMD_ALLOW`,
-  default empty = deny even when enabled). The command never touches a
-  shell: it is tokenised (quotes honoured) and spawned via `proc_open()`
-  with an argv array, so `>`, `|`, `;`, `` ` ``, `$()` are literal text. The
-  child environment is minimal.
-* `cgi=` must resolve inside the document root and match
-  `HTML_SSI_EXEC_CGI_EXT`; default mode spawns a fresh `PHP_BINARY`
-  process. In-process `include` mode is opt-in and documented as
-  state-sharing.
-* All execs are bounded by `HTML_SSI_EXEC_TIMEOUT` (child killed) and
-  `HTML_SSI_EXEC_MAX_BYTES` (output truncated, child killed).
-* There is no `eval()`, `assert()`, `create_function()`, `unserialize()` of
-  template data, dynamic `include` of template-derived strings or PCRE `/e`
-  anywhere in the library. Plural-form and `#if` expressions are parsed by
-  purpose-built parsers.
+## 4. Expression safety
 
-## 5. Resource exhaustion (DoS)
+Two independent evaluators, neither uses `eval()`:
 
-Bounded by configuration, all enforced per render: SSI include depth (16),
-include count (256), template size (16 MiB), include size (8 MiB), loop rows
-(10 000), loop nesting (32), conditional nesting (64), expression length
-(4 KiB), numeric precision (100), diagnostics list (100 entries), exec
-timeout/output, `repeat` filter (1000). PCRE failures throw
-`TemplateException` instead of silently corrupting output; Unicode patterns
-fall back to byte-safe patterns on malformed UTF-8.
+- **SSI `#if`** (`Ssi\Expression`): mod_include string grammar —
+  comparisons, `/regex/`, file tests, logic. File tests resolve through the
+  same containment as includes; `-A`/`-U` (Apache subrequests) are refused
+  with a diagnostic — a template can never trigger network I/O. Length cap
+  `limits.max_expression_length`. Errors evaluate `false`, never throw.
+- **Template expressions** (`Template\Expression`): tokenizer +
+  precedence-climbing parser producing a memoized AST; literals, names,
+  arithmetic/logic/ternary/coalesce, `in`, `matches` (string-literal
+  patterns only), `a..b` ranges (capped), and a **whitelisted** function
+  set (`count/empty/min/max/abs/round/floor/ceil/int/float/str/lower/upper/
+  number/default/length/defined`). Unknown function ⇒ syntax error. Division
+  and modulo by zero yield `0` (html4.pl semantics, no fatals). Depth and
+  length caps; `syntax.strict` turns expression errors into exceptions.
+- `PluralForms` header expressions: separate mini-evaluator, length-capped,
+  fail-safe to form `0` — a malicious PO file cannot execute anything.
 
-## 6. Injection surfaces considered
+## 5. Resource budgets (DoS)
 
-* **SSI expression parser** — no shell, no eval; regexes wrapped with a
-  safe delimiter and error-guarded.
-* **PO/MO parsers** — bounds-checked, reject hostile/truncated input with a
-  diagnostic; charset conversion failures degrade to raw bytes, never
-  warnings.
-* **Cache** — keys hash template+vars+locale+config; entries are JSON
-  envelopes with expiry; corrupted entries are deleted, not served.
-* **WP bridge** — shortcode attribute names pass the variable-name gate;
-  REST routes refuse to register without a permission callback; plugin POST
-  actions are capability- and nonce-checked; notices are escaped.
+`limits.*`: template/include byte caps, SSI depth (16) + tag budget (256),
+loop rows (10 000, truncates + diagnoses) + nesting (32), partial/layout
+nesting (64), layout chain depth (8), expression length, exec timeout +
+output cap, diagnostics cap (100, bounded memory). Regex work goes through
+`Support\Pcre`, which converts PCRE failures (including backtrack-limit
+hits from ReDoS-shaped patterns) into exceptions or no-matches — never
+silent `null`s.
 
-## 7. Reporting
+## 6. No hidden state
 
-Security issues: please report privately to `Mikhail@Deynekin.com`
-(coordinated disclosure, credit on request). Non-fatal security-relevant
-events (denied execs, containment violations, cycles) surface in
-`html_errors()` for monitoring; hook `htmlphp_error` to ship them to your
-logger/SIEM.
+- The core contains **no `eval()` and no `$GLOBALS`/superglobal reads** —
+  enforced by a token-level test (`13_security.test.php`) in every CI run.
+  Sanctioned edges: `HtmlPhp\Input` (explicit, read-only, sanitising) and
+  the `WordPress\*` adapters (which exist to talk to WordPress' own
+  globals like `$wpdb`).
+- Configuration is an immutable validated object; engines are independent —
+  one misconfigured tenant cannot leak into another engine in the same
+  process.
+- Time comes from an injectable `ClockInterface`; request data from an
+  injected `RequestContext`.
+
+## 7. Cache & filesystem hygiene
+
+- `FileCache`: hashed keys, atomic writes (temp + verified length +
+  rename), probabilistic GC, and directory hardening — a deny-all
+  `.htaccess` plus an empty `index.html` are written into the cache root
+  (`cache.harden_directory`).
+- The WordPress cache backend keys object-cache groups per blog id and
+  stores values as transients, both namespaced by a configurable prefix.
+- `AtomicWriter` preserves file modes and never writes outside the
+  destination directory.
+
+## 8. Diagnostics & error disclosure
+
+- Exceptions carry structured context (template, line, directive) for logs;
+  nothing sensitive is echoed to output — failed directives render the
+  configured `errmsg` (or nothing).
+- `#printenv` is escapable-by-default, allow-list-gated and can be disabled
+  (`ssi.printenv_enabled`).
+- The linter surfaces misconfigurations (`ssi-exec-denied` info) **before**
+  deploy instead of at runtime.
+
+## Threat model summary
+
+| Vector | Mitigation |
+|---|---|
+| XSS via variables | auto-escape default, context filters, disable-able `raw` |
+| XSS via SSI echo | escaped by default + allow-list |
+| LFI / source disclosure | realpath containment, denied extensions, dotfile ban, absolute-path ban |
+| Symlink escape | realpath resolution before containment check |
+| RCE via `#exec` | deny default, allow-lists, no shell, delegate hook, timeout/caps |
+| RCE via expressions | whitelisted functions, no eval, AST evaluator, caps |
+| RCE via plural headers | dedicated safe evaluator, length cap, fail-safe |
+| DoS (loops/includes/templates/regex) | byte, depth, row, tag, length budgets + PCRE error handling |
+| Cache poisoning/collision | keys include version+locale+escape policy+vars hash; atomic writes |
+| Cross-tenant state leaks | no statics, per-engine everything (test-enforced) |
+
+## Reporting
+
+Security issues: please report privately to Mikhail@Deynekin.com.
+Supported versions: 4.x on PHP 8.3+ (8.5 edition on PHP 8.5+).

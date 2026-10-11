@@ -1,0 +1,8 @@
+/tests          export-ignore
+/tools          export-ignore
+/ported         export-ignore
+/ported-wp      export-ignore
+/.swarm         export-ignore
+/.github        export-ignore
+phpstan.neon    export-ignore
+.php-cs-fixer.dist.php export-ignore

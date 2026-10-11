@@ -1,13 +1,31 @@
 <?php
-/**
- * Shared example bootstrap: loads the engine edition that matches the
- * running PHP (php85/html.php on PHP 8.5+, php83/html.php otherwise).
- */
-
+/** Shared bootstrap for the examples: dev autoload or single-file bundle. */
 declare(strict_types=1);
 
-$edition = PHP_VERSION_ID >= 80500 ? 'php85' : 'php83';
+$root = dirname(__DIR__);
 
-require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . $edition . DIRECTORY_SEPARATOR . 'html.php';
+foreach ([
+    $root . '/vendor/autoload.php',
+    $root . '/autoload.php',
+    PHP_VERSION_ID >= 80500 ? $root . '/php85/html.php' : $root . '/php83/html.php',
+] as $candidate) {
+    if (is_file($candidate)) {
+        require_once $candidate;
+        break;
+    }
+}
 
-date_default_timezone_set('UTC');
+if (!class_exists(HtmlPhp\Engine::class)) {
+    fwrite(STDERR, "Library not found.\n");
+    exit(1);
+}
+
+function example_dir(string $sub = ''): string
+{
+    $dir = sys_get_temp_dir() . '/htmlphp-examples';
+    @mkdir($dir, 0777, true);
+
+    return $sub === '' ? $dir : $dir . '/' . trim($sub, '/');
+}
+
+echo "== HTML.PHP " . HtmlPhp\Version::banner() . " on PHP " . PHP_VERSION . " ==\n";

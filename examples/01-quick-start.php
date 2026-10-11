@@ -1,45 +1,36 @@
 <?php
-/**
- * 01 - Quick start: load a template string, set variables, render with HTML().
- *
- * Run:  php examples/01-quick-start.php
- */
-
+/** Substitution, escaping, filters, diagnostics — the daily drivers. */
 declare(strict_types=1);
 
-require_once __DIR__ . DIRECTORY_SEPARATOR . '_bootstrap.php';
+require __DIR__ . '/_bootstrap.php';
 
-echo "=== 01 / Quick start ===\n\n";
+use HtmlPhp\Engine;
 
-// HTML() is the main entry point: it resolves %{NAME} placeholders from
-// $GLOBALS through the legacy update_template() callback, runs the SSI pass
-// first and evaluates the result twice so escaped references also resolve.
-$GLOBALS['TITLE'] = 'Hello, template';
-$GLOBALS['BODY'] = 'Rendered by HTML() with nothing but a string.';
+$engine = Engine::create(['debug' => true, 'log' => ['driver' => 'array']]);
 
-$template = "<h1>%{TITLE}</h1>\n<p>%{BODY}</p>\n<p>Missing name: [%{NOPE}]</p>";
+// Auto-escaping is on by default (v4).
+echo $engine->renderString('Hello %{name}!', ['name' => '<World>']), "\n";
+echo $engine->renderString('Raw: %{name|raw}', ['name' => '<b>ok</b>']), "\n";
 
-echo "--- template ---\n";
-echo $template, "\n";
-echo "--- rendered ---\n";
-echo HTML($template);
-echo "\n";
+// Filter chains, quoted args.
+echo $engine->renderString('%{price|number:2} · %{ts|date:Y-m-d} · %{title|slug}', [
+    'price' => 1234.5,
+    'ts'    => strtotime('2026-10-11 08:00 UTC'),
+    'title' => 'Hello World — Пример!',
+]), "\n";
 
-// Numeric directives work on the same placeholders: Round, Clean Round, Div,
-// Round Div and Clean Round Div.
-$GLOBALS['PRICE'] = '1234.5';
+// Dot paths walk arrays and objects.
+echo $engine->renderString('%{user.address.city}', [
+    'user' => ['address' => ['city' => 'Berlin']],
+]), "\n";
 
-echo "--- numeric directives ---\n";
-echo 'raw          : ', HTML('%{PRICE}'), "\n";
-echo 'Round: 2     : ', HTML('%{PRICE.Round: 2}'), "\n";
-echo 'Div 2        : ', HTML('%{PRICE.Div 2}'), "\n";
-echo 'Clean Round  : ', HTML('%{PRICE.Clean Round Div 2: 2}'), "\n\n";
+// Missing variables follow the configured policy (default: empty + diagnostic).
+echo $engine->renderString('[%{gone}]', []), "\n";
+print_r(array_map(
+    static fn(array $entry): string => $entry['code'] . ': ' . $entry['message'],
+    $engine->diagnostics()->all()
+));
 
-// A second evaluation pass resolves references that were escaped with the
-// bracketed form %[...].
-$GLOBALS['NAME'] = 'two passes';
-
-echo "--- escaped reference ---\n";
-echo HTML('Bracketed %[NAME] resolves on the second pass.'), "\n\n";
-
-echo "done.\n";
+// Custom filters are per-engine.
+$engine->filters()->add('shout', static fn(mixed $v): string => strtoupper((string) $v) . '!');
+echo $engine->renderString('%{word|shout}', ['word' => 'hey']), "\n";

@@ -1,0 +1,22 @@
+<div class="wrap">
+    <h1>HTML.PHP — Health</h1>
+    <p class="htmlphp-tabs">
+        <!--@Loop entry in tabs--><a href="%{page_url}&amp;tab=%{entry.id}" <!--@If entry.id == tab-->class="current"<!--@EndIf-->>%{entry.label}</a> <!--@EndLoop-->
+    </p>
+    <h2>Findings</h2>
+    <table class="widefat striped">
+        <thead><tr><th>Severity</th><th>Code</th><th>Message</th></tr></thead>
+        <tbody>
+        <!--@Loop data.findings-->
+            <tr>
+                <td>%{severity}</td>
+                <td><code>%{code}</code></td>
+                <td>%{message}</td>
+            </tr>
+        <!--@Else-->
+            <tr><td colspan="3">No findings.</td></tr>
+        <!--@EndLoop-->
+        </tbody>
+    </table>
+    %{nonce_field|raw}
+</div>

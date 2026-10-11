@@ -1,128 +1,170 @@
 # WordPress Integration Guide
 
-Two deliverables live in `wordpress/`:
+WordPress is a **first-class but optional** host. The core library has zero
+WordPress knowledge; everything WP-specific lives in `HtmlPhp\WordPress\*`
+and only activates inside WordPress (function/class existence guards).
 
-1. **`html-wp.php`** — the bridge + maintenance toolkit (a library file you
-   require from your plugin/theme);
-2. **`html-php-maintenance/`** — a ready-made plugin that exposes the
-   toolkit as a Tools → HTML.PHP dashboard, a daily health cron, a dashboard
-   widget and WP-CLI commands. The plugin's admin page is itself rendered by
-   the engine (SSI + loops + conditionals + escaping), so it doubles as a
-   living demo.
+Two ways in:
 
-Both work with either engine edition; `Bridge::ensureEngine()` picks
-`php85/html.php` on PHP 8.5+ and `php83/html.php` otherwise (override with
-the `HTML_WP_ENGINE` constant).
+1. **The bundled plugin** — [`wordpress/html-php/`](../wordpress/html-php/):
+   loader, activation hooks, uninstall cleanup, engine-rendered admin views,
+   `htmlphp_render()` / `htmlphp_t()` theme helpers, `[htmlphp]` shortcode.
+2. **Your own plugin/theme** — boot the bridge yourself (below).
+
+---
 
 ## Booting from your plugin
 
 ```php
-<?php
-require_once __DIR__ . '/vendor-or-relative/html-wp.php';
+add_action('plugins_loaded', static function (): void {
+    require_once __DIR__ . '/lib/php85/html.php';  // or php83/html.php / Composer
 
-html_wp_boot([
-    'escaper'      => true,                       // install esc_html as HTML_ESCAPER
-    'i18n'         => 'auto',                     // 'auto'|'wp'|'engine'|'off'
-    'locale'       => true,                       // sync with determine_locale()
-    'notices'      => true,                       // render the notice queue
-    'cli'          => true,                       // register wp htmlphp …
-    'shortcodes'   => ['cta' => __DIR__ . '/templates/cta.htm'],
-    'translations' => ['myplugin' => __DIR__ . '/languages'],
-    'config'       => ['HTML_CACHE_TTL' => 300],  // engine overrides
-]);
+    HtmlPhp\WordPress\Bridge::boot([
+        'templates' => ['paths' => [__DIR__ . '/templates']],
+        'i18n'      => ['domain' => 'my-plugin'],
+        'cache'     => ['ttl' => 300],
+    ], setup: null, options: [
+        'shortcode'   => 'mycard',   // registers [mycard template="..." k="v"]
+        'content_ssi' => true,       // SSI pass over the_content (opt-in!)
+        'admin_page'  => true,       // Tools → HTML.PHP screen
+        'admin_bar'   => null,       // default: WP_DEBUG
+        'cli'         => true,       // wp htmlphp …
+        'mirror_events' => true,     // engine events → WP hooks
+    ]);
+});
 ```
 
-What boot does:
+`Bridge::boot()` merges WordPress-flavoured defaults **under** your config:
 
-* installs `esc_html()` as the engine's text escaper (so the `esc_html`
-  filter chain of WordPress applies to `%{VAR}` auto-escaping and SSI echo);
-* sets translation delegation (`HTML_I18N_WP`) per the `i18n` mode;
-* syncs `HTML_I18N_LOCALE` with `determine_locale()`;
-* loads your engine catalogues for the active locale (WP's own textdomains
-  keep working through delegation);
-* registers template shortcodes and the admin-notice renderer.
+- `templates.paths` += `{child theme}/htmlphp`, `{parent theme}/htmlphp`
+- `ssi.document_root` = `ABSPATH`
+- `cache` = enabled, driver `wordpress` (object cache + transients), or
+  `file` in `{uploads}/htmlphp-cache` without an object cache
+- `log.driver` = `wordpress` (rotating daily files in
+  `{uploads}/html-php-logs/` + `debug.log` mirror when `WP_DEBUG_LOG`)
+- i18n delegates to `__()`/`_n()`/`_x()`/`_nx()` automatically
+  (`i18n.use_wordpress` to force either way)
 
-## Templates & shortcodes
+`Bridge::engine()` returns the booted instance; `Bridge::reset()` exists for
+tests only. This singleton is the **one** documented exception to the
+"explicit everything" rule — plugin lifecycles need it; plain PHP hosts
+construct engines directly.
+
+## Rendering in themes & plugins
 
 ```php
-// Render any located template through the engine (SSI + loops + i18n):
-echo html_wp_render('template-parts/card', ['post_title' => get_the_title()]);
+// helper (plugin-provided): locator → theme dirs → engine
+echo htmlphp_render('cards/author.html', ['author' => get_user_by('id', $id)]);
 
-// get_template_part-style with a variant name:
-echo HtmlPhp\WordPress\TemplateLoader::renderPart('content', 'single', $vars);
+// or explicitly:
+$loader = new HtmlPhp\WordPress\TemplateLoader(Bridge::engine());
+echo $loader->render(['card', 'cards/card'], ['post' => get_post()]);  // suffixes tried
+echo $loader->renderPart('content', 'single', ['post' => get_post()]); // get_template_part-style, returns string
 
-// Template-driven shortcode: [cta url="…" label="…"]content[/cta]
-html_wp_shortcode('cta', __DIR__ . '/templates/cta.htm', ['label' => 'Buy']);
+// every render auto-provides wp_ context vars:
+// %{wp_blogname} %{wp_description} %{wp_home_url} %{wp_locale} %{wp_year} …
 ```
 
-* Location order: child theme → parent theme (`locate_template()`) →
-  explicit directories → direct paths. Bare slugs try the suffixes
-  `.ssi.htm`, `.ssi.html`, `.ssi`, `.htm`, `.html`, `.tpl`, `.php`.
-* `.php` templates are included in an isolated scope (variables extracted,
-  output captured); everything else goes through `html_render_file()`.
-* Every render receives context variables: `wp_blogname`, `wp_description`,
-  `wp_version`, `wp_charset`, `wp_language`, `wp_home_url`, `wp_locale`,
-  `wp_year`.
-* Shortcode attributes become **scoped** variables (gated by the
-  variable-name policy); the enclosed content is available as `%{content}`.
-  Render failures never propagate — they return `''` and record a
-  `wp-bridge` diagnostic.
+`TemplateLoader::locate()` search order: child theme → parent theme
+(`locate_template()`) → your extra dirs. `.php` files are **never** treated
+as templates (v3 allowed it — a source-disclosure risk; v4 refuses).
 
-## Maintenance toolkit (`HtmlPhp\WordPress\Maintenance\…`)
+## Shortcodes
+
+```php
+(new HtmlPhp\WordPress\Shortcodes(Bridge::engine()))
+    ->register('author_card', 'cards/author.html', ['role' => 'guest']);
+// [author_card name="Ada"] → renders cards/author.html with name + role + %{content}
+```
+
+The bridge's generic shortcode (`options.shortcode`) works without code:
+`[htmlphp template="cards/author.html" name="Ada"]`. Attributes become
+scope variables (invalid names dropped); render failures return `''` +
+`wp-bridge` diagnostic — a broken template can never white-screen a page.
+
+## Hooks mirror
+
+| Engine event | WordPress hook | Type |
+|---|---|---|
+| `htmlphp.render` | `apply_filters('htmlphp_render', $text, $origin)` | filter |
+| `htmlphp.error` | `do_action('htmlphp_error', $code, $message, $context)` | action |
+| `htmlphp.translate` | `apply_filters('htmlphp_translate', $text, $msgid, $domain, $locale)` | filter |
+
+## Content SSI (opt-in)
+
+With `options.content_ssi`, `the_content` passes through the SSI processor —
+editors can use `<!--#include virtual="/legal/disclaimer.html" -->` inside
+posts. `#exec` stays denied (policy is config, not per-filter), includes are
+root-contained and extension-guarded. **Only enable on trusted-author sites.**
+
+## Maintenance toolkit (`HtmlPhp\WordPress\Maintenance\*`)
 
 | Class | Highlights |
 |---|---|
 | `Nonces` | `create/verify/verifyRequest/field` |
 | `Options` | prefixed, typed: `get/set/delete/getInt/getBool/getArray` |
 | `Transients` | `get/set/delete` + `remember($key, $ttl, $factory)` |
-| `Notices` | one-shot admin notice queue (`html_wp_notice()`), escaped output, auto-installed on `admin_notices` |
-| `Db` | `prepare/query/getVar/getRow/getResults` (always through `$wpdb->prepare`), `tableSizes()` from information_schema, `countTable()` |
-| `Cron` | `schedule` (idempotent), `unschedule`, `next`, `disabledByConstant()` |
-| `Logs` | rotating daily files in `{uploads}/html-php-logs/` (`HTML_WP_LOG_DIR` to override), `write/info/error/tail/rotate(keep)` |
-| `SystemInfo` | WP/PHP/server/engine snapshot for support tickets and audits |
-| `Updates` | pending core/plugin/theme updates from the update transients |
-| `Health` | actionable findings: PHP support window, debug display, memory limit, disk space, uploads writability, DB connection, cron mode, pending updates, engine diagnostics backlog |
+| `Notices` | one-shot admin notice queue, escaped output |
+| `Db` | always-`prepare`d `query/getVar/getRow/getResults`, `tableSizes()`, `countTable()` |
+| `Cron` | idempotent `schedule`, `unschedule`, `next`, `disabledByConstant()` |
+| `Logs` | rotating daily files in `{uploads}/html-php-logs/`, `write/info/error/tail/rotate(keep)` |
+| `SystemInfo` | WP/PHP/server/engine snapshot (pass the engine for live stats) |
+| `Updates` | pending core/plugin/theme updates from update transients |
+| `Health` | actionable findings: PHP support window, debug display, memory, disk, uploads writability, DB, cron, pending updates, **engine diagnostics backlog** |
 | `Assets` | `style()/script()` registration with **filemtime cache busting** |
-| `Rest` | `register_rest_route` wrapper that refuses to register without a permission callback (defaults to `manage_options`), plus `ok()/fail()` envelopes |
+| `Rest` | `route()` that always attaches a permission callback (defaults to `manage_options`), `ok()/fail()` envelopes |
 
-Global shortcuts: `html_wp_boot()`, `html_wp_is_wordpress()`,
-`html_wp_render()`, `html_wp_shortcode()`, `html_wp_notice()`.
+## Admin screen
+
+Tools → **HTML.PHP**: Health, Templates (lint report over every configured
+root), Cache (driver + clear), i18n (locale, catalogue stats), Logs (tail),
+Info (SystemInfo). If your theme ships `htmlphp/admin/htmlphp/{tab}.html`,
+that tab is rendered **by the engine itself** with `tab/tabs/data/nonce_field/
+admin_post_url/page_url` variables (dog-fooding — see the bundled
+`views/admin/htmlphp/health.html`). All POST actions are nonce +
+`manage_options` protected.
+
+## Mailer
+
+```php
+HtmlPhp\WordPress\Mailer::send(
+    Bridge::engine(),
+    $user->user_email,
+    'emails/welcome-subject.txt',   // template, path, or inline '@{key}'
+    'emails/welcome.html',
+    ['name' => $user->display_name]
+);
+```
+
+Subjects render unescaped (plain text), bodies escaped per config;
+`Content-Type: text/html` is added unless you provide your own headers.
 
 ## WP-CLI
 
-```bash
-wp htmlphp info [--json]      # system snapshot
-wp htmlphp health             # health findings (exit-friendly severities)
-wp htmlphp updates            # pending core/plugin/theme updates
-wp htmlphp render tpl.htm --var=name:value   # render through the engine
-wp htmlphp cache flush        # purge the render cache
-wp htmlphp logs [lines]       # tail the maintenance log
+```
+wp htmlphp info [--json]
+wp htmlphp render <template> [--var=k:v]…
+wp htmlphp lint [<path-or-dir>]        # exit 1 on errors — CI ready
+wp htmlphp cache clear
+wp htmlphp i18n extract <dir> [--out=messages.pot]
+wp htmlphp i18n audit <dir> [--locale=de] [--domain=messages]
+wp htmlphp health
 ```
 
-Commands self-register when WP-CLI runs and `html_wp_boot(['cli' => true])`
-executes (the maintenance plugin does this for you).
+## Multisite
 
-## The maintenance plugin
-
-`wordpress/html-php-maintenance/` is a complete plugin:
-
-* **Tools → HTML.PHP** page: health table, updates table, full system
-  snapshot, action buttons (run health check, flush render cache, write test
-  log entry) and a log tail — all rendered by the engine from
-  `views/admin.ssi.htm`;
-* **daily cron** (`htmlphp_daily_health`): stores findings in a transient and
-  queues an admin notice on critical results;
-* **dashboard widget** with the top findings;
-* activation/deactivation lifecycle logging;
-* every POST action is capability- and nonce-checked.
-
-Install by copying the `html-php-maintenance` folder **together with** the
-engine and `html-wp.php` into `wp-content/plugins/html-php/` (the plugin
-expects `../html-wp.php`), or adjust the single `require_once` line.
+Cache groups are blog-suffixed (`htmlphp_{blogId}`), options/transients are
+per-site by default, and the file cache dir lives in the (per-site) uploads
+directory. Nothing else is site-aware by design.
 
 ## Testing without WordPress
 
-`tests/wp-stubs.php` emulates the WP surface used by the bridge (hooks,
-options, transients, nonces, shortcodes, `$wpdb`, cron, assets, REST,
-WP-CLI, `wp_upload_dir`, …). The suite's `18_wordpress` group runs the
-bridge and the plugin end-to-end against these stubs — no database, no HTTP.
+The repository's `tests/wp-stubs.php` (+ `wp-stubs-extra.php`) stub the WP
+API surface the bridge touches — the v4 test suite runs the whole
+WordPress layer under plain CLI PHP. Reuse them in your own CI.
+
+## Roadmap (deliberately out of scope for 4.0)
+
+- Gutenberg block (`htmlphp/template`) — needs a JS build pipeline
+- Full-site-editing block themes integration
+- REST render endpoint (attack surface not worth it by default)

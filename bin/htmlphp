@@ -1,0 +1,281 @@
+#!/usr/bin/env php
+<?php
+/**
+ * HTML.PHP 4 — command-line interface.
+ *
+ * Works from a Composer checkout (src/), a git clone, or next to a
+ * single-file bundle. All commands take an optional --config=file.php
+ * pointing at a file that `return`s a v4 config array.
+ *
+ * Usage:
+ *   htmlphp version
+ *   htmlphp config:dump   [--config=FILE]
+ *   htmlphp lint PATH...  [--config=FILE] [--format=text|json] [--ignore=code,code]
+ *   htmlphp render TEMPLATE [--var k=v]... [--config=FILE]
+ *   htmlphp ssi FILE      [--root=DIR] [--config=FILE]
+ *   htmlphp cache:clear   [--config=FILE]
+ *   htmlphp i18n:extract DIR [--out=FILE] [--ext=html]
+ *   htmlphp i18n:audit DIR [--locale=de] [--domain=messages] [--config=FILE]
+ *
+ * Exit codes: 0 ok · 1 lint errors / runtime failure · 2 usage error.
+ */
+
+declare(strict_types=1);
+
+(static function (array $argv): void {
+    $root = dirname(__DIR__);
+
+    // Locate the library: explicit override → Composer → dev autoload → bundles.
+    $explicit = getenv('HTML_PHP_LIB');
+
+    foreach ([
+        is_string($explicit) && $explicit !== '' ? $explicit : null,
+        $root . '/vendor/autoload.php',
+        $root . '/autoload.php',
+        PHP_VERSION_ID >= 80500 ? $root . '/php85/html.php' : $root . '/php83/html.php',
+        $root . '/php83/html.php',
+    ] as $candidate) {
+        if (is_string($candidate) && $candidate !== '' && is_file($candidate)) {
+            require_once $candidate;
+            break;
+        }
+    }
+
+    if (!class_exists(HtmlPhp\Engine::class)) {
+        fwrite(STDERR, "HTML.PHP library not found next to this script.\n");
+        exit(2);
+    }
+
+    $command = (string) ($argv[1] ?? 'help');
+    $args = [];
+    $options = [];
+
+    foreach (array_slice($argv, 2) as $token) {
+        if (str_starts_with($token, '--')) {
+            [$key, $value] = array_pad(explode('=', substr($token, 2), 2), 2, true);
+            $options[$key][] = $value;
+        } else {
+            $args[] = $token;
+        }
+    }
+
+    $first = static fn(string $key, ?string $default = null): ?string => isset($options[$key][0]) && $options[$key][0] !== true
+        ? (string) $options[$key][0]
+        : $default;
+
+    $configFile = $first('config');
+    $config = [];
+
+    if ($configFile !== null) {
+        if (!is_file($configFile)) {
+            fwrite(STDERR, "Config file not found: {$configFile}\n");
+            exit(2);
+        }
+
+        $config = require $configFile;
+
+        if (!is_array($config)) {
+            fwrite(STDERR, "Config file must return an array.\n");
+            exit(2);
+        }
+    }
+
+    $engine = static function () use ($config): HtmlPhp\Engine {
+        return HtmlPhp\Engine::create($config);
+    };
+
+    $out = static function (string $text = ''): void {
+        print($text . "\n");
+    };
+    $err = static function (string $text): void {
+        fwrite(STDERR, $text . "\n");
+        exit(1);
+    };
+
+    try {
+        switch ($command) {
+            case 'version':
+                $out(HtmlPhp\Version::banner() . ' · PHP ' . PHP_VERSION);
+                exit(0);
+
+            case 'help':
+            case '--help':
+            case '-h':
+                $out((string) file_get_contents(__FILE__, false, null, 0, 1400));
+                exit(0);
+
+            case 'config:dump':
+                $out((string) json_encode($engine()->config()->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                exit(0);
+
+            case 'lint': {
+                if ($args === []) {
+                    $err('Usage: htmlphp lint PATH... [--format=text|json] [--ignore=code,code]');
+                }
+
+                $linter = $engine()->linter();
+                $format = $first('format', 'text');
+                $ignore = array_filter(explode(',', (string) $first('ignore', '')));
+                $issues = [];
+
+                foreach ($args as $path) {
+                    if (is_dir($path)) {
+                        foreach ($linter->lintDirectory($path) as $file => $found) {
+                            foreach ($found as $issue) {
+                                $issues[] = $issue;
+                            }
+                        }
+                        continue;
+                    }
+
+                    if (!is_file($path)) {
+                        $err("Not found: {$path}");
+                    }
+
+                    foreach ($linter->lintFile($path) as $issue) {
+                        $issues[] = $issue;
+                    }
+                }
+
+                $issues = array_values(array_filter(
+                    $issues,
+                    static fn(HtmlPhp\Template\LintIssue $issue): bool => !in_array($issue->code, $ignore, true)
+                ));
+
+                $errors = count(array_filter($issues, static fn(HtmlPhp\Template\LintIssue $issue): bool => $issue->isError()));
+
+                if ($format === 'json') {
+                    // stdout stays pure JSON; the summary goes to stderr.
+                    $out((string) json_encode(array_map(
+                        static fn(HtmlPhp\Template\LintIssue $issue): array => $issue->toArray(),
+                        $issues
+                    ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                    fwrite(STDERR, sprintf('%d issue(s), %d error(s).', count($issues), $errors) . "\n");
+                } else {
+                    foreach ($issues as $issue) {
+                        $out($issue->format());
+                    }
+
+                    $out(sprintf('%d issue(s), %d error(s).', count($issues), $errors));
+                }
+
+                exit($errors > 0 ? 1 : 0);
+            }
+
+            case 'render': {
+                $template = (string) ($args[0] ?? '');
+
+                if ($template === '') {
+                    $err('Usage: htmlphp render TEMPLATE [--var k=v]...');
+                }
+
+                $vars = [];
+
+                foreach ($options['var'] ?? [] as $pair) {
+                    if (!is_string($pair)) {
+                        continue;
+                    }
+
+                    [$key, $value] = array_pad(explode('=', $pair, 2), 2, '');
+                    $vars[$key] = $value;
+                }
+
+                $instance = $engine();
+                $out(is_file($template)
+                    ? $instance->renderFile($template, $vars)
+                    : $instance->render($template, $vars));
+                exit(0);
+            }
+
+            case 'ssi': {
+                $file = (string) ($args[0] ?? '');
+
+                if ($file === '' || !is_file($file)) {
+                    $err('Usage: htmlphp ssi FILE [--root=DIR]');
+                }
+
+                $document = new HtmlPhp\Ssi\DocumentInfo(
+                    file: $file,
+                    root: $first('root')
+                );
+
+                $out($engine()->processSsi((string) file_get_contents($file), $document));
+                exit(0);
+            }
+
+            case 'cache:clear': {
+                $removed = $engine()->clearCache();
+                $out("Removed {$removed} cache entries.");
+                exit(0);
+            }
+
+            case 'i18n:extract': {
+                $dir = (string) ($args[0] ?? '');
+
+                if ($dir === '' || !is_dir($dir)) {
+                    $err('Usage: htmlphp i18n:extract DIR [--out=FILE] [--ext=html]');
+                }
+
+                $extractor = new HtmlPhp\I18n\Extractor();
+                $files = $extractor->scanDirectory($dir, (string) $first('ext', 'html'));
+                $pot = $extractor->toPo();
+                $target = $first('out');
+
+                if ($target !== null) {
+                    file_put_contents($target, $pot) === false
+                        ? $err("Cannot write {$target}")
+                        : $out(sprintf('Wrote %d message(s) from %d file(s) to %s.', count($extractor->entries()), count($files), $target));
+                } else {
+                    $out($pot);
+                }
+
+                foreach ($extractor->dynamicHits() as $hit) {
+                    fwrite(STDERR, "warning: dynamic translate at {$hit}\n");
+                }
+
+                exit(0);
+            }
+
+            case 'i18n:audit': {
+                $dir = (string) ($args[0] ?? '');
+
+                if ($dir === '' || !is_dir($dir)) {
+                    $err('Usage: htmlphp i18n:audit DIR [--locale=de] [--domain=messages]');
+                }
+
+                $instance = $engine();
+                $translator = $instance->translator();
+
+                if (!$translator instanceof HtmlPhp\I18n\Translator) {
+                    $err('Audit requires the built-in translator.');
+                }
+
+                $locale = (string) $first('locale', $translator->locale());
+                $domain = (string) $first('domain', $instance->config()->i18n->domain);
+
+                $extractor = new HtmlPhp\I18n\Extractor();
+                $extractor->scanDirectory($dir, ltrim($instance->config()->templates->extension, '.'));
+
+                $report = (new HtmlPhp\I18n\Auditor($translator))->audit($extractor->entries(), $locale, $domain);
+
+                foreach (HtmlPhp\I18n\Auditor::format($report) as $line) {
+                    $out($line);
+                }
+
+                exit($report['missing'] === [] ? 0 : 1);
+            }
+
+            default:
+                fwrite(STDERR, "Unknown command '{$command}'. Try: htmlphp help\n");
+                exit(2);
+        }
+    } catch (Throwable $error) {
+        fwrite(STDERR, get_class($error) . ': ' . $error->getMessage() . "\n");
+
+        if (getenv('HTMLPHP_DEBUG')) {
+            fwrite(STDERR, $error->getTraceAsString() . "\n");
+        }
+
+        exit(1);
+    }
+})($argv);

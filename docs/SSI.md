@@ -1,196 +1,197 @@
 # SSI Reference — Apache mod_include compatible
 
-HTML.PHP evaluates Server Side Includes itself — no `mod_include` required.
-Directives are HTML comments, so unprocessed files degrade gracefully in
-browsers and search snippets.
+HTML.PHP processes Server Side Includes inside rendered documents:
 
-Processing entry points: `processSSI($html, $currentFile = null)`,
-`html_ssi($html, $file = null)`, or automatically inside `HTML()` /
-`html_render()` / `Show_HTML()`.
+```php
+$html = $engine->processSsi($content, new DocumentInfo(
+    file: '/var/www/page.shtml',      // anchors file= includes + LAST_MODIFIED
+    root: '/var/www',                 // containment root for virtual=
+    request: RequestContext::fromServer($_SERVER),  // built ONCE at the edge
+    vars: ['username' => 'bob'],      // visible as $username in #if/#echo
+));
+```
+
+`Engine::render*()` runs this pass automatically after the template
+language (`ssi.enabled`). The engine **never** reads `$_SERVER` itself —
+the host supplies a `RequestContext`.
 
 ## Evaluation model
 
-Since 3.0 the document is scanned **sequentially** and directives execute in
-**document order** — the semantics of Apache mod_include. (2.0.1 evaluated
-all `#config`/`#set` first, then includes, then echoes; see
-[MIGRATION.md](MIGRATION.md).)
-
-Guards applied to every render:
-
-* include depth ≤ `HTML_MAX_SSI_DEPTH` (default 16);
-* include count ≤ `HTML_MAX_SSI_TAGS` (default 256);
-* include size ≤ `HTML_MAX_INCLUDE_BYTES` (default 8 MiB);
-* cycle detection via a realpath stack (a file never includes itself
-  recursively);
-* path containment inside the document root (`HTML_WWW_PATH` →
-  `$_SERVER['DOCUMENT_ROOT']` → CWD), normalised and case-insensitive-aware
-  on Windows/macOS; `..` segments rejected unless `HTML_SSI_ALLOW_PARENT`;
-* every refusal/failure is recorded in `html_errors()` and (optionally)
-  replaced by the `#config errmsg` text.
+- Directives are scanned in document order with a per-document conditional
+  frame stack (nesting up to 64 deep).
+- `#include` recursion is depth-guarded (`limits.max_ssi_depth`, default 16),
+  budget-guarded (`limits.max_ssi_tags`, default 256), cycle-guarded
+  (realpath stack) and size-guarded (`limits.max_include_bytes`, 8 MiB).
+- Failures never throw: they emit `ssi.error_message` (if configured) and
+  record a diagnostic (`ssi-include-failed`, `ssi-exec-denied`, …).
+- Unknown directives are left in the output verbatim (they are ordinary
+  HTML comments) and recorded as `ssi-unknown-directive`.
+- The legacy v2 forms `<!--##name …-->` and `<!--@var=…-->` were **removed
+  in v4**.
 
 ## Directives
 
 ### `#config`
 
 ```html
-<!--#config timefmt="%Y-%m-%d %H:%M:%S" -->
-<!--#config sizefmt="bytes" -->          <!-- or "abbrev" (default) -->
-<!--#config errmsg="[content unavailable]" -->
+<!--#config timefmt="%Y-%m-%d %H:%M" sizefmt="bytes" errmsg="[error]" -->
 ```
 
-`timefmt` accepts strftime tokens (converted internally; `%j` day-of-year
-supported). `sizefmt` and `errmsg` affect later directives in the same
-render. `timefmt`/`sizefmt` also update `$GLOBALS['HTML_SSI_TIMEFMT']` /
-`HTML_SSI_SIZEFMT` for cross-render persistence (2.0.1 behaviour).
+`timefmt` accepts strftime tokens (converted internally — no deprecated
+`strftime()`); it resets cached `DATE_LOCAL`/`DATE_GMT`/`LAST_MODIFIED`
+values. `sizefmt`: `abbrev` (Apache style: `12K`, `1.2M`) or `bytes`.
+`errmsg` is the text emitted by failing directives. State applies to the
+current render (including nested includes), never to other requests.
 
 ### `#set`
 
 ```html
-<!--#set var="PageTitle" value="Quarterly Report" -->
-<!--#set var="Note" value="Built by $Company on ${DATE_LOCAL}" -->
+<!--#set var="greeting" value="Hello $username, today is ${DATE_LOCAL}" -->
 ```
 
-`$VAR` / `${VAR}` references inside `value` expand once against built-ins
-and `$GLOBALS` (unknown names stay verbatim, `\$` escapes). Names are gated:
-syntactically valid (`^[A-Za-z_][A-Za-z0-9_.-]{0,127}$`), not reserved, not
-built-in. Attribute order is free; values may be double-quoted,
-single-quoted or unquoted.
+Values expand `$VAR` and `${VAR}` (built-ins → previous `#set` vars →
+render-scope vars; unknown names stay verbatim, `\$` escapes). Reserved
+names (superglobals, built-ins) cannot be written. Variables live in the
+render context only — **not** in `$GLOBALS` (v3 did; v4 does not).
 
 ### `#include`
 
 ```html
-<!--#include virtual="/ssi/header.htm" -->   <!-- from the document root -->
-<!--#include virtual="ssi/header.htm" -->    <!-- relative to this file, root fallback -->
-<!--#include file="inner/part.htm" -->       <!-- strictly relative to this file -->
+<!--#include file="parts/nav.html" -->          relative to the current document
+<!--#include virtual="/shared/footer.html" -->  relative to the document root
+<!--#include virtual="/x.html" stub="fallback" wait="yes" -->
 ```
 
-Included files are processed recursively (their own directives run with the
-including file as their base). On failure the `errmsg` text (default: empty)
-is emitted. The resolved path passes through the
-`htmlphp_ssi_include_path` filter — a veto/redirect point for hosts.
+- Containment: resolved paths must stay inside the document root
+  (`ssi.allow_parent_paths` to relax — not recommended), must not match
+  `security.denied_extensions` (`.php`, `.env`, `.sql`, dotfiles … — a
+  source-disclosure guard v3 lacked), and must fit `max_include_bytes`.
+- `stub="blockname"` emits the matching `#block` section when the include
+  fails (see below). `wait=` is accepted and ignored (sequential engine).
+- The resolved path passes through the `htmlphp.ssi.include_path` filter —
+  the WordPress bridge uses it for theme overrides.
+- Included documents are processed recursively (SSI inside SSI), sharing
+  budgets and `#config`/`#set` state.
 
 ### `#echo`
 
 ```html
-<!--#echo var="PageTitle" -->
-<!--#echo var="DOCUMENT_URI" -->
-<!--#echo var="USER_INPUT" encoding="entity" -->  <!-- entity | url | none -->
-<!--##echo var="Legacy" -->                        <!-- legacy double-hash form -->
+<!--#echo var="DATE_LOCAL" -->
+<!--#echo var="username" encoding="none|entity|url|base64" -->
 ```
 
-Built-in variables win over template globals:
-`DATE_LOCAL`, `DATE_GMT`, `DOCUMENT_URI`, `DOCUMENT_NAME`, `DOCUMENT_ROOT`,
-`QUERY_STRING`, `SERVER_NAME`, `SERVER_SOFTWARE`, `SERVER_PROTOCOL`,
-`REQUEST_METHOD`, `REQUEST_URI`, `SCRIPT_NAME`, `CONTENT_TYPE`,
-`REMOTE_ADDR`, `HTTP_USER_AGENT`, `LAST_MODIFIED` (of the current file).
-The map is extensible through the `htmlphp_ssi_builtins` filter.
+Built-ins: `DATE_LOCAL`, `DATE_GMT`, `LAST_MODIFIED`, `DOCUMENT_URI`,
+`DOCUMENT_NAME`, `DOCUMENT_ROOT`, `QUERY_STRING`, `SERVER_NAME`,
+`SERVER_SOFTWARE`, `SERVER_PROTOCOL`, `REQUEST_METHOD`, `REQUEST_URI`,
+`SCRIPT_NAME`, `CONTENT_TYPE`, `REMOTE_ADDR`, `HTTP_USER_AGENT`, plus **any
+`HTTP_*` header** from the request context. Then `#set` variables, then
+render-scope variables (`DocumentInfo::$vars`).
 
-Escaping: without an `encoding` attribute, output is HTML-escaped while
-`HTML_SSI_ECHO_ESCAPE` is true (the default). `encoding=` overrides that
-policy per directive. `HTML_SSI_ECHO_ALLOW` restricts *which* names may be
-echoed at all. `##echo` reads `$GLOBALS` only (legacy) and follows the
-global escape policy.
+Escaping: on by default (`ssi.escape_echo`); `encoding=` selects
+none/entity/url/base64 explicitly. `ssi.echo_allow` restricts which names
+may be echoed at all (empty = all). The `htmlphp.ssi.echo` filter sees the
+final value.
 
 ### `#if` / `#elif` / `#else` / `#endif`
 
 ```html
-<!--#if expr="$ROLE = /admin|editor/" -->
-  staff-only content
-<!--#elif expr="$ARTICLES > 100" -->
-  prolific author
-<!--#else-->
-  visitor content
-<!--#endif-->
+<!--#if expr="$user = 'admin'" --> … <!--#elif expr="-f /private/notes.txt" --> … <!--#else--> … <!--#endif-->
 ```
 
-Directives inside a false branch are parsed for nesting but never executed
-(no `#set`, no includes, no `#exec`). Nesting is bounded (64 levels).
+Expression grammar (mod_include compatible, everything is a string):
 
-#### Expression grammar
+| Construct | Example |
+|---|---|
+| variable / `${var}` | `$username`, `${DOCUMENT_URI}` |
+| quoted strings | `'admin'`, `"a b"` |
+| comparison | `=`, `==`, `!=`, `<`, `<=`, `>`, `>=` (numeric when both sides look numeric, else byte order) |
+| regex | `$uri = /^\/admin\//` (also with `!=`) |
+| file tests | `-f -d -e -s -x -r -w -F` (containment-checked paths); `-A`/`-U` are **accepted but always false** (a template engine performs no subrequests) |
+| logic | `&&`, `\|\|` (a lone `\|` counts as `\|\|`), `!`, parentheses |
+| bare truthiness | `<!--#if expr="$flag" -->` (`''` and `'0'` are false) |
 
-```text
-expr       := or
-or         := and ( '||' and )*
-and        := not ( '&&' not )*
-not        := '!' not | comparison
-comparison := operand [ ('=' | '==' | '!=' | '<' | '<=' | '>' | '>=') operand ]
-operand    := filetest? primary
-filetest   := '-f' | '-d' | '-e' | '-s' | '-x' | '-r' | '-w'
-primary    := '(' expr ')' | STRING | REGEX | VARIABLE | WORD
-STRING     := "…" | '…'      (escapes: \" \\ \$ \/ \n \t \r)
-REGEX      := /…/            (right side of = / != only, \/ escaped)
-VARIABLE   := $NAME | ${NAME}
-WORD       := unquoted [A-Za-z0-9_.,:;@+/\*-]+
-```
-
-Semantics:
-
-* every value is a string; `''` and `'0'` are false, everything else true;
-* `=`/`!=` with a `/regex/` operand performs a case-sensitive match;
-* `<`, `<=`, `>`, `>=` compare numerically when both sides are numeric
-  strings, byte-wise (`strcmp`) otherwise;
-* file tests resolve paths exactly like `#include` (document-root
-  containment) and yield `'1'`/`''`;
-* parse errors, invalid regexes and over-long expressions (> 4 KiB)
-  evaluate to **false** and are recorded as `ssi-expr-error`;
-* there is no `eval()`, no PHP evaluation and no shell — the evaluator is a
-  self-contained tokenizer + recursive-descent parser
-  (`HtmlPhp\Ssi\Expression`).
+Syntax/length errors never throw: they record `ssi-expr-error` and evaluate
+false. Length cap: `limits.max_expression_length` (4096).
 
 ### `#exec` (deny by default)
 
 ```html
-<!--#exec cmd="/usr/local/bin/report --today" -->
-<!--#exec cgi="/cgi/status.php" -->
+<!--#exec cmd="/usr/bin/date +%Y" -->
+<!--#exec cgi="/cgi-bin/status.php" -->
 ```
 
-Nothing runs unless **all** applicable gates pass:
+Policy via `ssi.exec_mode`:
 
-| Gate | Default | Notes |
-|---|---|---|
-| `HTML_SSI_EXEC` | `false` | master switch |
-| `HTML_SSI_EXEC_CMD_ALLOW` | `[]` | `cmd=` binaries (path or basename); empty list = deny all |
-| document-root containment | on | `cgi=` scripts must resolve inside the root |
-| `HTML_SSI_EXEC_CGI_EXT` | `['php']` | allowed `cgi=` extensions |
-| `HTML_SSI_EXEC_TIMEOUT` | 5 s | child is killed on exceed |
-| `HTML_SSI_EXEC_MAX_BYTES` | 64 KiB | output truncated, child killed |
+| Mode | Behaviour |
+|---|---|
+| `deny` (**default**) | every `#exec` is refused + `ssi-exec-denied` diagnostic |
+| `allow-list` | `cmd=` binaries must resolve (realpath or basename) against `ssi.exec_cmd_allow`; `cgi=` scripts must live under the document root and carry an extension from `ssi.exec_cgi_extensions` (default `['php']`) |
+| `delegate` | `ssi.exec_delegate(kind, info)` callable returns `true` (run), `false` (deny) or a string (literal output) |
 
-`cmd=` **never goes through a shell** — the command line is tokenised
-(quotes honoured) and spawned with `proc_open()` receiving an argv array, so
-metacharacters (`>`, `|`, `;`, `` ` ``, `$()`) are inert literals. The child
-environment is minimal (`PATH`, `DOCUMENT_ROOT`, …).
+Execution details: `cmd` runs through `proc_open()` **without a shell**
+(quoted argv tokenization), a minimal CGI environment, a hard timeout
+(`limits.exec_timeout`, 1–60 s) and output cap
+(`limits.max_exec_output_bytes`). `cgi` spawns `php -f` (CGI env) or, with
+`ssi.exec_cgi_mode: 'include'`, runs in-process inside an output buffer
+(throws become diagnostics + errmsg). Output has control bytes stripped
+(`security.sanitize_exec_output`).
 
-`cgi=` runs in `spawn` mode by default (a fresh `PHP_BINARY` process with
-CGI-style environment) or `include` mode (in-process, output-buffered —
-faster but shares state; opt-in via `HTML_SSI_EXEC_CGI_MODE`).
-
-Denials and failures emit the `errmsg` text and record `ssi-exec-denied` /
-`ssi-exec-failed` diagnostics.
+> Production advice: leave `deny`. If you need dynamic fragments, register
+> a **custom directive** instead — same power, no shell.
 
 ### `#fsize` / `#flastmod`
 
 ```html
-<!--#fsize virtual="/report.pdf" -->        <!-- obeys #config sizefmt -->
-<!--#flastmod file="inner/notes.htm" -->    <!-- obeys #config timefmt -->
+<!--#fsize file="report.pdf" -->        → 12K / 2048 (per #config sizefmt)
+<!--#flastmod virtual="/page.html" -->  → formatted per #config timefmt
 ```
 
-`abbrev` sizes render Apache-style (`512`, `2K`, `3.1M`); `bytes` renders
-exact digits. With no `file=`/`virtual=` attribute the current document is
-used. Failures emit `errmsg`.
+Without `file=`/`virtual=` they refer to the current document.
 
-### Legacy forms
+### `#printenv` *(new in v4)*
 
 ```html
-<!--@var="NAME"stored value-->   <!-- sets $GLOBALS['NAME'], emits the value -->
+<!--#printenv-->
 ```
 
-Unknown `<!--#directive -->` comments are left in the output verbatim
-(mod_include parity: they are ordinary HTML comments to us).
+Dumps every visible variable as `NAME=value` lines (escaped per
+`escape_echo`, honouring `echo_allow`, reserved names excluded). Disable
+with `ssi.printenv_enabled: false` — useful on sites where templates come
+from less trusted sources.
+
+### `#block` / `#endblock` *(new in v4)*
+
+```html
+<!--#block name="fallback"-->
+  <p>Content shown when the include with stub="fallback" fails.</p>
+<!--#endblock-->
+<!--#include virtual="/fragments/news.html" stub="fallback" -->
+```
+
+Block sections are extracted in a pre-pass (they never render in place) and
+substitute failed includes carrying the matching `stub=` attribute —
+Apache/nginx parity.
+
+### Custom directives *(new in v4)*
+
+```php
+$engine->ssi()->directives()->register(new class implements DirectiveInterface {
+    public function name(): string { return 'snippet'; }
+    public function render(array $attributes, SsiContext $context): string {
+        return Snippets::get($attributes['id'] ?? '');
+    }
+});
+```
+
+Registered names are checked **before** built-ins, so hosts may also
+override `#include` resolution (the WordPress bridge uses the filter hook
+instead).
 
 ## Built-in variable notes
 
-* `DATE_LOCAL`/`DATE_GMT` use a **stable "now"** captured per render, so a
-  page cannot show two different timestamps.
-* `DOCUMENT_ROOT` prefers `HTML_WWW_PATH`, then `$_SERVER['DOCUMENT_ROOT']`.
-* `LAST_MODIFIED` is the mtime of the file currently being processed,
-  formatted with the active `timefmt`.
+- All values derive from the injected `RequestContext` + `ClockInterface`
+  (tests freeze time; long-running workers never see stale dates).
+- `LAST_MODIFIED` is the anchor document's mtime (`''` for string renders).
+- `DOCUMENT_URI` falls back to the file's root-relative path in CLI/string
+  renders.
+- The `htmlphp.ssi.builtins` filter can extend/override the map.
