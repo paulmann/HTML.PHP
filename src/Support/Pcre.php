@@ -16,9 +16,7 @@ use HtmlPhp\Exception\RegexException;
  */
 final class Pcre
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * `preg_replace_callback()` that throws on PCRE failure.
@@ -84,7 +82,7 @@ final class Pcre
         string $unicodePattern,
         string $bytePattern,
         string $replacement,
-        string $subject
+        string $subject,
     ): string {
         $result = preg_replace($unicodePattern, $replacement, $subject);
 
@@ -119,7 +117,7 @@ final class Pcre
     {
         return new RegexException(
             'Regular expression failed: ' . preg_last_error_msg(),
-            ['pattern' => Pcre::safePattern($pattern)]
+            ['pattern' => Pcre::safePattern($pattern)],
         );
     }
 

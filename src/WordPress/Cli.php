@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace HtmlPhp\WordPress;
 
-use HtmlPhp\Diagnostics;
 use HtmlPhp\Engine;
 use HtmlPhp\I18n\Auditor;
 use HtmlPhp\I18n\Extractor;
@@ -46,7 +45,7 @@ final class Cli
             $this->line('== ' . strtoupper($section) . ' ==');
 
             foreach ((array) ($info[$section] ?? []) as $key => $value) {
-                $this->line(sprintf('  %-22s %s', (string) $key, $this->flat($value)));
+                $this->line(\sprintf('  %-22s %s', (string) $key, $this->flat($value)));
             }
         }
     }
@@ -70,7 +69,7 @@ final class Cli
         foreach ((array) ($assoc['var'] ?? []) as $pair) {
             $parts = explode('=', (string) $pair, 2);
 
-            if (count($parts) === 2) {
+            if (\count($parts) === 2) {
                 $vars[$parts[0]] = $parts[1];
             }
         }
@@ -145,7 +144,7 @@ final class Cli
 
         if ($action === 'clear') {
             $removed = $engine->clearCache();
-            $this->success(sprintf('Removed %d cache entr%s.', $removed, $removed === 1 ? 'y' : 'ies'));
+            $this->success(\sprintf('Removed %d cache entr%s.', $removed, $removed === 1 ? 'y' : 'ies'));
 
             return;
         }
@@ -179,7 +178,7 @@ final class Cli
             if ($out !== '') {
                 file_put_contents($out, $pot) === false
                     ? $this->error('Cannot write ' . $out)
-                    : $this->success(sprintf('Wrote %d message(s) from %d file(s) to %s.', count($extractor->entries()), count($files), $out));
+                    : $this->success(\sprintf('Wrote %d message(s) from %d file(s) to %s.', \count($extractor->entries()), \count($files), $out));
 
                 return;
             }
@@ -224,7 +223,7 @@ final class Cli
     {
         foreach (Health::check(Bridge::engine()) as $finding) {
             $severity = (string) ($finding['severity'] ?? 'info');
-            $this->report($severity, sprintf('%s — %s', (string) ($finding['code'] ?? ''), (string) ($finding['message'] ?? '')));
+            $this->report($severity, \sprintf('%s — %s', (string) ($finding['code'] ?? ''), (string) ($finding['message'] ?? '')));
         }
     }
 
@@ -269,7 +268,7 @@ final class Cli
     /** @param mixed $value */
     private function flat($value): string
     {
-        if (is_scalar($value) || $value === null) {
+        if (\is_scalar($value) || $value === null) {
             return (string) $value;
         }
 

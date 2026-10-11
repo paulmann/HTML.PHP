@@ -6,9 +6,7 @@ namespace HtmlPhp\WordPress\Maintenance;
 
 final class SystemInfo
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * @return array<string, mixed>
@@ -19,34 +17,34 @@ final class SystemInfo
 
         $info = [
             'wordpress' => [
-                'version' => is_string($wp_version ?? null)
+                'version' => \is_string($wp_version ?? null)
                     ? $wp_version
-                    : (function_exists('get_bloginfo') ? (string) get_bloginfo('version') : 'unknown'),
-                'multisite' => function_exists('is_multisite') ? (bool) is_multisite() : false,
-                'locale' => function_exists('determine_locale') ? (string) determine_locale() : '',
+                    : (\function_exists('get_bloginfo') ? (string) get_bloginfo('version') : 'unknown'),
+                'multisite' => \function_exists('is_multisite') ? (bool) is_multisite() : false,
+                'locale' => \function_exists('determine_locale') ? (string) determine_locale() : '',
                 'debug' => \defined('WP_DEBUG') && \WP_DEBUG === true,
                 'script_debug' => \defined('SCRIPT_DEBUG') && \SCRIPT_DEBUG === true,
                 'cron_disabled' => \defined('DISABLE_WP_CRON') && \DISABLE_WP_CRON === true,
                 'memory_limit' => \defined('WP_MEMORY_LIMIT') ? (string) \WP_MEMORY_LIMIT : '',
-                'site_url' => function_exists('home_url') ? (string) home_url('/') : '',
+                'site_url' => \function_exists('home_url') ? (string) home_url('/') : '',
                 'active_theme' => self::themeName(),
                 'plugins_active' => self::activePlugins(),
-                'db_version' => is_object($wpdb ?? null) && property_exists($wpdb, 'db_version')
+                'db_version' => \is_object($wpdb ?? null) && property_exists($wpdb, 'db_version')
                     ? (string) $wpdb->db_version
                     : '',
-                'db_charset' => is_object($wpdb ?? null) && property_exists($wpdb, 'charset')
+                'db_charset' => \is_object($wpdb ?? null) && property_exists($wpdb, 'charset')
                     ? (string) $wpdb->charset
                     : '',
             ],
             'php' => [
                 'version' => \PHP_VERSION,
                 'sapi' => \PHP_SAPI,
-                'memory_limit' => (string) ini_get('memory_limit'),
-                'max_execution_time' => (string) ini_get('max_execution_time'),
-                'upload_max_filesize' => (string) ini_get('upload_max_filesize'),
-                'post_max_size' => (string) ini_get('post_max_size'),
-                'opcache' => function_exists('opcache_get_status')
-                    && (bool) (ini_get('opcache.enable') ?? false),
+                'memory_limit' => (string) \ini_get('memory_limit'),
+                'max_execution_time' => (string) \ini_get('max_execution_time'),
+                'upload_max_filesize' => (string) \ini_get('upload_max_filesize'),
+                'post_max_size' => (string) \ini_get('post_max_size'),
+                'opcache' => \function_exists('opcache_get_status')
+                    && (bool) \ini_get('opcache.enable'),
                 'extensions' => self::relevantExtensions(),
             ],
             'server' => [
@@ -78,7 +76,7 @@ final class SystemInfo
         $loaded = [];
 
         foreach ($wanted as $extension) {
-            if (extension_loaded($extension)) {
+            if (\extension_loaded($extension)) {
                 $loaded[] = $extension;
             }
         }
@@ -88,13 +86,13 @@ final class SystemInfo
 
     private static function themeName(): string
     {
-        if (!function_exists('wp_get_theme')) {
+        if (!\function_exists('wp_get_theme')) {
             return '';
         }
 
         $theme = wp_get_theme();
 
-        return is_object($theme) && method_exists($theme, 'get') ? (string) $theme->get('Name') : '';
+        return method_exists($theme, 'get') ? (string) $theme->get('Name') : '';
     }
 
     /**
@@ -102,23 +100,23 @@ final class SystemInfo
      */
     private static function activePlugins(): array
     {
-        if (!function_exists('get_option')) {
+        if (!\function_exists('get_option')) {
             return [];
         }
 
         $plugins = get_option('active_plugins', []);
 
-        return is_array($plugins) ? array_values(array_map('strval', $plugins)) : [];
+        return \is_array($plugins) ? array_values(array_map('strval', $plugins)) : [];
     }
 
     private static function diskFree(): string
     {
-        if (!function_exists('wp_upload_dir')) {
+        if (!\function_exists('wp_upload_dir')) {
             return '';
         }
 
         $uploads = wp_upload_dir();
-        $base = is_array($uploads) ? (string) ($uploads['basedir'] ?? '') : '';
+        $base = (string) ($uploads['basedir'] ?? '');
 
         if ($base === '' || !is_dir($base)) {
             return '';

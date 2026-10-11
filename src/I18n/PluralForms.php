@@ -99,7 +99,7 @@ final class PluralForms
         $count = 2;
         $expression = 'n != 1';
 
-        $header = is_string($header) ? trim($header) : '';
+        $header = \is_string($header) ? trim($header) : '';
 
         if ($header !== '') {
             if (preg_match('~nplurals\s*=\s*(\d+)~i', $header, $m) === 1) {
@@ -109,7 +109,7 @@ final class PluralForms
             if (preg_match('~plural\s*=\s*(.+?)\s*;?\s*$~is', $header, $m) === 1) {
                 $candidate = trim($m[1]);
 
-                if ($candidate !== '' && strlen($candidate) <= self::MAX_EXPRESSION_LENGTH) {
+                if ($candidate !== '' && \strlen($candidate) <= self::MAX_EXPRESSION_LENGTH) {
                     $expression = $candidate;
                 }
             }
@@ -140,7 +140,7 @@ final class PluralForms
             $this->position = 0;
             $value = $this->parseTernary($n);
 
-            if ($this->position < count($this->tokens)) {
+            if ($this->position < \count($this->tokens)) {
                 return $n === 1 ? 0 : min(1, $this->count - 1);
             }
         } catch (\RuntimeException) {
@@ -160,7 +160,7 @@ final class PluralForms
     private static function tokenize(string $expression): ?array
     {
         $tokens = [];
-        $length = strlen($expression);
+        $length = \strlen($expression);
         $index = 0;
 
         while ($index < $length) {
@@ -174,7 +174,7 @@ final class PluralForms
             if (ctype_digit($char)) {
                 preg_match('~\d+~A', $expression, $m, 0, $index);
                 $tokens[] = ['int', $m[0]];
-                $index += strlen($m[0]);
+                $index += \strlen($m[0]);
                 continue;
             }
 
@@ -186,7 +186,7 @@ final class PluralForms
 
             $two = substr($expression, $index, 2);
 
-            if (in_array($two, ['==', '!=', '<=', '>=', '&&', '||'], true)) {
+            if (\in_array($two, ['==', '!=', '<=', '>=', '&&', '||'], true)) {
                 $tokens[] = [$two, $two];
                 $index += 2;
                 continue;
@@ -295,7 +295,7 @@ final class PluralForms
         $left = $this->parseAdditive($n);
 
         while (($token = $this->peek()) !== null
-            && in_array($token[0], ['<', '<=', '>', '>='], true)) {
+            && \in_array($token[0], ['<', '<=', '>', '>='], true)) {
             ++$this->position;
             $right = $this->parseAdditive($n);
             $left = match ($token[0]) {
@@ -327,7 +327,7 @@ final class PluralForms
         $left = $this->parseUnary($n);
 
         while (($token = $this->peek()) !== null
-            && in_array($token[0], ['*', '/', '%'], true)) {
+            && \in_array($token[0], ['*', '/', '%'], true)) {
             ++$this->position;
             $right = $this->parseUnary($n);
 

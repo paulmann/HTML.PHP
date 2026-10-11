@@ -9,9 +9,7 @@ namespace HtmlPhp\Support;
  */
 final class FrozenClock implements ClockInterface
 {
-    public function __construct(private int $timestamp)
-    {
-    }
+    public function __construct(private int $timestamp) {}
 
     public function set(int $timestamp): void
     {

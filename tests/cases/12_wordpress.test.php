@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 12 — WordPress bridge, adapters, maintenance toolkit and the plugin.
  *
@@ -113,15 +114,15 @@ test('locate prefers the theme, then extra dirs, then the literal path', functio
     fixture_write('wp-theme/partial.html', 'THEME');
     fixture_write('tpl/extra/extra-only.html', 'EXTRA');
 
-    assertSame(fixture_path('wp-theme/partial.html'), TemplateLoader::locate('partial.html'));
-    assertSame(fixture_path('tpl/extra/extra-only.html'), TemplateLoader::locate('extra-only.html', [fixture_path('tpl/extra')]));
+    assertTrue(same_path(fixture_path('wp-theme/partial.html'), TemplateLoader::locate('partial.html')));
+    assertTrue(same_path(fixture_path('tpl/extra/extra-only.html'), TemplateLoader::locate('extra-only.html', [fixture_path('tpl/extra')])));
     assertSame(null, TemplateLoader::locate('nowhere.html'));
 });
 
 test('bare slugs try the documented suffixes', function (): void {
     fixture_write('wp-theme/slug.html', 'S');
 
-    assertSame(fixture_path('wp-theme/slug.html'), TemplateLoader::locate('slug'));
+    assertTrue(same_path(fixture_path('wp-theme/slug.html'), TemplateLoader::locate('slug')));
 });
 
 test('php files are never treated as templates', function (): void {
@@ -154,7 +155,7 @@ test('missing render() targets throw TemplateNotFound', function (): void {
 
     assertThrows(
         HtmlPhp\Exception\TemplateNotFoundException::class,
-        static fn() => (new TemplateLoader($engine))->render('no-such-template')
+        static fn() => (new TemplateLoader($engine))->render('no-such-template'),
     );
 });
 
@@ -345,7 +346,7 @@ test('Rest routes always carry a permission callback', function (): void {
     HtmlPhp\WordPress\Maintenance\Rest::route(
         'htmlphp/v1',
         '/guarded',
-        static fn(): array => HtmlPhp\WordPress\Maintenance\Rest::ok(['x' => 1])
+        static fn(): array => HtmlPhp\WordPress\Maintenance\Rest::ok(['x' => 1]),
     );
 
     $registration = $GLOBALS['wp_stub_rest']['htmlphp/v1/guarded'] ?? null;

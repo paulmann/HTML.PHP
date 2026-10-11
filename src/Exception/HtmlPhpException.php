@@ -19,7 +19,7 @@ class HtmlPhpException extends \RuntimeException
         string $message,
         public readonly array $context = [],
         int $code = 0,
-        ?\Throwable $previous = null
+        ?\Throwable $previous = null,
     ) {
         parent::__construct($message, $code, $previous);
     }
@@ -37,7 +37,7 @@ class HtmlPhpException extends \RuntimeException
             $this->getMessage(),
             array_merge($this->context, $context),
             (int) $this->getCode(),
-            $this->getPrevious()
+            $this->getPrevious(),
         );
     }
 
@@ -50,7 +50,7 @@ class HtmlPhpException extends \RuntimeException
 
         $pairs = [];
         foreach ($this->context as $key => $value) {
-            $pairs[] = $key . '=' . (is_scalar($value) || $value === null
+            $pairs[] = $key . '=' . (\is_scalar($value) || $value === null
                 ? var_export($value, true)
                 : (json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '?'));
         }

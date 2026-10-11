@@ -22,15 +22,13 @@ use HtmlPhp\Engine;
  */
 final class Mailer
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * @param string|list<string> $to
      * @param array<string, mixed> $vars
      * @param string|list<string> $headers extra headers (Content-Type is added unless present)
-     * @param list<string> $attachments
+     * @param string|list<string> $attachments
      */
     public static function send(
         Engine $engine,
@@ -38,10 +36,10 @@ final class Mailer
         string $subjectTemplate,
         string $bodyTemplate,
         array $vars = [],
-        array $headers = [],
-        array $attachments = []
+        string|array $headers = [],
+        string|array $attachments = [],
     ): bool {
-        if (!function_exists('wp_mail')) {
+        if (!\function_exists('wp_mail')) {
             return false;
         }
 
@@ -49,20 +47,26 @@ final class Mailer
         $subject = trim(self::render($engine, $subjectTemplate, $vars, false));
         $body = self::render($engine, $bodyTemplate, $vars, true);
 
+        // wp_mail accepts "string | string[]" for both; normalise once, here.
+        $headerList = \is_string($headers) ? ($headers !== '' ? [$headers] : []) : array_values($headers);
+        $attachmentList = \is_string($attachments)
+            ? ($attachments !== '' ? [$attachments] : [])
+            : array_values($attachments);
+
         $hasContentType = false;
 
-        foreach ($headers as $header) {
-            if (is_string($header) && stripos($header, 'content-type:') === 0) {
+        foreach ($headerList as $header) {
+            if (\is_string($header) && stripos($header, 'content-type:') === 0) {
                 $hasContentType = true;
                 break;
             }
         }
 
         if (!$hasContentType) {
-            $headers[] = 'Content-Type: text/html; charset=UTF-8';
+            $headerList[] = 'Content-Type: text/html; charset=UTF-8';
         }
 
-        return (bool) wp_mail($to, $subject, $body, $headers, $attachments);
+        return (bool) wp_mail($to, $subject, $body, $headerList, $attachmentList);
     }
 
     /**

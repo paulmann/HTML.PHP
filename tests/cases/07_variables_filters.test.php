@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 07 — Variable substitution, filters, escaping and missing-var policies.
  */

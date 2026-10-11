@@ -56,11 +56,11 @@ final class RenderStats
     {
         foreach (get_object_vars($this) as $property => $value) {
             $this->{$property} = match (true) {
-                is_int($value) && $property !== 'peakMemoryKb' => 0,
-                is_float($value) => 0.0,
-                is_bool($value) => false,
-                is_array($value) => [],
-                is_string($value) => '',
+                \is_int($value) && $property !== 'peakMemoryKb' => 0,
+                \is_float($value) => 0.0,
+                \is_bool($value) => false,
+                \is_array($value) => [],
+                \is_string($value) => '',
                 default => $value,
             };
         }

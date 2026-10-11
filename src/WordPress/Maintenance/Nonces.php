@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace HtmlPhp\WordPress\Maintenance;
 
+use HtmlPhp\Exception\TemplateException;
+
 final class Nonces
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function create(string $action = 'htmlphp_action'): string
     {
@@ -21,7 +21,7 @@ final class Nonces
     {
         self::requireWordPress();
 
-        if (!is_string($nonce) || $nonce === '') {
+        if (!\is_string($nonce) || $nonce === '') {
             return false;
         }
 
@@ -43,7 +43,7 @@ final class Nonces
     {
         self::requireWordPress();
 
-        $escape = static fn(string $value): string => function_exists('esc_attr')
+        $escape = static fn(string $value): string => \function_exists('esc_attr')
             ? esc_attr($value)
             : htmlspecialchars($value, \ENT_QUOTES);
 
@@ -53,7 +53,7 @@ final class Nonces
 
     private static function requireWordPress(): void
     {
-        if (!function_exists('wp_create_nonce')) {
+        if (!\function_exists('wp_create_nonce')) {
             throw new TemplateException('WordPress nonce API is not available.');
         }
     }

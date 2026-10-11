@@ -10,7 +10,6 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/autoload.php';
 
 use HtmlPhp\Engine;
-use HtmlPhp\I18n\Catalog;
 use HtmlPhp\I18n\Translator;
 use HtmlPhp\RequestContext;
 use HtmlPhp\Ssi\DocumentInfo;
@@ -113,7 +112,7 @@ check('footer translated', str_contains($out, 'Fußzeile'), true);
 $ssi = $engine->processSsi(file_get_contents($tmp . '/tpl/ssi/doc.shtml'), new DocumentInfo(
     file: $tmp . '/tpl/ssi/doc.shtml',
     root: $tmp . '/tpl',
-    request: RequestContext::cli($tmp . '/tpl')
+    request: RequestContext::cli($tmp . '/tpl'),
 ));
 check('ssi set/echo/if/include', $ssi, 'world!yes[part:world]');
 check('ssi printenv has vars', str_contains($engine->processSsi('<!--#printenv-->'), 'DATE_LOCAL='), true);

@@ -23,7 +23,7 @@ class Escaper
      */
     public function __construct(private readonly mixed $customHtmlEscaper = null)
     {
-        if ($this->customHtmlEscaper !== null && !is_callable($this->customHtmlEscaper)) {
+        if ($this->customHtmlEscaper !== null && !\is_callable($this->customHtmlEscaper)) {
             throw new \InvalidArgumentException('The custom HTML escaper must be callable.');
         }
     }
@@ -55,7 +55,7 @@ class Escaper
         $result = preg_replace_callback(
             '/[^A-Za-z0-9\-._~:\/?#\[\]@!$()*+,;=%]/',
             static fn(array $m): string => rawurlencode($m[0]),
-            $value
+            $value,
         );
 
         return $result ?? $value;
@@ -66,7 +66,7 @@ class Escaper
     {
         $encoded = json_encode(
             $value,
-            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE
+            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE,
         );
 
         return $encoded === false ? 'null' : $encoded;
@@ -78,7 +78,7 @@ class Escaper
      */
     public function js(mixed $value): string
     {
-        return $this->json(is_scalar($value) || $value === null ? $value : Str::stringify($value));
+        return $this->json(\is_scalar($value) || $value === null ? $value : Str::stringify($value));
     }
 
     /** CSS-value escaping: every non-alphanumeric becomes `\HHHHHH `. */
@@ -86,8 +86,8 @@ class Escaper
     {
         return (string) preg_replace_callback(
             '/[^a-zA-Z0-9]/',
-            static fn(array $m): string => sprintf('\\%06X ', ord($m[0])),
-            $value
+            static fn(array $m): string => \sprintf('\\%06X ', \ord($m[0])),
+            $value,
         );
     }
 
@@ -103,7 +103,7 @@ class Escaper
         $sanitized = [];
 
         foreach ($input as $key => $value) {
-            $sanitized[$key] = is_array($value)
+            $sanitized[$key] = \is_array($value)
                 ? $this->sanitizeArray($value)
                 : htmlspecialchars(Str::stringify($value), ENT_QUOTES | ENT_HTML5 | ENT_SUBSTITUTE, 'UTF-8', true);
         }

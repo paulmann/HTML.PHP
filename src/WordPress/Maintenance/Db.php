@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace HtmlPhp\WordPress\Maintenance;
 
+use HtmlPhp\Exception\TemplateException;
+
 final class Db
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * The global $wpdb instance (or null outside WordPress).
@@ -17,7 +17,7 @@ final class Db
     {
         $wpdb = $GLOBALS['wpdb'] ?? null;
 
-        return is_object($wpdb) ? $wpdb : null;
+        return \is_object($wpdb) ? $wpdb : null;
     }
 
     /**
@@ -65,7 +65,7 @@ final class Db
         $wpdb = self::wpdb() ?? throw new TemplateException('$wpdb is not available.');
         $row = $wpdb->get_row(self::prepare($sql, $params), \ARRAY_A);
 
-        return is_array($row) ? $row : null;
+        return \is_array($row) ? $row : null;
     }
 
     /**
@@ -77,7 +77,7 @@ final class Db
         $wpdb = self::wpdb() ?? throw new TemplateException('$wpdb is not available.');
         $rows = $wpdb->get_results(self::prepare($sql, $params), \ARRAY_A);
 
-        return is_array($rows) ? array_values($rows) : [];
+        return \is_array($rows) ? array_values($rows) : [];
     }
 
     /**
@@ -92,7 +92,7 @@ final class Db
                     (DATA_LENGTH + INDEX_LENGTH) AS bytes
              FROM information_schema.TABLES
              WHERE TABLE_SCHEMA = DATABASE()
-             ORDER BY bytes DESC'
+             ORDER BY bytes DESC',
         );
 
         $sizes = [];

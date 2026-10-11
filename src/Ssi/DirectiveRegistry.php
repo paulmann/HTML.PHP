@@ -18,7 +18,7 @@ final class DirectiveRegistry
 
         if ($name === '' || preg_match('/^[a-z][a-z0-9_-]*$/', $name) !== 1) {
             throw new \InvalidArgumentException(
-                'Directive names must match [a-z][a-z0-9_-]* — got "' . $directive->name() . '".'
+                'Directive names must match [a-z][a-z0-9_-]* — got "' . $directive->name() . '".',
             );
         }
 

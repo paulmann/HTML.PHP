@@ -105,7 +105,8 @@ bundle; on 8.5-syntax the parse error itself is the guard.
 - `tests/bootstrap.php` — library resolution (`src` or `--lib` bundle),
   fixture helpers, deterministic UTC, `test_engine()`/`test_request()`
   factories.
-- 14 case files, ~330 tests, ~960 assertions, covering: config/container,
+- 14 case files, 330 tests, 968 assertions (identical with and without
+  `ext-intl`), covering: config/container,
   support/io, escaping/cleaning, cache/log/events, SSI (core, conditionals,
   exec policies), substitution/filters, structure tags, i18n (incl. binary
   MO built in-test), render API/cache/stats/events, linter, WordPress

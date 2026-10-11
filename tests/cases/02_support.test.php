@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 02 — Support layer: Str, Pcre, clocks, Files, AtomicWriter, PathGuard.
  */
@@ -77,11 +78,24 @@ test('truncate cuts on word boundaries, multibyte-safe', function (): void {
     assertSame('abc…', Str::truncate('abcdef', 3));
 });
 
-test('slugify transliterates Cyrillic without intl', function (): void {
+test('slugify is deterministic with and without ext-intl', function (): void {
+    // Map-covered characters resolve identically regardless of ext-intl:
+    // the built-in map is applied before the ICU fallback (see Str::slugify).
     assertSame('privet-mir', Str::slugify('Привет мир'));
-    assertSame('ae-b-c', Str::slugify('Ä B C!')); // ä transliterates to ae
+    assertSame('ae-b-c', Str::slugify('Ä B C!')); // map wins: ä → ae (ICU alone would give 'a')
+    assertSame('hello-privet-world', Str::slugify('Hello Привет World'));
     assertSame('n-a', Str::slugify('!!!'));
     assertSame('x_y', Str::slugify('x y', '_'));
+});
+
+test('slugify falls back to ICU for scripts outside the built-in map', function (): void {
+    // Greek is not in TRANSLITERATION: with intl it romanises via ICU,
+    // without intl the unmapped letters are stripped like any non-[a-z0-9].
+    if (function_exists('transliterator_transliterate')) {
+        assertTrue(Str::slugify('Αθήνα') !== 'n-a');
+    } else {
+        assertSame('n-a', Str::slugify('Αθήνα'));
+    }
 });
 
 test('keepWordChars strips everything but letters, digits, underscore', function (): void {
@@ -131,7 +145,7 @@ test('replaceCallback throws RegexException on PCRE failure', function (): void 
     // Catastrophic backtracking hits PREG_BACKTRACK_LIMIT_ERROR.
     assertThrows(
         HtmlPhp\Exception\RegexException::class,
-        static fn() => Pcre::replaceCallback('~^(?:1+)+$~', static fn(array $m): string => 'x', str_repeat('1', 32) . '!')
+        static fn() => Pcre::replaceCallback('~^(?:1+)+$~', static fn(array $m): string => 'x', str_repeat('1', 32) . '!'),
     );
 });
 
@@ -178,11 +192,16 @@ test('AtomicWriter writes, preserves modes and creates nothing outside', functio
     AtomicWriter::write($path, 'second');
 
     assertSame('second', (string) file_get_contents($path));
-    assertSame('640', substr(sprintf('%o', (int) fileperms($path)), -3));
+
+    // NTFS does not store POSIX modes — permission preservation is a
+    // POSIX-platform guarantee and is only asserted there.
+    if (PHP_OS_FAMILY !== 'Windows') {
+        assertSame('640', substr(sprintf('%o', (int) fileperms($path)), -3));
+    }
 
     assertThrows(
         HtmlPhp\Exception\IoException::class,
-        static fn() => AtomicWriter::write(fixture_path('io/does/not/exist/x.txt'), 'nope')
+        static fn() => AtomicWriter::write(fixture_path('io/does/not/exist/x.txt'), 'nope'),
     );
 });
 

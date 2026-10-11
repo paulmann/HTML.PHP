@@ -17,9 +17,8 @@ final class WpLogger extends AbstractLogger
 {
     public function __construct(
         private readonly string $channel = 'htmlphp',
-        private readonly string $minLevel = 'warning'
-    ) {
-    }
+        private readonly string $minLevel = 'warning',
+    ) {}
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $message, array $context = []): void
@@ -39,8 +38,8 @@ final class WpLogger extends AbstractLogger
             Logs::write($level, $line);
         }
 
-        if (defined('WP_DEBUG_LOG') && constant('WP_DEBUG_LOG')) {
-            error_log(sprintf('[%s] %s.%s', $this->channel, $level, $line));
+        if (\defined('WP_DEBUG_LOG') && \constant('WP_DEBUG_LOG')) {
+            error_log(\sprintf('[%s] %s.%s', $this->channel, $level, $line));
         }
     }
 }

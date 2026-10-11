@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace HtmlPhp\Ssi;
 
-use HtmlPhp\Support\Str;
-
 /**
  * strftime()-style formatting without the deprecated strftime().
  *
@@ -37,9 +35,7 @@ final class TimeFormat
     /** Every date() formatting character; literals must be escaped. */
     private const string DATE_TOKENS = 'dDjlNSwzWFmMntLoYyaABgGXxhHisuevIOPTZcrUp';
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Converts a strftime()-style format into a date()-compatible one.
@@ -51,7 +47,7 @@ final class TimeFormat
     public static function strftimeToDate(string $format): string
     {
         $converted = '';
-        $length = strlen($format);
+        $length = \strlen($format);
 
         $escapeLiteral = static function (string $char): string {
             if ($char === '\\') {
@@ -101,7 +97,7 @@ final class TimeFormat
 
         if (str_contains($dateFormat, self::DOY_MARKER)) {
             $dayOfYear = (int) ($gmt ? gmdate('z', $timestamp) : date('z', $timestamp)) + 1;
-            $result = str_replace(self::DOY_MARKER, sprintf('%03d', $dayOfYear), $result);
+            $result = str_replace(self::DOY_MARKER, \sprintf('%03d', $dayOfYear), $result);
         }
 
         return $result;

@@ -18,9 +18,7 @@ final class Version
 
     public const string BUILD_DATE = '2026-10-11';
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /** `"4.0.0 (8.3 edition)"` */
     public static function banner(): string
@@ -36,13 +34,13 @@ final class Version
     public static function assertRuntime(): void
     {
         if (PHP_VERSION_ID < self::MIN_PHP) {
-            throw new Exception\HtmlPhpException(sprintf(
+            throw new Exception\HtmlPhpException(\sprintf(
                 'HTML.PHP %s (%s edition) requires PHP %d.%d or newer; running %s.',
                 self::VERSION,
                 self::EDITION,
                 intdiv(self::MIN_PHP, 10000),
                 intdiv(self::MIN_PHP % 10000, 100),
-                PHP_VERSION
+                PHP_VERSION,
             ));
         }
     }

@@ -25,9 +25,8 @@ final readonly class DocumentInfo
         public ?string $file = null,
         public ?string $root = null,
         public ?RequestContext $request = null,
-        public array $vars = []
-    ) {
-    }
+        public array $vars = [],
+    ) {}
 
     /** Document for a plain string render (no file on disk). */
     public static function forString(?string $root = null, ?RequestContext $request = null): self

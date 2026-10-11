@@ -10,8 +10,8 @@ Each stream is independently verifiable. Status: `todo` / `wip` / `done`.
 | 4 | Template engine | `src/Template/{Resolver,Substitution,Filters,Loops,Conditionals,Inheritance,Partials,RawBlocks,Renderer,CompileCache}.php` | 1,2,3 | todo |
 | 5 | i18n | `src/I18n/{Locale,PluralForms,Catalog,CatalogReader{Po,Mo},Translator,Interpolator,Extractor}.php` | 1,2 | todo |
 | 6 | Engine facade | `src/Engine.php`, `src/Version.php`, `src/Exceptions/*` | 1-5 | todo |
-| 7 | WordPress | `wordpress/html-wp.php` (bridge + Maintenance toolkit), `wordpress/html-php-v4/` plugin | 6 | todo |
-| 8 | Tests | `tests/run.php`, `tests/TestKit.php`, `tests/cases/*.test.php`, `tests/wp-stubs.php`, `tests/fixtures/*` | 1-7 | todo |
+| 7 | WordPress | `src/WordPress/*` (bridge + Maintenance toolkit), `wordpress/html-php/` plugin | 6 | todo |
+| 8 | Tests | `tests/run.php`, `tests/TestRunner.php`, `tests/cases/*.test.php`, `tests/wp-stubs.php` (+`-extra`), fixtures generated under `tests/tmp/` | 1-7 | todo |
 | 9 | Build + editions | `tools/build.php`, `php83/html.php`, `php85/html.php`, `composer.json` ×3 | 6 | todo |
 | 10 | Docs + release | `README.md`, `docs/*.md` (EN), `CHANGELOG.md`, `LICENSE`, `examples/*`, `.github/workflows/ci.yml`, `phpstan.neon` | all | todo |
 

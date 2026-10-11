@@ -17,9 +17,7 @@ final class TemplateLoader
     /** Suffixes tried for a bare slug, in order. */
     private const array SUFFIXES = ['.ssi.htm', '.ssi.html', '.ssi', '.htm', '.html', '.tpl'];
 
-    public function __construct(private readonly \HtmlPhp\Engine $engine)
-    {
-    }
+    public function __construct(private readonly \HtmlPhp\Engine $engine) {}
 
     /**
      * Finds the first existing template among candidate names.
@@ -32,7 +30,7 @@ final class TemplateLoader
      */
     public static function locate(string|array $names, array $dirs = []): ?string
     {
-        $names = is_string($names) ? [$names] : $names;
+        $names = \is_string($names) ? [$names] : $names;
         $candidates = [];
 
         foreach ($names as $name) {
@@ -44,7 +42,7 @@ final class TemplateLoader
             // asked for by name (source-disclosure guard).
             $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 
-            if (in_array($extension, ['php', 'phtml', 'phar', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps'], true)) {
+            if (\in_array($extension, ['php', 'phtml', 'phar', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps'], true)) {
                 continue;
             }
 
@@ -61,7 +59,7 @@ final class TemplateLoader
             return null;
         }
 
-        if (function_exists('locate_template')) {
+        if (\function_exists('locate_template')) {
             $found = (string) locate_template($candidates);
 
             if ($found !== '' && is_file($found)) {
@@ -70,7 +68,7 @@ final class TemplateLoader
         }
 
         foreach ($dirs as $dir) {
-            if (!is_string($dir) || !is_dir($dir)) {
+            if (!\is_string($dir) || !is_dir($dir)) {
                 continue;
             }
 
@@ -108,14 +106,14 @@ final class TemplateLoader
         if ($path === null) {
             throw new \HtmlPhp\Exception\TemplateNotFoundException(
                 'No WordPress template could be located.',
-                ['names' => (array) $names]
+                ['names' => (array) $names],
             );
         }
 
         return $this->engine->renderFile(
             $path,
             $this->withWordPressContext($vars),
-            new \HtmlPhp\Template\RenderOptions(file: $path)
+            new \HtmlPhp\Template\RenderOptions(file: $path),
         );
     }
 
@@ -132,7 +130,7 @@ final class TemplateLoader
 
         $dirs = [];
 
-        if (function_exists('get_stylesheet_directory')) {
+        if (\function_exists('get_stylesheet_directory')) {
             $dirs[] = (string) get_stylesheet_directory() . '/template-parts';
             $dirs[] = (string) get_stylesheet_directory();
         }
@@ -143,7 +141,7 @@ final class TemplateLoader
             $this->engine->diagnostics()->record(
                 \HtmlPhp\Diagnostics::WP_BRIDGE,
                 'Template part not found.',
-                ['slug' => $slug, 'name' => $name ?? '']
+                ['slug' => $slug, 'name' => $name ?? ''],
             );
 
             return '';
@@ -152,7 +150,7 @@ final class TemplateLoader
         return $this->engine->renderFile(
             $path,
             $this->withWordPressContext($vars),
-            new \HtmlPhp\Template\RenderOptions(file: $path)
+            new \HtmlPhp\Template\RenderOptions(file: $path),
         );
     }
 
@@ -166,7 +164,7 @@ final class TemplateLoader
     {
         $context = [];
 
-        if (function_exists('get_bloginfo')) {
+        if (\function_exists('get_bloginfo')) {
             $context['wp_blogname'] = (string) get_bloginfo('name');
             $context['wp_description'] = (string) get_bloginfo('description');
             $context['wp_version'] = (string) get_bloginfo('version');
@@ -174,7 +172,7 @@ final class TemplateLoader
             $context['wp_language'] = (string) get_bloginfo('language');
         }
 
-        if (function_exists('home_url')) {
+        if (\function_exists('home_url')) {
             $context['wp_home_url'] = (string) home_url('/');
         }
 

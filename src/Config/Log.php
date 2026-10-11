@@ -21,12 +21,12 @@ final readonly class Log
         public string $path = '',
         public string $level = 'warning',
         public string $channel = 'htmlphp',
-        public bool $forwardDiagnostics = true
+        public bool $forwardDiagnostics = true,
     ) {
         if (!isset(self::LEVELS[$this->level])) {
             throw new \HtmlPhp\Exception\ConfigException(
                 'log.level must be a PSR-3 level name.',
-                ['value' => $level]
+                ['value' => $level],
             );
         }
     }
@@ -40,12 +40,12 @@ final readonly class Log
             driver: LogDriver::tryFrom($driver)
                 ?? throw new \HtmlPhp\Exception\ConfigException(
                     'log.driver must be one of: null, array, errorlog, file, syslog, wordpress.',
-                    ['value' => $driver]
+                    ['value' => $driver],
                 ),
             path: (string) Config::value($config, 'path', ''),
             level: (string) Config::value($config, 'level', 'warning'),
             channel: (string) Config::value($config, 'channel', 'htmlphp'),
-            forwardDiagnostics: Config::bool($config, 'forward_diagnostics', true)
+            forwardDiagnostics: Config::bool($config, 'forward_diagnostics', true),
         );
     }
 

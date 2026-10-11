@@ -24,9 +24,8 @@ final readonly class Syntax
         public string $missingPlaceholderFormat = '[missing:%s]',
         public bool $singleBraces = false,
         public bool $allowRawFilter = true,
-        public bool $strict = false
-    ) {
-    }
+        public bool $strict = false,
+    ) {}
 
     /** @param array<string, mixed> $config */
     public static function fromArray(array $config): self
@@ -43,12 +42,12 @@ final readonly class Syntax
             autoEscape: Config::bool($config, 'auto_escape', true),
             missingVar: MissingVarPolicy::tryFrom($missing)
                 ?? throw new \HtmlPhp\Exception\ConfigException(
-                    'syntax.missing_var must be one of: empty, keep, placeholder, throw.'
+                    'syntax.missing_var must be one of: empty, keep, placeholder, throw.',
                 ),
             missingPlaceholderFormat: (string) Config::value($config, 'missing_placeholder_format', '[missing:%s]'),
             singleBraces: Config::bool($config, 'single_braces', false),
             allowRawFilter: Config::bool($config, 'allow_raw_filter', true),
-            strict: Config::bool($config, 'strict', false)
+            strict: Config::bool($config, 'strict', false),
         );
     }
 

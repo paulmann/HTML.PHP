@@ -12,9 +12,8 @@ final class ErrorLogLogger extends AbstractLogger
 {
     public function __construct(
         private readonly string $channel = 'htmlphp',
-        private readonly string $minLevel = 'debug'
-    ) {
-    }
+        private readonly string $minLevel = 'debug',
+    ) {}
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $message, array $context = []): void
@@ -23,13 +22,13 @@ final class ErrorLogLogger extends AbstractLogger
             return;
         }
 
-        $line = sprintf(
+        $line = \sprintf(
             '[%s] %s.%s: %s%s',
             date('Y-m-d H:i:s'),
             $this->channel,
             $level,
             $this->interpolate($message, $context),
-            $context === [] ? '' : ' ' . (json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}')
+            $context === [] ? '' : ' ' . (json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}'),
         );
 
         error_log($line);

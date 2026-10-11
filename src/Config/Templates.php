@@ -20,10 +20,10 @@ final readonly class Templates
         public array $paths = [],
         public array $namespaces = [],
         public string $extension = '.html',
-        public bool $cacheFileMTimes = true
+        public bool $cacheFileMTimes = true,
     ) {
         foreach ($this->paths as $path) {
-            if (!is_string($path) || $path === '') {
+            if (!\is_string($path) || $path === '') {
                 throw new \HtmlPhp\Exception\ConfigException('templates.paths must contain non-empty strings.');
             }
         }
@@ -47,7 +47,7 @@ final readonly class Templates
             paths: array_values(array_map(strval(...), $paths)),
             namespaces: $namespaces,
             extension: (string) Config::value($config, 'extension', '.html'),
-            cacheFileMTimes: Config::bool($config, 'cache_file_mtimes', true)
+            cacheFileMTimes: Config::bool($config, 'cache_file_mtimes', true),
         );
     }
 

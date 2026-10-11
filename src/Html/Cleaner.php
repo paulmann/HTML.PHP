@@ -25,9 +25,7 @@ final class Cleaner
     ];
 
     /** @param array<string, true> $allowedTags */
-    public function __construct(private readonly array $allowedTags = self::DEFAULT_ALLOWED_TAGS)
-    {
-    }
+    public function __construct(private readonly array $allowedTags = self::DEFAULT_ALLOWED_TAGS) {}
 
     /** Converts HTML tag names to lowercase without touching attributes. */
     public function lcTags(string $input): string
@@ -35,7 +33,7 @@ final class Cleaner
         return Pcre::replaceCallback(
             '~<(\s*/?\s*)([A-Za-z][A-Za-z0-9:_-]*)((?:"[^"]*"|\'[^\']*\'|[^\'">])*)>~',
             static fn(array $matches): string => '<' . $matches[1] . strtolower($matches[2]) . $matches[3] . '>',
-            $input
+            $input,
         );
     }
 
@@ -70,7 +68,7 @@ final class Cleaner
                 '~^[.,:\\\\/><!]+\s*|\s*[.,:\\\\/><!]+$~u',
                 '~^[.,:\\\\/><!]+\s*|\s*[.,:\\\\/><!]+$~',
                 '',
-                $buffer
+                $buffer,
             );
             $buffer = trim($buffer);
         }
@@ -102,7 +100,7 @@ final class Cleaner
         $html = Pcre::replaceCallback(
             '~<(/?)([A-Za-z][A-Za-z0-9:_-]*)(?:"[^"]*"|\'[^\']*\'|[^\'">])*>~s',
             fn(array $matches): string => $this->cleanTag($matches[1], $matches[2]),
-            $html
+            $html,
         );
 
         $html = Str::normalizeEntities($html);

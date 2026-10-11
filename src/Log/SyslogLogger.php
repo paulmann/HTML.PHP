@@ -11,9 +11,7 @@ final class SyslogLogger extends AbstractLogger
 
     private bool $opened = false;
 
-    public function __construct(private readonly string $channel = 'htmlphp')
-    {
-    }
+    public function __construct(private readonly string $channel = 'htmlphp') {}
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $message, array $context = []): void

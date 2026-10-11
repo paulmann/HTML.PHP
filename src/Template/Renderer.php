@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace HtmlPhp\Template;
 
 use HtmlPhp\Config;
-use HtmlPhp\Config\MissingVarPolicy;
 use HtmlPhp\Contracts\CacheInterface;
 use HtmlPhp\Diagnostics;
 use HtmlPhp\Event\Dispatcher;
@@ -52,14 +51,14 @@ final class Renderer
         private readonly Filters $filters,
         private readonly TranslatorInterface $translator,
         private readonly Escaper $escaper,
-        private readonly TemplateLocator $locator
+        private readonly TemplateLocator $locator,
     ) {
         $this->substitution = new Substitution(
             $config->syntax,
             $filters,
             $escaper,
             $translator,
-            $diagnostics
+            $diagnostics,
         );
 
         $this->parser = new TagParser();
@@ -69,7 +68,7 @@ final class Renderer
             $this->substitution,
             $locator,
             $this,
-            $translator
+            $translator,
         );
     }
 
@@ -103,10 +102,10 @@ final class Renderer
 
         $maxBytes = $this->config->limits->maxTemplateBytes;
 
-        if (strlen($source) > $maxBytes) {
+        if (\strlen($source) > $maxBytes) {
             throw new TemplateException(
                 'Template exceeds the configured size limit.',
-                ['bytes' => strlen($source), 'limit' => $maxBytes]
+                ['bytes' => \strlen($source), 'limit' => $maxBytes],
             );
         }
 
@@ -119,7 +118,7 @@ final class Renderer
 
             if ($cached !== null) {
                 $stats->cacheHit = true;
-                $stats->stop(strlen($cached));
+                $stats->stop(\strlen($cached));
                 $this->events->dispatch('htmlphp.rendered', $stats);
 
                 return $cached;
@@ -129,13 +128,13 @@ final class Renderer
         $text = $this->renderUncached($source, $vars, $options, $origin, $stats);
 
         $filtered = $this->events->filter('htmlphp.render', $text, $origin, $vars);
-        $text = is_string($filtered) ? $filtered : $text;
+        $text = \is_string($filtered) ? $filtered : $text;
 
         if ($useCache && $cacheKey !== '') {
             $this->cache->set($cacheKey, $text, $ttl);
         }
 
-        $stats->stop(strlen($text));
+        $stats->stop(\strlen($text));
         $this->events->dispatch('htmlphp.rendered', $stats);
 
         return $text;
@@ -158,7 +157,7 @@ final class Renderer
         if ($contents === null) {
             throw new TemplateNotFoundException(
                 "Template file '{$path}' is not readable or exceeds the size limit.",
-                ['path' => $path]
+                ['path' => $path],
             );
         }
 
@@ -176,7 +175,7 @@ final class Renderer
                 cache: $options->cache,
                 ttl: $options->ttl,
                 locale: $options->locale,
-                ssiVars: $options->ssiVars
+                ssiVars: $options->ssiVars,
             );
         }
 
@@ -196,7 +195,7 @@ final class Renderer
             $this->diagnostics->record(
                 Diagnostics::LOOP_GUARD,
                 'Partial/layout nesting is too deep; skipped.',
-                ['path' => $path]
+                ['path' => $path],
             );
 
             return '';
@@ -207,7 +206,7 @@ final class Renderer
         if ($contents === null) {
             throw new TemplateNotFoundException(
                 "Partial template '{$path}' could not be read.",
-                ['path' => $path]
+                ['path' => $path],
             );
         }
 
@@ -230,7 +229,7 @@ final class Renderer
                     $this->diagnostics,
                     $rc->autoEscape,
                     $rc->missingVar,
-                    $rc->structure
+                    $rc->structure,
                 );
                 $subRc->currentFile = $path;
 
@@ -262,13 +261,13 @@ final class Renderer
         array $vars,
         RenderOptions $options,
         string $origin,
-        RenderStats $stats
+        RenderStats $stats,
     ): string {
-        $previousLocale = null;
+        $localeOverride = \is_string($options->locale) && $options->locale !== '' ? $options->locale : null;
+        $previousLocale = $localeOverride !== null ? $this->translator->locale() : null;
 
-        if ($options->locale !== null && $options->locale !== '') {
-            $previousLocale = $this->translator->locale();
-            $this->translator->setLocale($options->locale);
+        if ($localeOverride !== null) {
+            $this->translator->setLocale($localeOverride);
         }
 
         try {
@@ -279,7 +278,7 @@ final class Renderer
                 $this->diagnostics,
                 $options->autoEscape ?? $this->config->syntax->autoEscape,
                 $options->missingVar ?? $this->config->syntax->missingVar,
-                $options->structure ?? true
+                $options->structure ?? true,
             );
             $rc->currentFile = $options->file ?? (is_file($origin) ? $origin : null);
 
@@ -299,7 +298,7 @@ final class Renderer
 
             return $text;
         } finally {
-            if ($previousLocale !== null) {
+            if (\is_string($previousLocale)) {
                 $this->translator->setLocale($previousLocale);
             }
         }
@@ -329,16 +328,17 @@ final class Renderer
 
         $overrides = $rc->overrides;
 
-        // 2. Walk up the parent chain.
+        // 2. Walk up the parent chain ($extends is non-null here; the chain
+        // ends when a link resolves to '' — handled after the loop).
         $template = $extends;
         $depth = 0;
-        $baseDir = $rc->currentFile !== null ? dirname($rc->currentFile) : null;
+        $baseDir = $rc->currentFile !== null ? \dirname($rc->currentFile) : null;
 
-        while ($template !== null && $template !== '') {
+        while ($template !== '') {
             if (++$depth > 8) {
                 throw new TemplateException(
                     'Layout inheritance is too deep (cycle between layouts?).',
-                    ['template' => $template, 'depth' => $depth]
+                    ['template' => $template, 'depth' => $depth],
                 );
             }
 
@@ -347,7 +347,7 @@ final class Renderer
             if ($path === null) {
                 throw new TemplateNotFoundException(
                     "Layout template '{$template}' could not be located.",
-                    ['template' => $template, 'child' => $origin]
+                    ['template' => $template, 'child' => $origin],
                 );
             }
 
@@ -356,7 +356,7 @@ final class Renderer
             if ($contents === null) {
                 throw new TemplateNotFoundException(
                     "Layout template '{$path}' is not readable.",
-                    ['path' => $path]
+                    ['path' => $path],
                 );
             }
 
@@ -378,7 +378,7 @@ final class Renderer
 
                 $overrides = $rc->overrides;
                 $template = $rc->extendsTemplate ?? $parentExtends;
-                $baseDir = dirname($path);
+                $baseDir = \dirname($path);
                 continue;
             }
 
@@ -421,7 +421,7 @@ final class Renderer
             file: $options->file ?? $rc->currentFile,
             root: $options->root ?? $this->config->ssi->documentRoot,
             request: $options->request,
-            vars: [...$vars, ...(is_array($options->ssiVars) ? $options->ssiVars : [])]
+            vars: [...$vars, ...(\is_array($options->ssiVars) ? $options->ssiVars : [])],
         );
 
         $before = $text;
@@ -456,7 +456,7 @@ final class Renderer
             return $this->parsed[$key];
         }
 
-        if (count($this->parsed) >= 512) {
+        if (\count($this->parsed) >= 512) {
             $oldest = array_key_first($this->parsed);
 
             if ($oldest !== null) {
@@ -504,11 +504,11 @@ final class Renderer
 
         foreach ($vars as $key => $value) {
             $view[$key] = match (true) {
-                is_array($value) => self::scalarView($value),
+                \is_array($value) => self::scalarView($value),
                 $value instanceof \Stringable => (string) $value,
-                is_object($value) => $value::class,
-                is_scalar($value), $value === null => $value,
-                default => gettype($value),
+                \is_object($value) => $value::class,
+                \is_scalar($value), $value === null => $value,
+                default => \gettype($value),
             };
         }
 

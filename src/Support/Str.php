@@ -38,9 +38,7 @@ final class Str
 
     private const MAX_PRECISION = 100;
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Converts any template value to a string without emitting notices.
@@ -52,12 +50,12 @@ final class Str
     {
         return match (true) {
             $value === null => '',
-            is_string($value) => $value,
-            is_int($value) => (string) $value,
-            is_float($value) => is_finite($value)
+            \is_string($value) => $value,
+            \is_int($value) => (string) $value,
+            \is_float($value) => is_finite($value)
                 ? rtrim(rtrim(number_format($value, 14, '.', ''), '0'), '.')
                 : '',
-            is_bool($value) => $value ? '1' : '',
+            \is_bool($value) => $value ? '1' : '',
             $value instanceof \Stringable => (string) $value,
             $value instanceof \BackedEnum => self::stringify($value->value),
             default => '',
@@ -70,18 +68,18 @@ final class Str
      */
     public static function numericValue(mixed $value): float
     {
-        if (is_int($value) || is_float($value)) {
+        if (\is_int($value) || \is_float($value)) {
             return is_finite((float) $value) ? (float) $value : 0.0;
         }
 
-        if (!is_string($value)) {
+        if (!\is_string($value)) {
             return 0.0;
         }
 
         $number = str_replace(
             [' ', "\t", "\r", "\n", "\v", "\f", "\u{00A0}", "\u{202F}", "\u{2009}", "'"],
             '',
-            trim($value)
+            trim($value),
         );
 
         if ($number === '') {
@@ -117,7 +115,7 @@ final class Str
         $parts = explode(',', $number);
 
         // Three comma groups of exactly three digits are thousands separators.
-        return count($parts) > 2 && strlen((string) end($parts)) === 3
+        return \count($parts) > 2 && \strlen((string) end($parts)) === 3
             ? str_replace(',', '', $number)
             : str_replace(',', '.', $number);
     }
@@ -134,7 +132,7 @@ final class Str
      */
     public static function precision(mixed $precision): int
     {
-        $value = is_int($precision) || (is_string($precision) && preg_match('/^\d+$/', $precision) === 1)
+        $value = \is_int($precision) || (\is_string($precision) && preg_match('/^\d+$/', $precision) === 1)
             ? (int) $precision
             : 0;
 
@@ -190,7 +188,7 @@ final class Str
         float $value,
         int $decimals = 2,
         string $decimalPoint = '.',
-        string $thousandsSeparator = ','
+        string $thousandsSeparator = ',',
     ): string {
         $decimals = max(0, min(20, $decimals));
         $value = is_finite($value) ? $value : 0.0;
@@ -198,7 +196,7 @@ final class Str
         return self::fixNegativeZero(
             number_format($value, $decimals, $decimalPoint, $thousandsSeparator),
             $decimals,
-            $decimalPoint
+            $decimalPoint,
         );
     }
 
@@ -235,7 +233,7 @@ final class Str
             return rtrim($cut, " \t\n\r\0\x0B.,;:!?") . $suffix;
         }
 
-        if (strlen($text) <= $length) {
+        if (\strlen($text) <= $length) {
             return $text;
         }
 
@@ -252,7 +250,7 @@ final class Str
     /** Character count, multibyte-aware. */
     public static function length(string $text): int
     {
-        return self::hasMb() ? mb_strlen($text, 'UTF-8') : strlen($text);
+        return self::hasMb() ? mb_strlen($text, 'UTF-8') : \strlen($text);
     }
 
     /** Substring, multibyte-aware (`null` length means "to the end"). */
@@ -279,7 +277,7 @@ final class Str
             return '';
         }
 
-        if (function_exists('mb_ucfirst')) {
+        if (\function_exists('mb_ucfirst')) {
             return mb_ucfirst($text, 'UTF-8');
         }
 
@@ -298,18 +296,27 @@ final class Str
         return (string) preg_replace_callback(
             '/[\p{L}\p{N}]+/u',
             static fn(array $m): string => self::ucfirst($m[0]),
-            $text
+            $text,
         );
     }
 
     private static function hasMb(): bool
     {
-        return function_exists('mb_strlen');
+        return \function_exists('mb_strlen');
     }
 
     /**
-     * URL slug: transliterate, lower-case, collapse everything outside
-     * `[a-z0-9]` into `$separator`.
+     * URL slug: lower-case, apply the built-in transliteration map, collapse
+     * everything outside `[a-z0-9]` into `$separator`.
+     *
+     * Deterministic by contract: the map runs **before** any ICU call, so
+     * every character the map covers (Cyrillic + common European letters)
+     * produces the same slug whether or not `ext-intl` is loaded — slugs end
+     * up in URLs and storage, and must not depend on the host. ICU
+     * (`Any-Latin; Latin-ASCII; Lower()`) is consulted only when non-ASCII
+     * characters remain, i.e. for scripts the map does not cover (Greek,
+     * Georgian, …); without intl those are stripped like any other
+     * non-`[a-z0-9]` character.
      */
     public static function slugify(string $text, string $separator = '-'): string
     {
@@ -321,20 +328,25 @@ final class Str
 
         $separator = $separator === '' ? '-' : $separator;
 
-        if (function_exists('transliterator_transliterate')) {
+        // 1. Deterministic core: lower-case, then the built-in map. Map
+        //    coverage wins over ICU so the result never depends on ext-intl.
+        $text = strtr(self::lower($text), self::TRANSLITERATION);
+
+        // 2. ICU fallback for scripts the map does not cover, only while
+        //    non-ASCII characters remain (the `@` guards E_WARNING on
+        //    malformed UTF-8 input — transliterate() returns false then).
+        if ($text !== '' && preg_match('/[^\x00-\x7F]/', $text) === 1
+            && \function_exists('transliterator_transliterate')
+        ) {
             /** @var string|false $converted */
             $converted = @transliterator_transliterate(
                 'Any-Latin; Latin-ASCII; Lower()',
-                $text
+                $text,
             );
 
-            if (is_string($converted) && $converted !== '') {
+            if (\is_string($converted) && $converted !== '') {
                 $text = $converted;
             }
-        } else {
-            // No intl: lower-case first, then apply the built-in map so
-            // slugs stay meaningful without the extension.
-            $text = strtr(self::lower($text), self::TRANSLITERATION);
         }
 
         $text = (string) preg_replace('~[^a-z0-9]+~', $separator, $text);
@@ -384,7 +396,7 @@ final class Str
         $text = Pcre::replaceCallback(
             '~&#x([0-9A-Fa-f]{1,6});~',
             static fn(array $matches): string => '&#' . hexdec($matches[1]) . ';',
-            $text
+            $text,
         );
 
         $text = Pcre::replaceCallback(
@@ -392,13 +404,13 @@ final class Str
             static function (array $matches) use ($map): string {
                 $number = $matches[1];
 
-                if (is_array($map) && isset($map[$number])) {
+                if (\is_array($map) && isset($map[$number])) {
                     return '&' . self::stringify($map[$number]) . ';';
                 }
 
                 return '&#' . $number . ';';
             },
-            $text
+            $text,
         );
 
         return str_ireplace(['&thorn;', '&eth;', '&szlig;', '&nbsp;'], ['th', 'd', 'ss', ' '], $text);
@@ -451,14 +463,14 @@ final class Str
      */
     public static function sanitizeRecursive(array|string $input): array|string
     {
-        if (is_string($input)) {
+        if (\is_string($input)) {
             return htmlspecialchars($input, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
         }
 
         $result = [];
 
         foreach ($input as $key => $value) {
-            $result[$key] = is_array($value) || is_string($value)
+            $result[$key] = \is_array($value) || \is_string($value)
                 ? self::sanitizeRecursive($value)
                 : $value;
         }

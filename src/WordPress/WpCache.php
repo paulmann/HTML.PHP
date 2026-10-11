@@ -31,29 +31,29 @@ final class WpCache implements CacheInterface
     public function __construct(
         private readonly string $prefix = 'htmlphp',
         private readonly int $defaultTtl = 0,
-        private readonly ?Diagnostics $diagnostics = null
+        private readonly ?Diagnostics $diagnostics = null,
     ) {
-        $blogId = function_exists('get_current_blog_id') ? (int) get_current_blog_id() : 0;
+        $blogId = \function_exists('get_current_blog_id') ? (int) get_current_blog_id() : 0;
         $this->group = self::GROUP_BASE . ($blogId > 0 ? '_' . $blogId : '');
     }
 
     public function get(string $key): ?string
     {
-        if (!function_exists('wp_cache_get')) {
+        if (!\function_exists('wp_cache_get')) {
             return null;
         }
 
         $found = false;
         $value = wp_cache_get($this->objectKey($key), $this->group, false, $found);
 
-        if ($found && is_string($value)) {
+        if ($found && \is_string($value)) {
             return $value;
         }
 
-        if (function_exists('get_transient')) {
+        if (\function_exists('get_transient')) {
             $stored = get_transient($this->prefix . ':' . $key);
 
-            if (is_string($stored)) {
+            if (\is_string($stored)) {
                 wp_cache_set($this->objectKey($key), $stored, $this->group);
 
                 return $stored;
@@ -65,7 +65,13 @@ final class WpCache implements CacheInterface
 
     public function set(string $key, string $value, int $ttl = 0): bool
     {
-        if (!function_exists('wp_cache_set')) {
+        if (!\function_exists('wp_cache_set')) {
+            $this->diagnostics?->record(
+                Diagnostics::CACHE_IO,
+                'WordPress object cache unavailable; entry was not stored.',
+                ['key' => $key],
+            );
+
             return false;
         }
 
@@ -73,7 +79,7 @@ final class WpCache implements CacheInterface
 
         wp_cache_set($this->objectKey($key), $value, $this->group, $ttl > 0 ? $ttl : 0);
 
-        if (function_exists('set_transient')) {
+        if (\function_exists('set_transient')) {
             set_transient($this->prefix . ':' . $key, $value, $ttl > 0 ? $ttl : 0);
         }
 
@@ -89,11 +95,11 @@ final class WpCache implements CacheInterface
 
     public function delete(string $key): bool
     {
-        if (function_exists('wp_cache_delete')) {
+        if (\function_exists('wp_cache_delete')) {
             wp_cache_delete($this->objectKey($key), $this->group);
         }
 
-        if (function_exists('delete_transient')) {
+        if (\function_exists('delete_transient')) {
             delete_transient($this->prefix . ':' . $key);
         }
 
@@ -108,7 +114,7 @@ final class WpCache implements CacheInterface
         $removed = 0;
 
         foreach ($keys as $key) {
-            if (is_string($key)) {
+            if (\is_string($key)) {
                 $this->delete($key);
                 $removed++;
             }
@@ -128,14 +134,14 @@ final class WpCache implements CacheInterface
     {
         $keys = Options::getArray(self::REGISTRY_KEY);
 
-        if (in_array($key, $keys, true)) {
+        if (\in_array($key, $keys, true)) {
             return;
         }
 
         $keys[] = $key;
 
-        if (count($keys) > self::REGISTRY_CAP) {
-            $keys = array_slice($keys, -self::REGISTRY_CAP);
+        if (\count($keys) > self::REGISTRY_CAP) {
+            $keys = \array_slice($keys, -self::REGISTRY_CAP);
         }
 
         Options::set(self::REGISTRY_KEY, $keys);

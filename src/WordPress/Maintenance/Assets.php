@@ -6,9 +6,7 @@ namespace HtmlPhp\WordPress\Maintenance;
 
 final class Assets
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Enqueues a stylesheet; the version is the file mtime when the file
@@ -29,27 +27,29 @@ final class Assets
         self::enqueue('script', $handle, $src, $deps, null, $inFooter);
     }
 
+
+    /** @param list<string> $deps */
     private static function enqueue(string $kind, string $handle, string $src, array $deps, ?string $media, bool $inFooter = false): void
     {
         $version = self::version($src);
 
         if ($kind === 'style') {
-            if (function_exists('wp_register_style')) {
+            if (\function_exists('wp_register_style')) {
                 wp_register_style($handle, $src, $deps, $version, $media);
             }
 
-            if (function_exists('wp_enqueue_style')) {
+            if (\function_exists('wp_enqueue_style')) {
                 wp_enqueue_style($handle);
             }
 
             return;
         }
 
-        if (function_exists('wp_register_script')) {
+        if (\function_exists('wp_register_script')) {
             wp_register_script($handle, $src, $deps, $version, $inFooter);
         }
 
-        if (function_exists('wp_enqueue_script')) {
+        if (\function_exists('wp_enqueue_script')) {
             wp_enqueue_script($handle);
         }
     }
@@ -62,13 +62,13 @@ final class Assets
         $path = $src;
 
         if (preg_match('~^https?://~i', $path) === 1) {
-            if (function_exists('home_url')) {
+            if (\function_exists('home_url')) {
                 $home = (string) home_url();
 
                 if ($home !== '' && str_starts_with($path, $home)) {
-                    $relative = substr($path, strlen($home));
+                    $relative = substr($path, \strlen($home));
 
-                    if (function_exists('wp_normalize_path') && \defined('ABSPATH')) {
+                    if (\function_exists('wp_normalize_path') && \defined('ABSPATH')) {
                         $path = rtrim((string) \ABSPATH, '/\\') . '/' . ltrim($relative, '/');
                     }
                 }

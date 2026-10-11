@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 04 — Cache backends, loggers, event dispatcher.
  */
@@ -82,9 +83,15 @@ test('round-trips values, honours TTL and cleans up', function (): void {
     assertSame(2, $cache->clear()); // k3 plus the expired-but-present key2 file
 });
 
-test('missing directory is reported through diagnostics, not exceptions', function (): void {
+test('uncreatable directory is reported through diagnostics, not exceptions', function (): void {
+    // A path *underneath an existing file*: mkdir() fails on every OS
+    // (ENOTDIR) and nothing can ever be created — unlike '/proc/...', which
+    // on Windows resolves to a creatable C:\proc\... (and used to leak a
+    // directory outside the repository).
+    $blocker = fixture_write('cache-blocker.txt', 'not a directory');
+
     $diagnostics = new Diagnostics();
-    $cache = new FileCache('/proc/cannot/exist', 'x', 0, false, null, $diagnostics);
+    $cache = new FileCache($blocker . '/sub', 'x', 0, false, null, $diagnostics);
 
     assertSame(false, $cache->set('k', 'v'));
     assertSame(true, $diagnostics->count(Diagnostics::CACHE_IO) > 0);
@@ -116,7 +123,7 @@ test('factory maps drivers and falls back safely', function (): void {
 
     assertThrows(
         HtmlPhp\Exception\CacheException::class,
-        static fn() => CacheFactory::create(new CacheConfig(enabled: true, driver: HtmlPhp\Config\CacheDriver::File, directory: ''))
+        static fn() => CacheFactory::create(new CacheConfig(enabled: true, driver: HtmlPhp\Config\CacheDriver::File, directory: '')),
     );
 });
 

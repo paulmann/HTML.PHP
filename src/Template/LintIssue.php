@@ -22,9 +22,8 @@ final readonly class LintIssue
         public string $message,
         public string $file = '-',
         public int $line = 0,
-        public array $context = []
-    ) {
-    }
+        public array $context = [],
+    ) {}
 
     public function isError(): bool
     {
@@ -33,13 +32,13 @@ final readonly class LintIssue
 
     public function format(): string
     {
-        return sprintf(
+        return \sprintf(
             '%s:%d %s [%s] %s',
             $this->file,
             $this->line,
             strtoupper($this->severity),
             $this->code,
-            $this->message
+            $this->message,
         );
     }
 

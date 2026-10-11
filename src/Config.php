@@ -43,9 +43,8 @@ final readonly class Config
         public CacheConfig $cache = new CacheConfig(),
         public LogConfig $log = new LogConfig(),
         public SecurityConfig $security = new SecurityConfig(),
-        public Limits $limits = new Limits()
-    ) {
-    }
+        public Limits $limits = new Limits(),
+    ) {}
 
     public static function default(): self
     {
@@ -68,7 +67,7 @@ final readonly class Config
         $group = static function (string $key, array $known) use ($config): array {
             $value = $config[$key] ?? [];
 
-            if (!is_array($value)) {
+            if (!\is_array($value)) {
                 throw new ConfigException("Config group '{$key}' must be an array.", ['value' => $value]);
             }
 
@@ -92,7 +91,7 @@ final readonly class Config
                 'max_loop_rows', 'max_loop_depth', 'max_block_depth', 'max_passes',
                 'max_expression_length', 'max_exec_output_bytes', 'exec_timeout',
                 'max_diagnostics', 'max_precision',
-            ]))
+            ])),
         );
     }
 
@@ -115,38 +114,98 @@ final readonly class Config
 
     public function withDebug(bool $debug): self
     {
-        return new self($debug, $this->charset, $this->templates, $this->syntax, $this->ssi,
-            $this->i18n, $this->cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $debug,
+            $this->charset,
+            $this->templates,
+            $this->syntax,
+            $this->ssi,
+            $this->i18n,
+            $this->cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     public function withSsi(SsiConfig $ssi): self
     {
-        return new self($this->debug, $this->charset, $this->templates, $this->syntax, $ssi,
-            $this->i18n, $this->cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $this->debug,
+            $this->charset,
+            $this->templates,
+            $this->syntax,
+            $ssi,
+            $this->i18n,
+            $this->cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     public function withI18n(I18nConfig $i18n): self
     {
-        return new self($this->debug, $this->charset, $this->templates, $this->syntax, $this->ssi,
-            $i18n, $this->cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $this->debug,
+            $this->charset,
+            $this->templates,
+            $this->syntax,
+            $this->ssi,
+            $i18n,
+            $this->cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     public function withCache(CacheConfig $cache): self
     {
-        return new self($this->debug, $this->charset, $this->templates, $this->syntax, $this->ssi,
-            $this->i18n, $cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $this->debug,
+            $this->charset,
+            $this->templates,
+            $this->syntax,
+            $this->ssi,
+            $this->i18n,
+            $cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     public function withTemplates(TemplatesConfig $templates): self
     {
-        return new self($this->debug, $this->charset, $templates, $this->syntax, $this->ssi,
-            $this->i18n, $this->cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $this->debug,
+            $this->charset,
+            $templates,
+            $this->syntax,
+            $this->ssi,
+            $this->i18n,
+            $this->cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     public function withSyntax(SyntaxConfig $syntax): self
     {
-        return new self($this->debug, $this->charset, $this->templates, $syntax, $this->ssi,
-            $this->i18n, $this->cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $this->debug,
+            $this->charset,
+            $this->templates,
+            $syntax,
+            $this->ssi,
+            $this->i18n,
+            $this->cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     /**
@@ -165,22 +224,22 @@ final readonly class Config
     /** @param array<string, mixed> $config */
     public static function value(array $config, string $key, mixed $default): mixed
     {
-        return array_key_exists($key, $config) && $config[$key] !== null ? $config[$key] : $default;
+        return \array_key_exists($key, $config) && $config[$key] !== null ? $config[$key] : $default;
     }
 
     /** @param array<string, mixed> $config */
     public static function bool(array $config, string $key, bool $default): bool
     {
-        if (!array_key_exists($key, $config) || $config[$key] === null) {
+        if (!\array_key_exists($key, $config) || $config[$key] === null) {
             return $default;
         }
 
         $value = $config[$key];
 
         return match (true) {
-            is_bool($value) => $value,
-            is_int($value) => $value !== 0,
-            is_string($value) => !in_array(strtolower($value), ['', '0', 'false', 'off', 'no'], true),
+            \is_bool($value) => $value,
+            \is_int($value) => $value !== 0,
+            \is_string($value) => !\in_array(strtolower($value), ['', '0', 'false', 'off', 'no'], true),
             default => (bool) $value,
         };
     }
@@ -188,13 +247,13 @@ final readonly class Config
     /** @param array<string, mixed> $config */
     public static function nullableBool(array $config, string $key): ?bool
     {
-        if (!array_key_exists($key, $config) || $config[$key] === null) {
+        if (!\array_key_exists($key, $config) || $config[$key] === null) {
             return null;
         }
 
         $value = $config[$key];
 
-        if (is_string($value) && strtolower($value) === 'auto') {
+        if (\is_string($value) && strtolower($value) === 'auto') {
             return null;
         }
 
@@ -204,13 +263,13 @@ final readonly class Config
     /** @param array<string, mixed> $config */
     public static function int(array $config, string $key, int $default): int
     {
-        if (!array_key_exists($key, $config) || $config[$key] === null) {
+        if (!\array_key_exists($key, $config) || $config[$key] === null) {
             return $default;
         }
 
         $value = $config[$key];
 
-        if (is_int($value)) {
+        if (\is_int($value)) {
             return $value;
         }
 
@@ -230,7 +289,7 @@ final readonly class Config
             return null;
         }
 
-        if (!is_scalar($value)) {
+        if (!\is_scalar($value)) {
             throw new ConfigException("Config key '{$key}' must be a string or null.", ['key' => $key]);
         }
 
@@ -245,16 +304,16 @@ final readonly class Config
     {
         $value = $config[$key] ?? [];
 
-        if (!is_array($value)) {
+        if (!\is_array($value)) {
             throw new ConfigException("Config key '{$key}' must be an array of strings.", ['key' => $key]);
         }
 
         return array_values(array_map(
-            static fn($item): string => is_scalar($item) ? (string) $item : throw new ConfigException(
+            static fn($item): string => \is_scalar($item) ? (string) $item : throw new ConfigException(
                 "Config key '{$key}' must contain only strings.",
-                ['key' => $key]
+                ['key' => $key],
             ),
-            $value
+            $value,
         ));
     }
 
@@ -267,7 +326,7 @@ final readonly class Config
     {
         $value = $config[$key] ?? $default;
 
-        if (!is_array($value)) {
+        if (!\is_array($value)) {
             throw new ConfigException("Config key '{$key}' must be an array.", ['key' => $key]);
         }
 
@@ -283,7 +342,7 @@ final readonly class Config
             return null;
         }
 
-        if (!is_callable($value)) {
+        if (!\is_callable($value)) {
             throw new ConfigException("Config key '{$key}' must be callable.", ['key' => $key]);
         }
 
@@ -297,11 +356,15 @@ final readonly class Config
     private static function rejectUnknown(array $config, array $known, string $group): void
     {
         foreach (array_keys($config) as $key) {
-            if (!is_string($key) || !in_array($key, $known, true)) {
+            if (!\is_string($key) || !\in_array($key, $known, true)) {
                 throw new ConfigException(
-                    sprintf('Unknown configuration key "%s" in group "%s". Known keys: %s.',
-                        (string) $key, $group, implode(', ', $known)),
-                    ['group' => $group, 'key' => $key]
+                    \sprintf(
+                        'Unknown configuration key "%s" in group "%s". Known keys: %s.',
+                        (string) $key,
+                        $group,
+                        implode(', ', $known),
+                    ),
+                    ['group' => $group, 'key' => $key],
                 );
             }
         }
@@ -317,7 +380,7 @@ final readonly class Config
     private static function mergeArrays(array $base, array $overrides): array
     {
         foreach ($overrides as $key => $value) {
-            if (is_array($value) && isset($base[$key]) && is_array($base[$key]) && self::isAssoc($value) && self::isAssoc($base[$key])) {
+            if (\is_array($value) && isset($base[$key]) && \is_array($base[$key]) && self::isAssoc($value) && self::isAssoc($base[$key])) {
                 $base[$key] = self::mergeArrays($base[$key], $value);
                 continue;
             }
@@ -335,6 +398,6 @@ final readonly class Config
             return false;
         }
 
-        return array_keys($array) !== range(0, count($array) - 1);
+        return array_keys($array) !== range(0, \count($array) - 1);
     }
 }

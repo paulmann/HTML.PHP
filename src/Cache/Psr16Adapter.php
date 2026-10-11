@@ -17,7 +17,7 @@ final class Psr16Adapter implements CacheInterface
         foreach (['get', 'set', 'delete', 'has', 'clear'] as $method) {
             if (!method_exists($this->cache, $method)) {
                 throw new \InvalidArgumentException(
-                    "Psr16Adapter expects a SimpleCache-shaped object; '{$method}' is missing."
+                    "Psr16Adapter expects a SimpleCache-shaped object; '{$method}' is missing.",
                 );
             }
         }
@@ -27,7 +27,7 @@ final class Psr16Adapter implements CacheInterface
     {
         $value = $this->cache->get($key, null);
 
-        return is_string($value) ? $value : ($value === null ? null : (string) $value);
+        return \is_string($value) ? $value : ($value === null ? null : (string) $value);
     }
 
     public function set(string $key, string $value, int $ttl = 0): bool

@@ -87,9 +87,9 @@ final class TagParser
             $start = (int) $match[0][1];
             $tokens[] = [
                 'name' => strtolower((string) $match[1][0]),
-                'payload' => trim((string) ($match[2][0] ?? '')),
+                'payload' => trim((string) $match[2][0]),
                 'start' => $start,
-                'end' => $start + strlen((string) $match[0][0]),
+                'end' => $start + \strlen((string) $match[0][0]),
             ];
         }
 
@@ -127,12 +127,12 @@ final class TagParser
                 return;
             }
 
-            $top = &$stack[count($stack) - 1];
+            $top = &$stack[\count($stack) - 1];
 
             if ($top['inElse']) {
                 $top['else'][] = self::text($slice);
             } elseif ($top['branches'] !== [] && ($top['type'] === 'if' || $top['type'] === 'unless')) {
-                $last = count($top['branches']) - 1;
+                $last = \count($top['branches']) - 1;
                 $top['branches'][$last]['nodes'][] = self::text($slice);
             } else {
                 $top['children'][] = self::text($slice);
@@ -148,12 +148,12 @@ final class TagParser
                 return;
             }
 
-            $top = &$stack[count($stack) - 1];
+            $top = &$stack[\count($stack) - 1];
 
             if ($top['inElse']) {
                 $top['else'][] = $node;
             } elseif ($top['branches'] !== [] && ($top['type'] === 'if' || $top['type'] === 'unless')) {
-                $last = count($top['branches']) - 1;
+                $last = \count($top['branches']) - 1;
                 $top['branches'][$last]['nodes'][] = $node;
             } else {
                 $top['children'][] = $node;
@@ -162,7 +162,7 @@ final class TagParser
             unset($top);
         };
 
-        $count = count($tokens);
+        $count = \count($tokens);
 
         for ($index = 0; $index < $count; ++$index) {
             $token = $tokens[$index];
@@ -186,7 +186,7 @@ final class TagParser
                 }
 
                 $closeEnd = strpos($this->source, '-->', $close);
-                $closeEnd = $closeEnd === false ? strlen($this->source) : $closeEnd + 3;
+                $closeEnd = $closeEnd === false ? \strlen($this->source) : $closeEnd + 3;
 
                 if ($name === 'raw') {
                     $appendNode(new Node('raw', [
@@ -200,8 +200,8 @@ final class TagParser
             }
 
             // ---- openers ----------------------------------------------
-            if (in_array($name, self::OPENERS, true)) {
-                if ($name === 'trans' && $stack !== [] && $stack[count($stack) - 1]['type'] === 'trans') {
+            if (\in_array($name, self::OPENERS, true)) {
+                if ($name === 'trans' && $stack !== [] && $stack[\count($stack) - 1]['type'] === 'trans') {
                     throw $this->error('Nested <!--@Trans--> blocks are not allowed.', $token['start']);
                 }
 
@@ -223,11 +223,11 @@ final class TagParser
             if (isset(self::CLOSERS[$name])) {
                 $expected = self::CLOSERS[$name];
 
-                if ($stack === [] || $stack[count($stack) - 1]['type'] !== $expected) {
+                if ($stack === [] || $stack[\count($stack) - 1]['type'] !== $expected) {
                     throw $this->error(
                         'Unexpected <!--@' . $name . '-->'
-                        . ($stack === [] ? ' without an opener.' : ' inside <!--@' . $stack[count($stack) - 1]['type'] . '-->.'),
-                        $token['start']
+                        . ($stack === [] ? ' without an opener.' : ' inside <!--@' . $stack[\count($stack) - 1]['type'] . '-->.'),
+                        $token['start'],
                     );
                 }
 
@@ -242,7 +242,7 @@ final class TagParser
                     throw $this->error('Unexpected <!--@' . ucfirst($name) . '--> without an opener.', $token['start']);
                 }
 
-                $top = &$stack[count($stack) - 1];
+                $top = &$stack[\count($stack) - 1];
 
                 if ($name === 'plural') {
                     if ($top['type'] !== 'trans') {
@@ -289,10 +289,10 @@ final class TagParser
             throw $this->error('Unknown template tag "' . $name . '".', $token['start']);
         }
 
-        $flushText($cursor, strlen($this->source));
+        $flushText($cursor, \strlen($this->source));
 
         if ($stack !== []) {
-            $frame = $stack[count($stack) - 1];
+            $frame = $stack[\count($stack) - 1];
             throw $this->error('Unclosed <!--@' . ucfirst((string) $frame['type']) . '--> block.', (int) $frame['start']);
         }
 
@@ -372,7 +372,7 @@ final class TagParser
         $with = isset($attributes['with']) && $attributes['with'] !== ''
             ? array_values(array_filter(array_map(
                 static fn(string $part): string => trim($part),
-                explode(',', $attributes['with'])
+                explode(',', $attributes['with']),
             ), static fn(string $part): bool => $part !== ''))
             : null;
 
@@ -398,7 +398,7 @@ final class TagParser
         }
 
         // `<!--@Set total="price * qty" -->` — single name="expr" attribute.
-        if (count($attributes) === 1) {
+        if (\count($attributes) === 1) {
             $name = (string) array_key_first($attributes);
 
             if (preg_match('~^[A-Za-z_][A-Za-z0-9_.]*$~', $name) === 1) {
@@ -413,7 +413,7 @@ final class TagParser
 
         throw new TemplateSyntaxException(
             '<!--@Set--> requires name="expression" syntax.',
-            ['payload' => $payload, 'line' => $line]
+            ['payload' => $payload, 'line' => $line],
         );
     }
 
@@ -458,7 +458,7 @@ final class TagParser
 
         throw new TemplateSyntaxException(
             'Cannot parse <!--@Loop--> header.',
-            ['payload' => $payload, 'line' => $line]
+            ['payload' => $payload, 'line' => $line],
         );
     }
 
@@ -502,7 +502,7 @@ final class TagParser
 
     private function line(int $offset): int
     {
-        return substr_count($this->source, "\n", 0, max(0, min($offset, strlen($this->source)))) + 1;
+        return substr_count($this->source, "\n", 0, max(0, min($offset, \strlen($this->source)))) + 1;
     }
 
     private function error(string $message, int $offset): TemplateSyntaxException

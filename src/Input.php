@@ -14,9 +14,7 @@ namespace HtmlPhp;
  */
 final class Input
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * `['get' => …, 'post' => …, 'cookie' => …, 'request' => …]` with every

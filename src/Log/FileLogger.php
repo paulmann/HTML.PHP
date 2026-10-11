@@ -16,9 +16,8 @@ final class FileLogger extends AbstractLogger
     public function __construct(
         private readonly string $path,
         private readonly string $channel = 'htmlphp',
-        private readonly string $minLevel = 'warning'
-    ) {
-    }
+        private readonly string $minLevel = 'warning',
+    ) {}
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $message, array $context = []): void
@@ -27,16 +26,16 @@ final class FileLogger extends AbstractLogger
             return;
         }
 
-        $line = sprintf(
+        $line = \sprintf(
             "[%s] %s.%s: %s%s\n",
             date('Y-m-d H:i:s'),
             $this->channel,
             $level,
             $this->interpolate($message, $context),
-            $context === [] ? '' : ' ' . (json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}')
+            $context === [] ? '' : ' ' . (json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}'),
         );
 
-        $dir = dirname($this->path);
+        $dir = \dirname($this->path);
 
         if (!is_dir($dir)) {
             @mkdir($dir, 0775, true);

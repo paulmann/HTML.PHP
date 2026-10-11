@@ -46,7 +46,7 @@ interface TranslatorInterface
         int $count,
         string $context,
         array $args = [],
-        ?string $domain = null
+        ?string $domain = null,
     ): string;
 
     /** Active locale, normalised (`ll` or `ll_CC`). */

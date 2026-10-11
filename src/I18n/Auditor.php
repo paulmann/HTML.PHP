@@ -14,9 +14,7 @@ namespace HtmlPhp\I18n;
  */
 final class Auditor
 {
-    public function __construct(private readonly Translator $translator)
-    {
-    }
+    public function __construct(private readonly Translator $translator) {}
 
     /**
      * @param list<array{msgid: string, msgid_plural: ?string, context: string, domain: string, references: list<string>}> $entries
@@ -77,7 +75,7 @@ final class Auditor
             'missing' => $missing,
             'unused' => $unused,
             'total' => $total,
-            'translated' => $total - count($missing),
+            'translated' => $total - \count($missing),
         ];
     }
 
@@ -94,29 +92,29 @@ final class Auditor
             ? (int) round($report['translated'] / $report['total'] * 100)
             : 100;
 
-        $lines[] = sprintf(
+        $lines[] = \sprintf(
             'Locale %s: %d/%d messages translated (%d%%), %d unused.',
             $report['locale'],
             $report['translated'],
             $report['total'],
             $percent,
-            count($report['unused'])
+            \count($report['unused']),
         );
 
-        foreach (array_slice($report['missing'], 0, 50) as $entry) {
+        foreach (\array_slice($report['missing'], 0, 50) as $entry) {
             $lines[] = '  missing: ' . self::label($entry);
         }
 
-        if (count($report['missing']) > 50) {
-            $lines[] = sprintf('  … and %d more missing.', count($report['missing']) - 50);
+        if (\count($report['missing']) > 50) {
+            $lines[] = \sprintf('  … and %d more missing.', \count($report['missing']) - 50);
         }
 
-        foreach (array_slice($report['unused'], 0, 20) as $entry) {
+        foreach (\array_slice($report['unused'], 0, 20) as $entry) {
             $lines[] = '  unused:  ' . self::label($entry);
         }
 
-        if (count($report['unused']) > 20) {
-            $lines[] = sprintf('  … and %d more unused.', count($report['unused']) - 20);
+        if (\count($report['unused']) > 20) {
+            $lines[] = \sprintf('  … and %d more unused.', \count($report['unused']) - 20);
         }
 
         return $lines;

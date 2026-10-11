@@ -13,9 +13,7 @@ namespace HtmlPhp\Ssi;
  */
 final class Attributes
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * @return array<string, string> lower-cased attribute name => raw value
@@ -28,7 +26,7 @@ final class Attributes
             '~([A-Za-z_][A-Za-z0-9_-]*)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s\'"]+))~s',
             $source,
             $matches,
-            \PREG_SET_ORDER | \PREG_UNMATCHED_AS_NULL
+            \PREG_SET_ORDER | \PREG_UNMATCHED_AS_NULL,
         );
 
         foreach ($matches as $match) {

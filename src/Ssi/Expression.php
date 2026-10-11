@@ -22,7 +22,7 @@ use HtmlPhp\Support\Str;
  */
 final class Expression
 {
-        /** @var list<array{0: string, 1: string}> token stream [type, value] */
+    /** @var list<array{0: string, 1: string}> token stream [type, value] */
     private array $tokens = [];
     private int $position = 0;
     private SsiContext $context;
@@ -43,11 +43,11 @@ final class Expression
             return false;
         }
 
-        if (strlen($expression) > $context->limits()->maxExpressionLength) {
+        if (\strlen($expression) > $context->limits()->maxExpressionLength) {
             $context->diagnostics()->record(
                 Diagnostics::SSI_EXPR_ERROR,
                 'SSI expression is too long.',
-                ['length' => strlen($expression)]
+                ['length' => \strlen($expression)],
             );
 
             return false;
@@ -59,11 +59,11 @@ final class Expression
             $parser->tokens = $parser->tokenize($expression);
             $result = $parser->parseOr();
 
-            if ($parser->position < count($parser->tokens)) {
+            if ($parser->position < \count($parser->tokens)) {
                 $context->diagnostics()->record(
                     Diagnostics::SSI_EXPR_ERROR,
                     'Trailing input in SSI expression.',
-                    ['expression' => $expression]
+                    ['expression' => $expression],
                 );
 
                 return false;
@@ -74,7 +74,7 @@ final class Expression
             $context->diagnostics()->record(
                 Diagnostics::SSI_EXPR_ERROR,
                 'Invalid SSI expression: ' . $error->getMessage(),
-                ['expression' => $expression]
+                ['expression' => $expression],
             );
 
             return false;
@@ -97,7 +97,7 @@ final class Expression
     private function tokenize(string $source): array
     {
         $tokens = [];
-        $length = strlen($source);
+        $length = \strlen($source);
         $index = 0;
 
         while ($index < $length) {
@@ -178,11 +178,9 @@ final class Expression
                 continue;
             }
 
-            if (preg_match('~[A-Za-z0-9_.,:;@+/\\\\*-]+~', $source, $matches, 0, $index) === 1
-                && $matches[0] !== ''
-            ) {
+            if (preg_match('~[A-Za-z0-9_.,:;@+/\\\\*-]+~', $source, $matches, 0, $index) === 1) {
                 $tokens[] = ['word', $matches[0]];
-                $index += strlen($matches[0]);
+                $index += \strlen($matches[0]);
                 continue;
             }
 
@@ -198,7 +196,7 @@ final class Expression
     private function readQuoted(string $source, int $index): array
     {
         $quote = $source[$index];
-        $length = strlen($source);
+        $length = \strlen($source);
         $value = '';
         ++$index;
 
@@ -235,14 +233,14 @@ final class Expression
     {
         if (($source[$index + 1] ?? '') === '{') {
             if (preg_match('~\$\{([A-Za-z_][A-Za-z0-9_.-]*)\}~A', $source, $matches, 0, $index) === 1) {
-                return [$matches[1], $index + strlen($matches[0])];
+                return [$matches[1], $index + \strlen($matches[0])];
             }
 
             throw new ExpressionSyntaxError('malformed ${NAME} reference');
         }
 
         if (preg_match('~\$([A-Za-z_][A-Za-z0-9_.-]*)~A', $source, $matches, 0, $index) === 1) {
-            return [$matches[1], $index + strlen($matches[0])];
+            return [$matches[1], $index + \strlen($matches[0])];
         }
 
         throw new ExpressionSyntaxError('malformed $NAME reference');
@@ -253,7 +251,7 @@ final class Expression
      */
     private function readRegex(string $source, int $index): array
     {
-        $length = strlen($source);
+        $length = \strlen($source);
         $value = '';
         ++$index;
 
@@ -289,17 +287,17 @@ final class Expression
             return true;
         }
 
-        $previous = $tokens[count($tokens) - 1][0];
+        $previous = $tokens[\count($tokens) - 1][0];
 
         // After a file-test operator ("/" starts a PATH word, not a regex).
-        return in_array($previous, ['=', '==', '!=', '(', '!', '&&', '||'], true);
+        return \in_array($previous, ['=', '==', '!=', '(', '!', '&&', '||'], true);
     }
 
     private function fileTestAt(string $source, int $index): bool
     {
         $pair = substr($source, $index, 2);
 
-        return in_array($pair, ['-f', '-d', '-e', '-s', '-x', '-r', '-w', '-A', '-F', '-U'], true)
+        return \in_array($pair, ['-f', '-d', '-e', '-s', '-x', '-r', '-w', '-A', '-F', '-U'], true)
             && !preg_match('~[A-Za-z0-9_]~', $source[$index + 2] ?? ' ');
     }
 
@@ -367,7 +365,7 @@ final class Expression
         [$leftValue, $leftRegex] = $this->parseOperand();
         $token = $this->peek();
 
-        if ($token === null || !in_array($token[0], ['=', '==', '!=', '<', '<=', '>', '>='], true)) {
+        if ($token === null || !\in_array($token[0], ['=', '==', '!=', '<', '<=', '>', '>='], true)) {
             if ($leftRegex) {
                 throw new ExpressionSyntaxError('a /regex/ needs a comparison operator');
             }
@@ -478,7 +476,7 @@ final class Expression
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_EXPR_ERROR,
                 'Invalid regular expression in SSI condition.',
-                ['pattern' => $pattern]
+                ['pattern' => $pattern],
             );
 
             return false;
@@ -500,7 +498,7 @@ final class Expression
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_EXPR_ERROR,
                 'SSI file test ' . $operator . ' (subrequest) is not supported and evaluates to false.',
-                ['path' => $path]
+                ['path' => $path],
             );
 
             return false;

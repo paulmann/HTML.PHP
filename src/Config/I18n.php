@@ -31,9 +31,8 @@ final readonly class I18n
         public string $thousandsSeparator = ',',
         public string $dateFormat = 'Y-m-d',
         public string $timeFormat = 'H:i',
-        public string $dateTimeFormat = 'Y-m-d H:i'
-    ) {
-    }
+        public string $dateTimeFormat = 'Y-m-d H:i',
+    ) {}
 
     /** @param array<string, mixed> $config */
     public static function fromArray(array $config): self
@@ -44,7 +43,7 @@ final readonly class I18n
             locale: \HtmlPhp\I18n\Locale::normalize((string) Config::value($config, 'locale', 'en')),
             fallback: array_map(
                 static fn(string $locale): string => \HtmlPhp\I18n\Locale::normalize($locale),
-                Config::stringList($config, 'fallback') ?: ['en']
+                Config::stringList($config, 'fallback') ?: ['en'],
             ),
             domain: (string) Config::value($config, 'domain', 'messages'),
             paths: array_values(array_map(strval(...), Config::arrayValue($config, 'paths', []))),
@@ -55,7 +54,7 @@ final readonly class I18n
             thousandsSeparator: (string) Config::value($config, 'thousands_separator', ','),
             dateFormat: (string) Config::value($config, 'date_format', 'Y-m-d'),
             timeFormat: (string) Config::value($config, 'time_format', 'H:i'),
-            dateTimeFormat: (string) Config::value($config, 'datetime_format', 'Y-m-d H:i')
+            dateTimeFormat: (string) Config::value($config, 'datetime_format', 'Y-m-d H:i'),
         );
     }
 

@@ -16,9 +16,7 @@ use HtmlPhp\Exception\IoException;
  */
 final class AtomicWriter
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Writes `$data` to `$file` atomically.
@@ -33,7 +31,7 @@ final class AtomicWriter
             throw new IoException('The output file path is invalid.', ['file' => $file]);
         }
 
-        $directory = dirname($file);
+        $directory = \dirname($file);
 
         if (!is_dir($directory) || !is_writable($directory)) {
             throw new IoException("Output directory '{$directory}' is not writable.", ['dir' => $directory]);
@@ -43,7 +41,7 @@ final class AtomicWriter
             throw new IoException("Output file '{$file}' is not writable.", ['file' => $file]);
         }
 
-        $expected = strlen($data);
+        $expected = \strlen($data);
 
         $prefix = substr((string) preg_replace('~[^A-Za-z0-9._-]~', '_', basename($file)), 0, 32);
 

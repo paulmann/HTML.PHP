@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Throughput benchmark: parse-memoized rendering, loops, SSI, translations.
  * Usage: php8.3 tools/bench.php [iterations]
@@ -49,8 +50,13 @@ $bench = static function (string $label, callable $fn) use ($iterations): void {
         $fn($i);
     }
     $ms = (hrtime(true) - $start) / 1e6;
-    printf("%-28s %8.1f ms total · %7.3f ms/op · %8.0f ops/s\n",
-        $label, $ms, $ms / $iterations, $iterations / ($ms / 1000));
+    printf(
+        "%-28s %8.1f ms total · %7.3f ms/op · %8.0f ops/s\n",
+        $label,
+        $ms,
+        $ms / $iterations,
+        $iterations / ($ms / 1000),
+    );
 };
 
 $bench('render (loops+ssi+i18n)', fn() => $engine->render('bench.html', ['title' => 'bench', 'rows' => $rows], $options));
@@ -59,5 +65,9 @@ $bench('processSsi (5 directives)', fn() => $engine->processSsi('<!--#set var="a
 $bench('t() with catalogue', fn() => $engine->t('cell.label'));
 $bench('lint (small template)', fn() => $engine->lintString('<!--@Loop r-->%{n|upper}<!--@EndLoop-->'));
 
-printf("\nrows=%d iterations=%d · stats of last render: %s\n",
-    count($rows), $iterations, ($engine->stats()?->toArray()['durationMs'] ?? '?') . 'ms');
+printf(
+    "\nrows=%d iterations=%d · stats of last render: %s\n",
+    count($rows),
+    $iterations,
+    ($engine->stats()?->toArray()['durationMs'] ?? '?') . 'ms',
+);

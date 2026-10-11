@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 14 — bin/htmlphp CLI: exit codes and output contracts.
  */
@@ -27,7 +28,7 @@ function run_cli(array $arguments, array $env = []): array
         $descriptors,
         $pipes,
         $root,
-        $env === [] ? null : (array_replace($_ENV, $env))
+        $env === [] ? null : (array_replace($_ENV, $env)),
     );
 
     if (!is_resource($process)) {

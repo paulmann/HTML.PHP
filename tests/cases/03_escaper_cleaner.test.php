@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 03 — Escaper and Cleaner.
  */

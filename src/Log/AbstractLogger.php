@@ -71,7 +71,7 @@ abstract class AbstractLogger implements LoggerInterface
         $replacements = [];
 
         foreach ($context as $key => $value) {
-            if (is_scalar($value) || $value === null || $value instanceof \Stringable) {
+            if (\is_scalar($value) || $value === null || $value instanceof \Stringable) {
                 $replacements['{' . $key . '}'] = (string) ($value ?? 'null');
             }
         }

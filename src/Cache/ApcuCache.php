@@ -14,13 +14,11 @@ use HtmlPhp\Contracts\CacheInterface;
  */
 final class ApcuCache implements CacheInterface
 {
-    public function __construct(private readonly string $prefix = 'htmlphp', private readonly int $defaultTtl = 0)
-    {
-    }
+    public function __construct(private readonly string $prefix = 'htmlphp', private readonly int $defaultTtl = 0) {}
 
     public static function isSupported(): bool
     {
-        return function_exists('apcu_fetch') && (PHP_SAPI !== 'cli' || (bool) ini_get('apc.enable_cli'));
+        return \function_exists('apcu_fetch') && (PHP_SAPI !== 'cli' || (bool) \ini_get('apc.enable_cli'));
     }
 
     public function get(string $key): ?string
@@ -28,7 +26,7 @@ final class ApcuCache implements CacheInterface
         $success = false;
         $value = apcu_fetch($this->prefix($key), $success);
 
-        return $success && is_string($value) ? $value : null;
+        return $success && \is_string($value) ? $value : null;
     }
 
     public function set(string $key, string $value, int $ttl = 0): bool

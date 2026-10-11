@@ -1,4 +1,5 @@
 <?php
+
 /**
  * v4 additions to the (v3-inherited) WordPress stub set:
  * object cache, wp_mail capture and theme-directory functions.

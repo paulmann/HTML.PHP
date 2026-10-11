@@ -35,9 +35,8 @@ class Formats
 
     public function __construct(
         protected readonly I18nConfig $config,
-        protected readonly ?ClockInterface $clock = null
-    ) {
-    }
+        protected readonly ?ClockInterface $clock = null,
+    ) {}
 
     /**
      * Formats a number with the locale's separators.
@@ -50,7 +49,7 @@ class Formats
             Str::numericValue($value),
             $decimals ?? $this->config->numberDecimals,
             $point,
-            $thousands
+            $thousands,
         );
     }
 
@@ -100,8 +99,8 @@ class Formats
         };
 
         return $future
-            ? sprintf('in %d %s%s', $unit[1], $unit[0], $unit[1] === 1 ? '' : 's')
-            : sprintf('%d %s%s ago', $unit[1], $unit[0], $unit[1] === 1 ? '' : 's');
+            ? \sprintf('in %d %s%s', $unit[1], $unit[0], $unit[1] === 1 ? '' : 's')
+            : \sprintf('%d %s%s ago', $unit[1], $unit[0], $unit[1] === 1 ? '' : 's');
     }
 
     /** @return array{0: string, 1: string} */
@@ -135,7 +134,7 @@ class Formats
             return $value->getTimestamp();
         }
 
-        if (is_int($value)) {
+        if (\is_int($value)) {
             return $value;
         }
 

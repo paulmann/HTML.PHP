@@ -38,9 +38,7 @@ final class Bridge
     /** @var array<string, mixed> */
     private static array $options = [];
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Boots (once) and returns the engine.
@@ -64,7 +62,7 @@ final class Bridge
         self::$options = $options + [
             'shortcode' => null,
             'content_ssi' => false,
-            'admin_bar' => defined('WP_DEBUG') && (bool) constant('WP_DEBUG'),
+            'admin_bar' => \defined('WP_DEBUG') && (bool) \constant('WP_DEBUG'),
             'cli' => true,
             'admin_page' => true,
             'mirror_events' => true,
@@ -96,11 +94,11 @@ final class Bridge
         $paths = $config['templates']['paths'] ?? [];
         $themePaths = [];
 
-        if (function_exists('get_stylesheet_directory')) {
+        if (\function_exists('get_stylesheet_directory')) {
             $themePaths[] = rtrim((string) get_stylesheet_directory(), '/\\') . '/htmlphp';
         }
 
-        if (function_exists('get_template_directory')) {
+        if (\function_exists('get_template_directory')) {
             $themePaths[] = rtrim((string) get_template_directory(), '/\\') . '/htmlphp';
         }
 
@@ -109,11 +107,11 @@ final class Bridge
                 'paths' => [...$themePaths, ...$paths],
             ],
             'ssi' => [
-                'document_root' => defined('ABSPATH') ? rtrim((string) constant('ABSPATH'), '/\\') : null,
+                'document_root' => \defined('ABSPATH') ? rtrim((string) \constant('ABSPATH'), '/\\') : null,
             ],
             'cache' => [
                 'enabled' => true,
-                'driver' => function_exists('wp_cache_get') ? 'wordpress' : 'file',
+                'driver' => \function_exists('wp_cache_get') ? 'wordpress' : 'file',
                 'directory' => self::uploadsCacheDir(),
             ],
             'log' => [
@@ -140,7 +138,7 @@ final class Bridge
     private static function mergeDeep(array $base, array $overrides): array
     {
         foreach ($overrides as $key => $value) {
-            if (is_array($value) && isset($base[$key]) && is_array($base[$key])) {
+            if (\is_array($value) && isset($base[$key]) && \is_array($base[$key])) {
                 $base[$key] = self::mergeDeep($base[$key], $value);
                 continue;
             }
@@ -153,9 +151,9 @@ final class Bridge
 
     private static function uploadsCacheDir(): string
     {
-        if (function_exists('wp_upload_dir')) {
+        if (\function_exists('wp_upload_dir')) {
             $uploads = wp_upload_dir();
-            $base = is_array($uploads) ? (string) ($uploads['basedir'] ?? '') : '';
+            $base = (string) ($uploads['basedir'] ?? '');
 
             if ($base !== '') {
                 return $base . '/htmlphp-cache';
@@ -167,7 +165,7 @@ final class Bridge
 
     private static function installHooks(Engine $engine): void
     {
-        if (!function_exists('add_action')) {
+        if (!\function_exists('add_action')) {
             return;
         }
 
@@ -175,7 +173,7 @@ final class Bridge
             self::mirrorEvents($engine);
         }
 
-        if (is_string(self::$options['shortcode']) && self::$options['shortcode'] !== '') {
+        if (\is_string(self::$options['shortcode']) && self::$options['shortcode'] !== '') {
             self::registerGenericShortcode($engine, (string) self::$options['shortcode']);
         }
 
@@ -190,7 +188,7 @@ final class Bridge
                 } catch (\Throwable $error) {
                     $engine->diagnostics()->record(
                         Diagnostics::WP_BRIDGE,
-                        'Content SSI failed: ' . $error->getMessage()
+                        'Content SSI failed: ' . $error->getMessage(),
                     );
 
                     return $content;
@@ -202,13 +200,13 @@ final class Bridge
             add_action('admin_bar_menu', static function (mixed $bar) use ($engine): void {
                 $stats = $engine->stats();
 
-                if (!$stats instanceof RenderStats || !is_object($bar) || !method_exists($bar, 'add_node')) {
+                if (!$stats instanceof RenderStats || !\is_object($bar) || !method_exists($bar, 'add_node')) {
                     return;
                 }
 
                 $bar->add_node([
                     'id' => 'htmlphp-stats',
-                    'title' => sprintf('HTML.PHP %.2fms/%d tpl', $stats->durationMs, count($stats->templates)),
+                    'title' => \sprintf('HTML.PHP %.2fms/%d tpl', $stats->durationMs, \count($stats->templates)),
                     'href' => admin_url('tools.php?page=htmlphp'),
                 ]);
             }, 999);
@@ -237,17 +235,17 @@ final class Bridge
         $dispatcher = $engine->events();
 
         $dispatcher->on('htmlphp.render', static function (string $text, string $origin) {
-            return function_exists('apply_filters') ? apply_filters('htmlphp_render', $text, $origin) : $text;
+            return \function_exists('apply_filters') ? apply_filters('htmlphp_render', $text, $origin) : $text;
         }, 1000);
 
         $dispatcher->on('htmlphp.error', static function (string $code, string $message, array $context): void {
-            if (function_exists('do_action')) {
+            if (\function_exists('do_action')) {
                 do_action('htmlphp_error', $code, $message, $context);
             }
         });
 
         $dispatcher->on('htmlphp.translate', static function (string $text, string $msgid, string $domain, string $locale) {
-            return function_exists('apply_filters')
+            return \function_exists('apply_filters')
                 ? apply_filters('htmlphp_translate', $text, $msgid, $domain, $locale)
                 : $text;
         }, 1000);
@@ -262,15 +260,15 @@ final class Bridge
     {
         $tag = preg_replace('~[^a-z0-9_-]~i', '', $tag) ?? '';
 
-        if ($tag === '' || !function_exists('add_shortcode')) {
+        if ($tag === '' || !\function_exists('add_shortcode')) {
             return;
         }
 
         add_shortcode($tag, static function (mixed $atts, mixed $content = null) use ($engine): string {
-            $attributes = is_array($atts) ? $atts : [];
+            $attributes = \is_array($atts) ? $atts : [];
             $template = '';
 
-            if (isset($attributes['template']) && is_scalar($attributes['template'])) {
+            if (isset($attributes['template']) && \is_scalar($attributes['template'])) {
                 $template = (string) $attributes['template'];
                 unset($attributes['template']);
             }
@@ -279,11 +277,11 @@ final class Bridge
                 return '';
             }
 
-            $vars = ['content' => is_string($content) ? $content : ''];
+            $vars = ['content' => \is_string($content) ? $content : ''];
 
             foreach ($attributes as $key => $value) {
-                if (is_string($key) && \HtmlPhp\Support\Str::isValidVariableName($key)) {
-                    $vars[$key] = is_scalar($value) || $value === null ? $value : '';
+                if (\is_string($key) && \HtmlPhp\Support\Str::isValidVariableName($key)) {
+                    $vars[$key] = \is_scalar($value) || $value === null ? $value : '';
                 }
             }
 
@@ -297,7 +295,7 @@ final class Bridge
                 $engine->diagnostics()->record(
                     Diagnostics::WP_BRIDGE,
                     'Shortcode render failed: ' . $error->getMessage(),
-                    ['template' => $template]
+                    ['template' => $template],
                 );
 
                 return '';
@@ -309,7 +307,7 @@ final class Bridge
     {
         if (self::$engine === null) {
             throw new \RuntimeException(
-                'HtmlPhp\WordPress\Bridge is not booted — call Bridge::boot() on plugins_loaded.'
+                'HtmlPhp\WordPress\Bridge is not booted — call Bridge::boot() on plugins_loaded.',
             );
         }
 

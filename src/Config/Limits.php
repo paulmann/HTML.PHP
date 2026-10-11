@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace HtmlPhp\Config;
 
 use HtmlPhp\Config;
-
 use HtmlPhp\Exception\ConfigException;
 
 /**
@@ -34,7 +33,7 @@ final readonly class Limits
         public int $maxExecOutputBytes = 65_536,
         public int $execTimeoutSeconds = 5,
         public int $maxDiagnostics = 100,
-        public int $maxPrecision = 100
+        public int $maxPrecision = 100,
     ) {
         $this->guard('maxTemplateBytes', $this->maxTemplateBytes, 1024, self::MAX_TEMPLATE_BYTES_CEILING);
         $this->guard('maxIncludeBytes', $this->maxIncludeBytes, 1024, self::MAX_INCLUDE_BYTES_CEILING);
@@ -69,7 +68,7 @@ final readonly class Limits
             maxExecOutputBytes: Config::int($config, 'max_exec_output_bytes', 65_536),
             execTimeoutSeconds: Config::int($config, 'exec_timeout', 5),
             maxDiagnostics: Config::int($config, 'max_diagnostics', 100),
-            maxPrecision: Config::int($config, 'max_precision', 100)
+            maxPrecision: Config::int($config, 'max_precision', 100),
         );
     }
 
@@ -98,7 +97,7 @@ final readonly class Limits
         if ($value < $min || $value > $max) {
             throw new ConfigException(
                 "Limit '{$name}' must be between {$min} and {$max}.",
-                ['limit' => $name, 'value' => $value, 'min' => $min, 'max' => $max]
+                ['limit' => $name, 'value' => $value, 'min' => $min, 'max' => $max],
             );
         }
     }

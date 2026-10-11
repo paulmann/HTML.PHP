@@ -38,7 +38,7 @@ final class Translator implements TranslatorInterface
         private readonly I18nConfig $config,
         private readonly Diagnostics $diagnostics,
         private readonly Dispatcher $events,
-        private readonly ?string $acceptLanguage = null
+        private readonly ?string $acceptLanguage = null,
     ) {
         $this->locale = $this->detectLocale();
     }
@@ -272,7 +272,7 @@ final class Translator implements TranslatorInterface
         return Locale::negotiate(
             $this->availableLocales(),
             $acceptLanguage ?? $this->acceptLanguage,
-            $this->locale
+            $this->locale,
         );
     }
 
@@ -288,7 +288,7 @@ final class Translator implements TranslatorInterface
         foreach ($this->config->fallback as $locale) {
             $normalized = Locale::normalize(Str::stringify($locale));
 
-            if ($normalized !== '' && !in_array($normalized, $chain, true)) {
+            if ($normalized !== '' && !\in_array($normalized, $chain, true)) {
                 $chain[] = $normalized;
             }
         }
@@ -323,7 +323,7 @@ final class Translator implements TranslatorInterface
         int $count,
         string $context,
         array $args = [],
-        ?string $domain = null
+        ?string $domain = null,
     ): string {
         return $this->translate($singular, $plural, $count, $context, $args, $domain);
     }
@@ -338,7 +338,7 @@ final class Translator implements TranslatorInterface
         int $count,
         string $context,
         array $args,
-        ?string $domain
+        ?string $domain,
     ): string {
         $domain = $domain ?? $this->config->domain;
 
@@ -393,7 +393,7 @@ final class Translator implements TranslatorInterface
             $result,
             $msgid,
             $domain,
-            $this->locale()
+            $this->locale(),
         ));
     }
 
@@ -407,11 +407,11 @@ final class Translator implements TranslatorInterface
     {
         $mode = $this->config->useWordPress;
 
-        if (is_bool($mode)) {
+        if (\is_bool($mode)) {
             return $mode;
         }
 
-        return defined('ABSPATH') && function_exists('__') && function_exists('determine_locale');
+        return \defined('ABSPATH') && \function_exists('__') && \function_exists('determine_locale');
     }
 
     private function viaWordpress(
@@ -419,25 +419,25 @@ final class Translator implements TranslatorInterface
         ?string $plural,
         int $count,
         string $context,
-        string $domain
+        string $domain,
     ): ?string {
         $result = null;
 
         try {
-            if ($plural !== null && function_exists('_nx') && function_exists('_n')) {
+            if ($plural !== null && \function_exists('_nx') && \function_exists('_n')) {
                 $result = $context !== ''
                     ? _nx($msgid, $plural, $count, $context, $domain)
                     : _n($msgid, $plural, $count, $domain);
-            } elseif ($context !== '' && function_exists('_x')) {
+            } elseif ($context !== '' && \function_exists('_x')) {
                 $result = _x($msgid, $context, $domain);
-            } elseif (function_exists('__')) {
+            } elseif (\function_exists('__')) {
                 $result = __($msgid, $domain);
             }
         } catch (\Throwable) {
             return null;
         }
 
-        if (!is_string($result) || $result === '') {
+        if (!\is_string($result) || $result === '') {
             return null;
         }
 

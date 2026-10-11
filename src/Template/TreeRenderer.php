@@ -28,9 +28,8 @@ final class TreeRenderer
         private readonly Substitution $substitution,
         private readonly TemplateLocator $locator,
         private readonly Renderer $renderer,
-        private readonly TranslatorInterface $translator
-    ) {
-    }
+        private readonly TranslatorInterface $translator,
+    ) {}
 
     /**
      * @param list<Node> $nodes
@@ -91,7 +90,7 @@ final class TreeRenderer
             $this->diagnostics->record(
                 Diagnostics::LOOP_GUARD,
                 'Loop nesting is too deep; block skipped.',
-                ['line' => $spec['line'] ?? 0]
+                ['line' => $spec['line'] ?? 0],
             );
 
             return '';
@@ -100,7 +99,7 @@ final class TreeRenderer
         $rc->stats->loops++;
 
         $rows = $this->loopIterable($spec, $rc);
-        $total = count($rows);
+        $total = \count($rows);
 
         if ($total === 0) {
             $else = $node->attribute('else', []);
@@ -145,8 +144,8 @@ final class TreeRenderer
         if ($truncated) {
             $this->diagnostics->record(
                 Diagnostics::LOOP_GUARD,
-                sprintf('Loop truncated at the configured row limit (%d).', $maxRows),
-                ['source' => $spec['source'], 'limit' => $maxRows]
+                \sprintf('Loop truncated at the configured row limit (%d).', $maxRows),
+                ['source' => $spec['source'], 'limit' => $maxRows],
             );
         }
 
@@ -186,7 +185,7 @@ final class TreeRenderer
                 $this->diagnostics->record(
                     Diagnostics::MISSING_VAR,
                     'Loop source is not defined; treated as empty.',
-                    ['name' => $source]
+                    ['name' => $source],
                 );
             }
 
@@ -204,7 +203,7 @@ final class TreeRenderer
      */
     public static function normalizeIterable(mixed $value): array
     {
-        if (is_array($value)) {
+        if (\is_array($value)) {
             return $value;
         }
 
@@ -214,7 +213,7 @@ final class TreeRenderer
 
         if ($value instanceof \ArrayAccess && $value instanceof \Countable) {
             $items = [];
-            $total = count($value);
+            $total = \count($value);
 
             for ($index = 0; $index < $total; ++$index) {
                 $items[$index] = $value[$index];
@@ -223,7 +222,7 @@ final class TreeRenderer
             return $items;
         }
 
-        if (is_object($value)) {
+        if (\is_object($value)) {
             return get_object_vars($value);
         }
 
@@ -247,7 +246,7 @@ final class TreeRenderer
 
         if ($spec['mode'] === 'rows') {
             // v3 semantics: the row's own fields enter the scope directly.
-            if (is_array($row) || is_object($row)) {
+            if (\is_array($row) || \is_object($row)) {
                 foreach (self::normalizeIterable($row) as $name => $field) {
                     $frame[(string) $name] = $field;
                 }
@@ -318,7 +317,7 @@ final class TreeRenderer
     {
         try {
             return Expression::truthy(
-                Expression::evaluate($expression, $rc->scope, $this->config->limits->maxExpressionLength)
+                Expression::evaluate($expression, $rc->scope, $this->config->limits->maxExpressionLength),
             );
         } catch (TemplateException $error) {
             if ($this->config->syntax->strict) {
@@ -328,7 +327,7 @@ final class TreeRenderer
             $this->diagnostics->record(
                 Diagnostics::TEMPLATE_LINT,
                 'Invalid condition expression; branch skipped: ' . $error->getMessage(),
-                ['expression' => $expression]
+                ['expression' => $expression],
             );
 
             return false;
@@ -375,7 +374,7 @@ final class TreeRenderer
         if ($frame === null) {
             $this->diagnostics->record(
                 Diagnostics::TEMPLATE_LINT,
-                '<!--@SectionParent--> used outside of a section.'
+                '<!--@SectionParent--> used outside of a section.',
             );
 
             return '';
@@ -409,7 +408,7 @@ final class TreeRenderer
         /** @var list<string>|null $with */
         $with = $node->attribute('with');
 
-        $baseDir = $rc->currentFile !== null ? dirname($rc->currentFile) : null;
+        $baseDir = $rc->currentFile !== null ? \dirname($rc->currentFile) : null;
         $path = $this->locator->locate($template, $baseDir);
 
         if ($path === null) {
@@ -419,7 +418,7 @@ final class TreeRenderer
 
             throw new TemplateNotFoundException(
                 "Partial template '{$template}' could not be located.",
-                ['template' => $template, 'line' => $node->attribute('line')]
+                ['template' => $template, 'line' => $node->attribute('line')],
             );
         }
 
@@ -454,7 +453,7 @@ final class TreeRenderer
             $this->diagnostics->record(
                 Diagnostics::TEMPLATE_LINT,
                 '<!--@Set--> target name is invalid.',
-                ['name' => $name]
+                ['name' => $name],
             );
 
             return '';
@@ -540,7 +539,7 @@ final class TreeRenderer
                         '%{' . $payload . '}',
                         $rc->scope,
                         false,
-                        $rc->missingVar
+                        $rc->missingVar,
                     );
 
                     // Keys are the bare indices; Translator::interpolate()
@@ -552,7 +551,7 @@ final class TreeRenderer
 
                     return $placeholder;
                 },
-                $text
+                $text,
             );
 
             $msgid .= $text;

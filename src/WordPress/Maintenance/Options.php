@@ -6,13 +6,11 @@ namespace HtmlPhp\WordPress\Maintenance;
 
 final class Options
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function get(string $key, mixed $default = null, string $prefix = 'htmlphp_'): mixed
     {
-        if (!function_exists('get_option')) {
+        if (!\function_exists('get_option')) {
             return $GLOBALS['htmlphp_options'][$prefix . $key] ?? $default;
         }
 
@@ -23,7 +21,7 @@ final class Options
 
     public static function set(string $key, mixed $value, string $prefix = 'htmlphp_'): bool
     {
-        if (!function_exists('update_option')) {
+        if (!\function_exists('update_option')) {
             $GLOBALS['htmlphp_options'][$prefix . $key] = $value;
 
             return true;
@@ -34,7 +32,7 @@ final class Options
 
     public static function delete(string $key, string $prefix = 'htmlphp_'): bool
     {
-        if (!function_exists('delete_option')) {
+        if (!\function_exists('delete_option')) {
             unset($GLOBALS['htmlphp_options'][$prefix . $key]);
 
             return true;
@@ -54,7 +52,7 @@ final class Options
     {
         $value = self::get($key, $default, $prefix);
 
-        return is_bool($value) ? $value : filter_var($value, \FILTER_VALIDATE_BOOL);
+        return \is_bool($value) ? $value : filter_var($value, \FILTER_VALIDATE_BOOL);
     }
 
     /**
@@ -64,6 +62,6 @@ final class Options
     {
         $value = self::get($key, [], $prefix);
 
-        return is_array($value) ? $value : [];
+        return \is_array($value) ? $value : [];
     }
 }

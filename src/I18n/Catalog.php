@@ -47,7 +47,7 @@ final class Catalog
         string $path,
         string $locale,
         string $domain = 'messages',
-        ?Diagnostics $diagnostics = null
+        ?Diagnostics $diagnostics = null,
     ): ?self {
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 
@@ -60,7 +60,7 @@ final class Catalog
 
             $messages = include $path;
 
-            return is_array($messages)
+            return \is_array($messages)
                 ? self::fromArray($messages, $locale, $domain)
                 : self::failed($diagnostics, 'PHP catalogue did not return an array.', $path);
         }
@@ -84,7 +84,7 @@ final class Catalog
         if ($extension === 'json') {
             $decoded = json_decode($contents, true);
 
-            return is_array($decoded)
+            return \is_array($decoded)
                 ? self::fromArray($decoded, $locale, $domain)
                 : self::failed($diagnostics, 'JSON catalogue is malformed.', $path);
         }
@@ -105,18 +105,31 @@ final class Catalog
     {
         $catalog = new self(Locale::normalize($locale), $domain);
 
+        /**
+         * Parse state, mutated by reference from the loop below. Typed loosely
+         * on purpose: the literal initializer shape does not survive
+         * reference-flow analysis and would fake "always false" guards.
+         *
+         * @var array<string, mixed>
+         */
         $entry = ['context' => '', 'id' => '', 'idPlural' => '', 'forms' => [], 'fuzzy' => false];
         $target = null; // ['id'|'context'|'idPlural'|'form', int]
         $lines = preg_split('~\r\n|\r|\n~', $source) ?: [];
 
         $flush = static function () use (&$entry, $catalog): void {
-            if ($entry['id'] !== '' || $entry['forms'] !== []) {
+            // $entry is mutated by reference below; typed locals keep the
+            // guard honest for static analysis (the literal init shape does
+            // not survive reference flow).
+            $id = (string) $entry['id'];
+            $forms = (array) $entry['forms'];
+
+            if ($id !== '' || $forms !== []) {
                 $catalog->store(
-                    $entry['context'],
-                    $entry['id'],
-                    $entry['idPlural'],
-                    $entry['forms'],
-                    $entry['fuzzy']
+                    (string) $entry['context'],
+                    $id,
+                    (string) $entry['idPlural'],
+                    $forms,
+                    (bool) $entry['fuzzy'],
                 );
             }
 
@@ -135,7 +148,7 @@ final class Catalog
             if ($line[0] === '#') {
                 if (str_starts_with($line, '#,')) {
                     $flags = array_map('trim', explode(',', substr($line, 2)));
-                    $entry['fuzzy'] = $entry['fuzzy'] || in_array('fuzzy', $flags, true);
+                    $entry['fuzzy'] = $entry['fuzzy'] || \in_array('fuzzy', $flags, true);
                 }
 
                 // #. #: #| and plain # comments carry no payload for us.
@@ -147,7 +160,7 @@ final class Catalog
                 $payload = $m[3];
 
                 if (str_starts_with($keyword, 'msgstr[')) {
-                    $target = ['form', (int) ($m[2] ?? 0)];
+                    $target = ['form', (int) $m[2]];
                 } elseif ($keyword === 'msgstr') {
                     $target = ['form', 0];
                 } elseif ($keyword === 'msgid') {
@@ -210,7 +223,7 @@ final class Catalog
             return null;
         }
 
-        $length = strlen($payload);
+        $length = \strlen($payload);
         $value = '';
 
         for ($index = 1; $index < $length; ++$index) {
@@ -244,10 +257,9 @@ final class Catalog
         string $binary,
         string $locale,
         string $domain = 'messages',
-        ?Diagnostics $diagnostics = null
-    ): ?self
-    {
-        $length = strlen($binary);
+        ?Diagnostics $diagnostics = null,
+    ): ?self {
+        $length = \strlen($binary);
 
         if ($length < 28) {
             $diagnostics?->record(Diagnostics::CATALOG_PARSE, 'MO catalogue is truncated.');
@@ -270,7 +282,7 @@ final class Catalog
         if ($majorRevision > 1) {
             $diagnostics?->record(
                 Diagnostics::CATALOG_PARSE,
-                sprintf('Unsupported MO revision %d.', $majorRevision)
+                \sprintf('Unsupported MO revision %d.', $majorRevision),
             );
 
             return null;
@@ -399,14 +411,14 @@ final class Catalog
     {
         $this->pluralForms = PluralForms::parse($this->headers['plural-forms'] ?? null, $this->locale);
 
-        if (in_array($this->charset, ['utf-8', 'utf8', 'ascii', 'us-ascii'], true)) {
+        if (\in_array($this->charset, ['utf-8', 'utf8', 'ascii', 'us-ascii'], true)) {
             return;
         }
 
         $charset = $this->charset;
 
         $convert = static function (string $text) use ($charset): string {
-            if (function_exists('iconv')) {
+            if (\function_exists('iconv')) {
                 $converted = @iconv($charset, 'UTF-8//TRANSLIT', $text);
 
                 if ($converted !== false) {
@@ -414,10 +426,10 @@ final class Catalog
                 }
             }
 
-            if (function_exists('mb_convert_encoding')) {
+            if (\function_exists('mb_convert_encoding')) {
                 $converted = @mb_convert_encoding($text, 'UTF-8', $charset);
 
-                if (is_string($converted)) {
+                if (\is_string($converted)) {
                     return $converted;
                 }
             }
@@ -468,7 +480,7 @@ final class Catalog
 
         $form = $entry['plurals'][$formIndex] ?? null;
 
-        return is_string($form) && $form !== '' ? $form : null;
+        return \is_string($form) && $form !== '' ? $form : null;
     }
 
     public function has(string $msgid, string $context = ''): bool
@@ -491,7 +503,7 @@ final class Catalog
 
     public function count(): int
     {
-        return count($this->messages);
+        return \count($this->messages);
     }
 
     /**
@@ -510,11 +522,11 @@ final class Catalog
 
         $headers = $messages['headers'] ?? null;
 
-        if (is_array($headers)) {
+        if (\is_array($headers)) {
             $lines = [];
 
             foreach ($headers as $name => $value) {
-                if (is_string($name) && is_scalar($value)) {
+                if (\is_string($name) && \is_scalar($value)) {
                     $lines[] = $name . ': ' . $value;
                 }
             }
@@ -523,7 +535,7 @@ final class Catalog
         }
 
         foreach ($messages as $key => $value) {
-            if (!is_string($key) || $key === 'headers') {
+            if (!\is_string($key) || $key === 'headers') {
                 continue;
             }
 
@@ -531,16 +543,16 @@ final class Catalog
                 ? explode(self::CONTEXT_SEPARATOR, $key, 2)
                 : ['', $key];
 
-            if (is_string($value)) {
+            if (\is_string($value)) {
                 $catalog->store($context, $msgid, '', [0 => $value], false);
                 continue;
             }
 
-            if (is_array($value) && $value !== []) {
+            if (\is_array($value) && $value !== []) {
                 $forms = [];
 
                 foreach (array_values($value) as $index => $form) {
-                    if (is_scalar($form) || $form === null) {
+                    if (\is_scalar($form) || $form === null) {
                         $forms[$index] = (string) $form;
                     }
                 }

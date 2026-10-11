@@ -11,9 +11,7 @@ final class Files
 {
     public const int DEFAULT_MAX_BYTES = 8 * 1024 * 1024;
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Reads a whole file with a byte cap.

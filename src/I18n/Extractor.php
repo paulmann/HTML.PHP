@@ -58,7 +58,7 @@ final class Extractor
         }
 
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
         );
 
         /** @var \SplFileInfo $info */
@@ -69,7 +69,7 @@ final class Extractor
 
             $contents = @file_get_contents($info->getPathname());
 
-            if (is_string($contents)) {
+            if (\is_string($contents)) {
                 $this->scan($contents, $info->getPathname());
                 $scanned[] = $info->getPathname();
             }
@@ -158,7 +158,7 @@ final class Extractor
             '~<!--@Trans\b(.*?)-->(.*?)<!--@EndTrans\s*(?:[^>]*)?-->~is',
             $source,
             $matches,
-            PREG_OFFSET_CAPTURE
+            PREG_OFFSET_CAPTURE,
         );
 
         if ($count === 0 || $count === false) {
@@ -184,7 +184,7 @@ final class Extractor
                 $plural,
                 trim($attrs['context'] ?? ''),
                 $domain !== '' ? $domain : 'messages',
-                $this->reference($source, $name, (int) $whole[1])
+                $this->reference($source, $name, (int) $whole[1]),
             );
         }
     }
@@ -211,7 +211,7 @@ final class Extractor
             static function () use (&$index): string {
                 return '{' . $index++ . '}';
             },
-            $body
+            $body,
         );
 
         $body = (string) preg_replace('~\s+~', ' ', $body);
@@ -226,7 +226,7 @@ final class Extractor
         if (isset($this->index[$key])) {
             $entry = &$this->entries[$this->index[$key]];
 
-            if (!in_array($reference, $entry['references'], true)) {
+            if (!\in_array($reference, $entry['references'], true)) {
                 $entry['references'][] = $reference;
             }
 
@@ -235,7 +235,7 @@ final class Extractor
             return;
         }
 
-        $this->index[$key] = count($this->entries);
+        $this->index[$key] = \count($this->entries);
         $this->entries[] = [
             'msgid' => $msgid,
             'msgid_plural' => $plural,
@@ -247,7 +247,7 @@ final class Extractor
 
     private function reference(string $source, string $name, int $offset): string
     {
-        if ($offset <= 0 || $offset > strlen($source)) {
+        if ($offset <= 0 || $offset > \strlen($source)) {
             return $name;
         }
 
@@ -261,7 +261,7 @@ final class Extractor
         return str_replace(
             ["\x00", "\\", '"', "\n", "\t", "\r"],
             ['', '\\\\', '\\"', '\\n', '\\t', '\\r'],
-            $text
+            $text,
         );
     }
 }

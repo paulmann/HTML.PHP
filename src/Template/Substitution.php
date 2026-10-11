@@ -42,9 +42,8 @@ final class Substitution
         private readonly Filters $filters,
         private readonly Escaper $escaper,
         private readonly TranslatorInterface $translator,
-        private readonly Diagnostics $diagnostics
-    ) {
-    }
+        private readonly Diagnostics $diagnostics,
+    ) {}
 
     /**
      * Applies every substitution form to `$html` (single pass per form).
@@ -53,7 +52,7 @@ final class Substitution
         string $html,
         Scope $scope,
         bool $autoEscape,
-        MissingVarPolicy $missingPolicy
+        MissingVarPolicy $missingPolicy,
     ): string {
         if ($html === '') {
             return '';
@@ -78,7 +77,7 @@ final class Substitution
 
                 return $this->finish($value, $filters, $autoEscape);
             },
-            $html
+            $html,
         );
 
         // #{NAME} — alternate brace form.
@@ -87,7 +86,7 @@ final class Substitution
             function (array $matches) use ($scope, $autoEscape, $missingPolicy): string {
                 return $this->substitute((string) $matches[1], $matches[0], $scope, $autoEscape, $missingPolicy);
             },
-            $html
+            $html,
         );
 
         // %{NAME} — the primary form.
@@ -96,7 +95,7 @@ final class Substitution
             function (array $matches) use ($scope, $autoEscape, $missingPolicy): string {
                 return $this->substitute((string) $matches[1], $matches[0], $scope, $autoEscape, $missingPolicy);
             },
-            $html
+            $html,
         );
 
         // {NAME} — opt-in single-brace form (off by default: clashes with CSS/JS).
@@ -106,7 +105,7 @@ final class Substitution
                 function (array $matches) use ($scope, $autoEscape, $missingPolicy): string {
                     return $this->substitute((string) $matches[1], $matches[0], $scope, $autoEscape, $missingPolicy);
                 },
-                $html
+                $html,
             );
         }
 
@@ -121,7 +120,7 @@ final class Substitution
         string $original,
         Scope $scope,
         bool $autoEscape,
-        MissingVarPolicy $missingPolicy
+        MissingVarPolicy $missingPolicy,
     ): string {
         [$name, $filters] = self::splitFilters($payload);
 
@@ -146,17 +145,17 @@ final class Substitution
             $this->diagnostics->record(
                 Diagnostics::MISSING_VAR,
                 'Template variable is not defined.',
-                ['name' => $name, 'policy' => $policy->value]
+                ['name' => $name, 'policy' => $policy->value],
             );
         }
 
         return match ($policy) {
             MissingVarPolicy::Empty => '',
             MissingVarPolicy::Keep => $original,
-            MissingVarPolicy::Placeholder => sprintf($this->syntax->missingPlaceholderFormat, $name),
+            MissingVarPolicy::Placeholder => \sprintf($this->syntax->missingPlaceholderFormat, $name),
             MissingVarPolicy::Throw => throw new TemplateException(
                 "Template variable '{$name}' is not defined.",
-                ['name' => $name]
+                ['name' => $name],
             ),
         };
     }
@@ -179,7 +178,7 @@ final class Substitution
                     $this->diagnostics->record(
                         Diagnostics::FILTER_UNKNOWN,
                         'The "raw" filter is disabled by configuration.',
-                        []
+                        [],
                     );
 
                     continue;
@@ -210,7 +209,7 @@ final class Substitution
                 continue; // a disabled raw filter must not suppress escaping
             }
 
-            if (in_array($lower, self::ESCAPING_FILTERS, true)) {
+            if (\in_array($lower, self::ESCAPING_FILTERS, true)) {
                 return $string;
             }
         }
@@ -229,7 +228,7 @@ final class Substitution
     {
         $pairs = [];
 
-        for ($index = 0, $count = count($args); $index + 1 < $count; $index += 2) {
+        for ($index = 0, $count = \count($args); $index + 1 < $count; $index += 2) {
             $placeholder = $args[$index];
             $value = $args[$index + 1];
 
@@ -294,7 +293,7 @@ final class Substitution
         $parts = [];
         $current = '';
         $quote = null;
-        $length = strlen($segment);
+        $length = \strlen($segment);
 
         for ($index = 0; $index < $length; ++$index) {
             $char = $segment[$index];

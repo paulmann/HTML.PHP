@@ -29,9 +29,8 @@ final class TemplateLocator
 
     public function __construct(
         private readonly TemplatesConfig $config,
-        private readonly SecurityConfig $security
-    ) {
-    }
+        private readonly SecurityConfig $security,
+    ) {}
 
     private function guardFor(string $root): PathGuard
     {
@@ -52,7 +51,7 @@ final class TemplateLocator
 
         $key = $name . '|' . ($baseDir ?? '');
 
-        if (array_key_exists($key, $this->resolved)) {
+        if (\array_key_exists($key, $this->resolved)) {
             $cached = $this->resolved[$key];
 
             return $cached === false ? null : $cached;

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace HtmlPhp\WordPress\Maintenance;
 
+use HtmlPhp\Exception\TemplateException;
+
 final class Cron
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Schedules a recurring event when it is not already scheduled.
@@ -17,7 +17,7 @@ final class Cron
      */
     public static function schedule(string $hook, string $recurrence = 'daily', array $args = []): bool
     {
-        if (!function_exists('wp_next_scheduled')) {
+        if (!\function_exists('wp_next_scheduled')) {
             throw new TemplateException('WP-Cron is not available.');
         }
 
@@ -33,7 +33,7 @@ final class Cron
      */
     public static function unschedule(string $hook, array $args = []): bool
     {
-        if (!function_exists('wp_next_scheduled')) {
+        if (!\function_exists('wp_next_scheduled')) {
             throw new TemplateException('WP-Cron is not available.');
         }
 
@@ -51,7 +51,7 @@ final class Cron
      */
     public static function next(string $hook, array $args = []): ?int
     {
-        if (!function_exists('wp_next_scheduled')) {
+        if (!\function_exists('wp_next_scheduled')) {
             return null;
         }
 

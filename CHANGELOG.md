@@ -3,6 +3,63 @@
 All notable changes to HTML.PHP. Format follows Keep a Changelog;
 the project uses semantic versioning.
 
+## [Unreleased]
+
+### Fixed
+- **`Str::slugify()` is now deterministic**: the built-in transliteration map
+  is applied *before* the ICU fallback, so map-covered characters (Cyrillic,
+  European diacritics) produce identical slugs with and without `ext-intl`.
+  Previously an intl-loaded host produced `a-b-c` for `Ä B C!` while a host
+  without intl produced `ae-b-c` — the same site generated different URLs
+  depending on the server. Consequence on intl hosts: umlauts now follow the
+  documented map (`ä→ae`, `ö→oe`, `ü→ue`, matching German transliteration
+  conventions) instead of ICU's single-letter folding. Scripts outside the
+  map (Greek, Georgian, …) still romanise via ICU when present and are
+  stripped otherwise — unchanged. (#P0-1)
+- **Latent fatal in `src/` PSR-4 layout**: `Maintenance\{Cron, Db, Nonces,
+  Rest}` threw `TemplateException` without importing it — the error paths
+  died with "class not found" instead of raising the intended exception.
+  Found by PHPStan once the WordPress layer was un-excluded from analysis.
+- `WordPress\Mailer::send()` accepts `string|string[]` for `$headers` and
+  `$attachments` exactly like `wp_mail()` (passing a string header previously
+  violated the declared docblock type).
+- `WpCache::set()` without a WordPress object cache now records a `cache-io`
+  diagnostic instead of failing silently (the injected `Diagnostics` was
+  never used).
+- Test suite: environment-dependent and POSIX-only assertions made portable
+  (NTFS `chmod`, `/proc`-based unwritable-dir fixture replaced with a
+  path-under-a-file trick that cannot create directories anywhere,
+  separator-tolerant path comparisons via `same_path()`).
+- `tests/run.php --list` actually lists tests (group, name, file:line) and
+  exits 0 without running them; the option was parsed but ignored before.
+
+### Changed
+- **CI gates are mandatory**: PHPStan and PHP-CS-Fixer steps no longer end in
+  `|| true`; tool versions pinned (`PHPSTAN_VERSION`, `PHP_CS_FIXER_VERSION`).
+- **PHPStan analyses the full `src/` tree** — the `src/WordPress/*` exclusion
+  is removed; the layer is analysed against the project's own WP stubs via
+  `bootstrapFiles` (`tests/phpstan-bootstrap.php` provides the two harness
+  symbols the stubs need at load time). `phpstan-baseline.neon` is empty by
+  policy; `reportUnmatchedIgnoredErrors: true`.
+- **CI test matrix pins extensions** and doubles the legs: PHP 8.3/8.4/8.5 ×
+  {src, php83, php85} × intl {on, off} = 14 jobs; the bundle drift gate runs
+  `build.php --check` on the *committed* bundles (rebuild-then-check masked
+  drift before).
+- `tools/run-matrix.sh`: no longer rewrites the working tree (rebuild only
+  with `--build`), drift-checks first, runs both intl modes (14 combos),
+  hard-fails when a required PHP binary is missing (exit 2; `--allow-partial`
+  to opt into SKIPs), always prints "executed X of Y", non-zero exit when
+  nothing executed or anything failed.
+- Whole tree normalised with PHP-CS-Fixer (PER-CS2.x, pinned) — style only.
+
+### Added
+- `tests/smoke.php` wired into CI (job `smoke`, PHP 8.3/8.5) and
+  `composer run smoke`.
+- `tools/check-wiki-links.php` (validates wiki page links + GitHub heading
+  anchors; CI job `wiki-links` runs it against the wiki repository) and
+  `tools/publish-wiki.sh` (documented by the wiki, were missing).
+- `tests/phpstan-bootstrap.php`, `same_path()` test helper.
+
 ## 4.0.0 — 2026-10-11
 
 **A clean-break rewrite of 3.0.0.** No backward compatibility with the

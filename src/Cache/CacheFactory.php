@@ -16,9 +16,7 @@ use HtmlPhp\Exception\CacheException;
  */
 final class CacheFactory
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function create(CacheConfig $config, ?Diagnostics $diagnostics = null): CacheInterface
     {
@@ -36,12 +34,12 @@ final class CacheFactory
                     $config->prefix,
                     $config->ttl,
                     $config->hardenDirectory,
-                    diagnostics: $diagnostics
+                    diagnostics: $diagnostics,
                 ),
             CacheDriver::Apcu => ApcuCache::isSupported()
                 ? new ApcuCache($config->prefix, $config->ttl)
                 : self::fallback($diagnostics, $config->ttl),
-            CacheDriver::WordPress => class_exists('\HtmlPhp\WordPress\WpCache') && function_exists('wp_cache_get')
+            CacheDriver::WordPress => class_exists('\HtmlPhp\WordPress\WpCache') && \function_exists('wp_cache_get')
                 ? new \HtmlPhp\WordPress\WpCache($config->prefix, $config->ttl, $diagnostics)
                 : self::fallback($diagnostics, $config->ttl),
         };
@@ -51,7 +49,7 @@ final class CacheFactory
     {
         $diagnostics?->record(
             Diagnostics::CACHE_IO,
-            'Configured cache driver unavailable; falling back to an in-process array cache.'
+            'Configured cache driver unavailable; falling back to an in-process array cache.',
         );
 
         return new ArrayCache(defaultTtl: $ttl);

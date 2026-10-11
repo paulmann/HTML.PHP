@@ -33,9 +33,8 @@ final class Filters
         private readonly Escaper $escaper,
         private readonly TranslatorInterface $translator,
         private readonly Formats $formats,
-        private readonly bool $strict = false
-    ) {
-    }
+        private readonly bool $strict = false,
+    ) {}
 
     /** Registers (or replaces) a filter. Names are lower-cased `[a-z0-9_]+`. */
     public function add(string $name, callable $callback): void
@@ -135,12 +134,12 @@ final class Filters
                     Str::numericValue($value),
                     (int) ($args[0] ?? 2),
                     (string) ($args[1] ?? '.'),
-                    (string) ($args[2] ?? ',')
+                    (string) ($args[2] ?? ','),
                 )
                 : $this->formats->number(
                     Str::numericValue($value),
                     null,
-                    isset($args[0]) ? (int) $args[0] : null
+                    isset($args[0]) ? (int) $args[0] : null,
                 ),
             'round' => Str::round(Str::numericValue($value), $args[0] ?? 0),
             'cleanround' => Str::cleanRound(Str::numericValue($value), $args[0] ?? 0),
@@ -161,7 +160,7 @@ final class Filters
                 $string,
                 (int) ($args[0] ?? 0),
                 $args[1] ?? ' ',
-                (int) ($args[2] ?? 0) === 1 ? STR_PAD_LEFT : STR_PAD_RIGHT
+                (int) ($args[2] ?? 0) === 1 ? STR_PAD_LEFT : STR_PAD_RIGHT,
             ),
             'repeat' => str_repeat($string, max(0, min(1000, (int) ($args[0] ?? 2)))),
             'translate' => $this->translator->t($string),
@@ -203,13 +202,13 @@ final class Filters
 
     private static function isIterableValue(mixed $value): bool
     {
-        return is_array($value) || $value instanceof \Traversable;
+        return \is_array($value) || $value instanceof \Traversable;
     }
 
     /** @return array<array-key, mixed> */
     private static function toArray(mixed $value): array
     {
-        if (is_array($value)) {
+        if (\is_array($value)) {
             return $value;
         }
 
@@ -219,17 +218,17 @@ final class Filters
     private static function lengthOf(mixed $value): int
     {
         return match (true) {
-            is_array($value) => count($value),
-            $value instanceof \Countable => count($value),
+            \is_array($value) => \count($value),
+            $value instanceof \Countable => \count($value),
             $value instanceof \Traversable => iterator_count($value),
-            is_string($value) => Str::length($value),
-            default => $value === null || $value === '' ? 0 : 1,
+            \is_string($value) => Str::length($value),
+            default => $value === null ? 0 : 1,
         };
     }
 
     private static function edge(mixed $value, bool $first): mixed
     {
-        if (is_string($value)) {
+        if (\is_string($value)) {
             $length = Str::length($value);
 
             return $length === 0 ? '' : ($first ? Str::substr($value, 0, 1) : Str::substr($value, $length - 1, 1));
@@ -241,7 +240,7 @@ final class Filters
             return '';
         }
 
-        return $first ? array_values($array)[0] : array_values($array)[count($array) - 1];
+        return $first ? array_values($array)[0] : array_values($array)[\count($array) - 1];
     }
 
     private static function sorted(mixed $value, bool $descending): mixed
@@ -258,7 +257,7 @@ final class Filters
 
     private static function sliced(mixed $value, int $offset, ?int $length): mixed
     {
-        if (is_string($value)) {
+        if (\is_string($value)) {
             return Str::substr($value, $offset, $length);
         }
 
@@ -266,6 +265,6 @@ final class Filters
             return $value;
         }
 
-        return array_slice(self::toArray($value), $offset, $length, true);
+        return \array_slice(self::toArray($value), $offset, $length, true);
     }
 }

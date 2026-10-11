@@ -8,3 +8,5 @@
 /tools/v3-source/
 *.cache
 .ragraf/
+ci-fix/
+/wiki/

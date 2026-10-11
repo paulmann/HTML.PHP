@@ -33,9 +33,8 @@ final class Exec
         private readonly SsiConfig $config,
         private readonly Limits $limits,
         private readonly SecurityConfig $security,
-        private readonly Diagnostics $diagnostics
-    ) {
-    }
+        private readonly Diagnostics $diagnostics,
+    ) {}
 
     /** Runs `#exec cmd="…"`. */
     public function runCmd(string $command, SsiContext $context): string
@@ -67,7 +66,7 @@ final class Exec
                 $this->diagnostics->record(
                     Diagnostics::SSI_EXEC_DENIED,
                     'SSI #exec cmd binary is not on ssi.exec_cmd_allow.',
-                    ['command' => $argv[0]]
+                    ['command' => $argv[0]],
                 );
 
                 return $context->errorText();
@@ -105,7 +104,7 @@ final class Exec
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_DENIED,
                 'SSI #exec cgi script did not resolve inside the document root.',
-                ['virtual' => $virtual]
+                ['virtual' => $virtual],
             );
 
             return $context->errorText();
@@ -114,14 +113,14 @@ final class Exec
         $extension = strtolower(pathinfo($script, PATHINFO_EXTENSION));
         $allowedExtensions = array_map(
             static fn(string $value): string => strtolower($value),
-            $this->config->execCgiExtensions
+            $this->config->execCgiExtensions,
         );
 
-        if ($decision['mode'] !== 'delegate' && !in_array($extension, $allowedExtensions, true)) {
+        if ($decision['mode'] !== 'delegate' && !\in_array($extension, $allowedExtensions, true)) {
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_DENIED,
                 'SSI #exec cgi extension is not allowed.',
-                ['script' => $script, 'extension' => $extension]
+                ['script' => $script, 'extension' => $extension],
             );
 
             return $context->errorText();
@@ -147,7 +146,7 @@ final class Exec
 
         $argv = [PHP_BINARY, '-d', 'display_errors=0', '-d', 'log_errors=0', '-f', $script];
 
-        return $this->runProcess($argv, $environment, dirname($script));
+        return $this->runProcess($argv, $environment, \dirname($script));
     }
 
     // ---------------------------------------------------------------- policy
@@ -178,7 +177,7 @@ final class Exec
     {
         $callback = $this->config->execDelegate;
 
-        if (!is_callable($callback)) {
+        if (!\is_callable($callback)) {
             return $this->deny($kind, 'SSI #exec delegate is not callable.');
         }
 
@@ -188,7 +187,7 @@ final class Exec
             'root' => $context->documentRoot(),
         ]);
 
-        if (is_string($result)) {
+        if (\is_string($result)) {
             return ['mode' => 'deny', 'output' => $this->sanitize($result)];
         }
 
@@ -216,7 +215,7 @@ final class Exec
     public static function tokenizeCommand(string $command): array
     {
         $tokens = [];
-        $length = strlen($command);
+        $length = \strlen($command);
         $current = '';
         $quoted = false;
         $hasToken = false;
@@ -333,7 +332,7 @@ final class Exec
     {
         $value = $context->request()->server[$key] ?? null;
 
-        return is_string($value) && $value !== '' ? $value : $default;
+        return \is_string($value) && $value !== '' ? $value : $default;
     }
 
     // ------------------------------------------------------------- execution
@@ -360,11 +359,11 @@ final class Exec
 
         $process = @proc_open($argv, $descriptors, $pipes, $cwd, $filteredEnvironment);
 
-        if (!is_resource($process)) {
+        if (!\is_resource($process)) {
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
                 'SSI #exec could not spawn the process.',
-                ['argv' => $argv]
+                ['argv' => $argv],
             );
 
             return '';
@@ -396,14 +395,14 @@ final class Exec
                 }
 
                 if ($chunk !== '') {
-                    $remaining = $maxBytes - strlen($output);
+                    $remaining = $maxBytes - \strlen($output);
 
                     if ($remaining <= 0) {
                         $truncated = true;
                         break;
                     }
 
-                    if (strlen($chunk) > $remaining) {
+                    if (\strlen($chunk) > $remaining) {
                         $chunk = substr($chunk, 0, $remaining);
                         $truncated = true;
                     }
@@ -425,11 +424,11 @@ final class Exec
         }
 
         if ($timedOut || $truncated) {
-            @proc_terminate($process, defined('SIGKILL') ? SIGKILL : 9);
+            @proc_terminate($process, \defined('SIGKILL') ? SIGKILL : 9);
         }
 
         foreach ($pipes as $pipe) {
-            if (is_resource($pipe)) {
+            if (\is_resource($pipe)) {
                 @fclose($pipe);
             }
         }
@@ -439,20 +438,20 @@ final class Exec
         if ($timedOut) {
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
-                sprintf('SSI #exec timed out after %d second(s).', $timeout),
-                ['argv' => $argv]
+                \sprintf('SSI #exec timed out after %d second(s).', $timeout),
+                ['argv' => $argv],
             );
         } elseif ($truncated) {
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
-                sprintf('SSI #exec output truncated at %d byte(s).', $maxBytes),
-                ['argv' => $argv]
+                \sprintf('SSI #exec output truncated at %d byte(s).', $maxBytes),
+                ['argv' => $argv],
             );
         } elseif ($status !== 0) {
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
-                sprintf('SSI #exec exited with status %d.', $status),
-                ['argv' => $argv]
+                \sprintf('SSI #exec exited with status %d.', $status),
+                ['argv' => $argv],
             );
         }
 
@@ -477,7 +476,7 @@ final class Exec
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
                 'SSI #exec cgi include threw: ' . $error->getMessage(),
-                ['script' => $script]
+                ['script' => $script],
             );
 
             return $context->errorText();
@@ -485,12 +484,12 @@ final class Exec
 
         $output = (string) ob_get_clean();
 
-        if (strlen($output) > $maxBytes) {
+        if (\strlen($output) > $maxBytes) {
             $output = substr($output, 0, $maxBytes);
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
-                sprintf('SSI #exec output truncated at %d byte(s).', $maxBytes),
-                ['script' => $script]
+                \sprintf('SSI #exec output truncated at %d byte(s).', $maxBytes),
+                ['script' => $script],
             );
         }
 

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Test suite entry point (v4).
  *
@@ -37,6 +38,13 @@ try {
         throw new RuntimeException('No test case files were found in ' . $root . DIRECTORY_SEPARATOR . 'cases');
     }
 
+    if ($options['list']) {
+        // Inventory mode: print the registry and exit without running tests.
+        $runner->listTests();
+        cleanup_fixtures();
+        exit(0);
+    }
+
     $exitCode = $runner->run();
 } catch (Throwable $error) {
     fwrite(STDERR, sprintf(
@@ -44,7 +52,7 @@ try {
         get_class($error),
         $error->getMessage(),
         $error->getFile(),
-        $error->getLine()
+        $error->getLine(),
     ));
 
     cleanup_fixtures();

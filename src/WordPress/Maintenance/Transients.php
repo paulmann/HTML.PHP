@@ -6,13 +6,11 @@ namespace HtmlPhp\WordPress\Maintenance;
 
 final class Transients
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function get(string $key, mixed $default = null, string $prefix = 'htmlphp_'): mixed
     {
-        if (!function_exists('get_transient')) {
+        if (!\function_exists('get_transient')) {
             return $default;
         }
 
@@ -24,7 +22,7 @@ final class Transients
 
     public static function set(string $key, mixed $value, int $ttl = 3600, string $prefix = 'htmlphp_'): bool
     {
-        if (!function_exists('set_transient')) {
+        if (!\function_exists('set_transient')) {
             return false;
         }
 
@@ -34,7 +32,7 @@ final class Transients
 
     public static function delete(string $key, string $prefix = 'htmlphp_'): bool
     {
-        if (!function_exists('delete_transient')) {
+        if (!\function_exists('delete_transient')) {
             return false;
         }
 

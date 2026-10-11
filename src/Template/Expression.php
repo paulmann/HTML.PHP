@@ -52,9 +52,7 @@ final class Expression
     /** @var array<string, array<array-key, mixed>> memoized ASTs keyed by source */
     private static array $asts = [];
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Evaluates `$source` against `$scope`.
@@ -89,11 +87,11 @@ final class Expression
     /** Truthiness used by `<!--@If-->`: PHP rules, `'0'`/`''`/`[]`/null are false. */
     public static function truthy(mixed $value): bool
     {
-        if (is_string($value)) {
+        if (\is_string($value)) {
             return $value !== '' && $value !== '0';
         }
 
-        if (is_array($value)) {
+        if (\is_array($value)) {
             return $value !== [];
         }
 
@@ -120,10 +118,10 @@ final class Expression
             throw new TemplateSyntaxException('Empty expression.');
         }
 
-        if (strlen($source) > $maxLength) {
+        if (\strlen($source) > $maxLength) {
             throw new TemplateSyntaxException(
                 'Expression is too long.',
-                ['length' => strlen($source), 'limit' => $maxLength]
+                ['length' => \strlen($source), 'limit' => $maxLength],
             );
         }
 
@@ -138,7 +136,7 @@ final class Expression
     private function tokenize(string $source): array
     {
         $tokens = [];
-        $length = strlen($source);
+        $length = \strlen($source);
         $index = 0;
 
         while ($index < $length) {
@@ -160,7 +158,7 @@ final class Expression
                 $tokens[] = ['num', str_contains($m[0], '.') || str_contains($m[0], 'e') || str_contains($m[0], 'E')
                     ? (float) $m[0]
                     : (int) $m[0]];
-                $index += strlen($m[0]);
+                $index += \strlen($m[0]);
                 continue;
             }
 
@@ -173,7 +171,7 @@ final class Expression
             if (ctype_alpha($char) || $char === '_') {
                 preg_match('~[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*~A', $source, $m, 0, $index);
                 $word = $m[0];
-                $index += strlen($word);
+                $index += \strlen($word);
                 $lower = strtolower($word);
                 $tokens[] = match ($lower) {
                     'true' => ['bool', true],
@@ -190,17 +188,17 @@ final class Expression
             }
 
             foreach (['===', '!==', '==', '!=', '<=', '>=', '&&', '||', '??', '<', '>', '!',
-                      '+', '-', '*', '/', '%', '~', '(', ')', ',', '?', ':'] as $candidate) {
+                '+', '-', '*', '/', '%', '~', '(', ')', ',', '?', ':'] as $candidate) {
                 if (str_starts_with(substr($source, $index), $candidate)) {
                     $tokens[] = ['op', $candidate];
-                    $index += strlen($candidate);
+                    $index += \strlen($candidate);
                     continue 2;
                 }
             }
 
             throw new TemplateSyntaxException(
                 'Unexpected character "' . $char . '" in expression.',
-                ['position' => $index]
+                ['position' => $index],
             );
         }
 
@@ -211,7 +209,7 @@ final class Expression
     private function readString(string $source, int $index): array
     {
         $quote = $source[$index];
-        $length = strlen($source);
+        $length = \strlen($source);
         $value = '';
         ++$index;
 
@@ -313,14 +311,14 @@ final class Expression
         $operators = ['==', '!=', '===', '!==', '<', '<=', '>', '>=', 'in', 'matches'];
         $left = $this->parseAdditive();
 
-        while (($token = $this->peek()) !== null && $token[0] === 'op' && in_array($token[1], $operators, true)) {
+        while (($token = $this->peek()) !== null && $token[0] === 'op' && \in_array($token[1], $operators, true)) {
             $operator = $token[1];
             $this->next();
 
             if ($operator === 'matches') {
                 $pattern = $this->parseAdditive();
 
-                if ($pattern[0] !== 'lit' || !is_string($pattern[1])) {
+                if ($pattern[0] !== 'lit' || !\is_string($pattern[1])) {
                     throw new TemplateSyntaxException('The right side of "matches" must be a string literal.');
                 }
 
@@ -360,7 +358,7 @@ final class Expression
     {
         $left = $this->{$next}();
 
-        while (($token = $this->peek()) !== null && $token[0] === 'op' && in_array($token[1], $operators, true)) {
+        while (($token = $this->peek()) !== null && $token[0] === 'op' && \in_array($token[1], $operators, true)) {
             $operator = $token[1];
             $this->next();
             $left = [$operator, $left, $this->{$next}()];
@@ -489,7 +487,7 @@ final class Expression
 
     private function expectEnd(string $source): void
     {
-        if ($this->position < count($this->tokens)) {
+        if ($this->position < \count($this->tokens)) {
             throw new TemplateSyntaxException('Trailing input in expression.', ['expression' => $source]);
         }
     }
@@ -538,7 +536,7 @@ final class Expression
             return Str::numericValue($left) == Str::numericValue($right);
         }
 
-        if (is_string($left) && is_string($right)) {
+        if (\is_string($left) && \is_string($right)) {
             return $left === $right;
         }
 
@@ -591,11 +589,11 @@ final class Expression
 
     private static function in(mixed $needle, mixed $haystack): bool
     {
-        if (is_array($haystack)) {
-            return in_array($needle, $haystack, false);
+        if (\is_array($haystack)) {
+            return \in_array($needle, $haystack, false);
         }
 
-        if (is_string($haystack) && (is_string($needle) || is_numeric($needle))) {
+        if (\is_string($haystack) && (\is_string($needle) || is_numeric($needle))) {
             return $haystack !== '' && str_contains($haystack, Str::stringify($needle));
         }
 
@@ -638,10 +636,10 @@ final class Expression
     /** @param list<array<array-key, mixed>> $args */
     private static function call(string $name, array $args, Scope $scope): mixed
     {
-        if (!in_array($name, self::FUNCTIONS, true)) {
+        if (!\in_array($name, self::FUNCTIONS, true)) {
             throw new TemplateSyntaxException(
                 'Function "' . $name . '" is not allowed in expressions.',
-                ['allowed' => self::FUNCTIONS]
+                ['allowed' => self::FUNCTIONS],
             );
         }
 
@@ -650,7 +648,7 @@ final class Expression
         return match ($name) {
             'count', 'length' => self::countOf($values[0] ?? null),
             'empty' => !self::truthy($values[0] ?? null),
-            'defined' => is_string($values[0] ?? null) ? $scope->has((string) $values[0]) : ($values[0] ?? null) !== null,
+            'defined' => \is_string($values[0] ?? null) ? $scope->has((string) $values[0]) : ($values[0] ?? null) !== null,
             'min' => $values === [] ? 0 : min(array_map(Str::numericValue(...), $values)),
             'max' => $values === [] ? 0 : max(array_map(Str::numericValue(...), $values)),
             'abs' => abs(Str::numericValue($values[0] ?? 0)),
@@ -670,21 +668,21 @@ final class Expression
     private static function countOf(mixed $value): int
     {
         return match (true) {
-            is_array($value) => count($value),
-            $value instanceof \Countable => count($value),
+            \is_array($value) => \count($value),
+            $value instanceof \Countable => \count($value),
             $value instanceof \Traversable => iterator_count($value),
-            is_string($value) => Str::length($value),
-            default => $value === null || $value === '' ? 0 : 1,
+            \is_string($value) => Str::length($value),
+            default => $value === null ? 0 : 1,
         };
     }
 
     private static function numeric(mixed $value): float|int
     {
-        if (is_int($value)) {
+        if (\is_int($value)) {
             return $value;
         }
 
-        if (is_float($value)) {
+        if (\is_float($value)) {
             return is_finite($value) ? $value : 0.0;
         }
 

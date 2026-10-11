@@ -8,19 +8,19 @@ final class Logs
 {
     private const array LEVELS = ['debug', 'info', 'warning', 'error', 'critical'];
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function directory(): string
     {
-        if (\defined('HTML_WP_LOG_DIR') && \is_string(\HTML_WP_LOG_DIR) && \HTML_WP_LOG_DIR !== '') {
-            return rtrim(\HTML_WP_LOG_DIR, "/\\");
+        $configured = \defined('HTML_WP_LOG_DIR') ? \constant('HTML_WP_LOG_DIR') : null;
+
+        if (\is_string($configured) && $configured !== '') {
+            return rtrim($configured, "/\\");
         }
 
-        if (function_exists('wp_upload_dir')) {
+        if (\function_exists('wp_upload_dir')) {
             $uploads = wp_upload_dir();
-            $base = is_array($uploads) ? (string) ($uploads['basedir'] ?? '') : '';
+            $base = (string) ($uploads['basedir'] ?? '');
 
             if ($base !== '' && is_dir($base)) {
                 return rtrim($base, "/\\") . \DIRECTORY_SEPARATOR . 'html-php-logs';
@@ -40,19 +40,19 @@ final class Logs
      */
     public static function write(string $level, string $message, array $context = []): bool
     {
-        $level = in_array($level, self::LEVELS, true) ? $level : 'info';
+        $level = \in_array($level, self::LEVELS, true) ? $level : 'info';
         $directory = self::directory();
 
         if (!is_dir($directory) && !@mkdir($directory, 0o755, true) && !is_dir($directory)) {
             return false;
         }
 
-        $line = sprintf(
+        $line = \sprintf(
             "[%s] %s: %s%s\n",
             date('Y-m-d H:i:s'),
             strtoupper($level),
             $message,
-            $context === [] ? '' : ' ' . (string) json_encode($context, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE)
+            $context === [] ? '' : ' ' . (string) json_encode($context, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE),
         );
 
         $written = @file_put_contents(self::file(), $line, \FILE_APPEND | \LOCK_EX);
@@ -62,11 +62,13 @@ final class Logs
         return $written !== false;
     }
 
+    /** @param array<string, mixed> $context */
     public static function info(string $message, array $context = []): bool
     {
         return self::write('info', $message, $context);
     }
 
+    /** @param array<string, mixed> $context */
     public static function error(string $message, array $context = []): bool
     {
         return self::write('error', $message, $context);
@@ -84,7 +86,7 @@ final class Logs
 
         $removed = 0;
 
-        while (count($files) > $keep) {
+        while (\count($files) > $keep) {
             $oldest = (string) array_shift($files);
 
             if (@unlink($oldest)) {
@@ -111,6 +113,6 @@ final class Logs
         $content = (string) @file_get_contents($file);
         $all = array_values(array_filter(explode("\n", $content), static fn(string $l): bool => trim($l) !== ''));
 
-        return array_slice($all, -$lines);
+        return \array_slice($all, -$lines);
     }
 }

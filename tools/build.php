@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Builds the two single-file editions from the PSR-4 source tree.
  *
@@ -85,7 +86,7 @@ function parse_unit(string $file): array
 
             return '';
         },
-        (string) $body
+        (string) $body,
     );
 
     return ['ns' => $namespace, 'uses' => $uses, 'body' => trim($body), 'file' => $file];
@@ -129,7 +130,7 @@ function build_edition(string $root, string $edition, bool $withOverlays): strin
 
     $order = array_merge(
         NAMESPACE_ORDER,
-        array_values(array_diff(array_keys($grouped), NAMESPACE_ORDER))
+        array_values(array_diff(array_keys($grouped), NAMESPACE_ORDER)),
     );
 
     $editionLabel = $withOverlays ? '8.5' : '8.3';
@@ -249,7 +250,7 @@ foreach ($targets as $target => $withOverlays) {
         "built %s (%d KB, %d lines)\n",
         $target,
         (int) round(strlen($bundle) / 1024),
-        substr_count($bundle, "\n")
+        substr_count($bundle, "\n"),
     );
 }
 

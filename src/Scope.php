@@ -39,7 +39,7 @@ final class Scope
     /** Removes the innermost frame (the root frame is never removed). */
     public function pop(): void
     {
-        if (count($this->frames) > 1) {
+        if (\count($this->frames) > 1) {
             array_pop($this->frames);
         }
     }
@@ -62,7 +62,7 @@ final class Scope
 
     public function depth(): int
     {
-        return count($this->frames);
+        return \count($this->frames);
     }
 
     /**
@@ -80,8 +80,8 @@ final class Scope
 
         // Fast path: plain key in any frame, innermost first.
         if (!str_contains($name, '.')) {
-            for ($i = count($this->frames) - 1; $i >= 0; $i--) {
-                if (array_key_exists($name, $this->frames[$i])) {
+            for ($i = \count($this->frames) - 1; $i >= 0; $i--) {
+                if (\array_key_exists($name, $this->frames[$i])) {
                     return [true, $this->frames[$i][$name]];
                 }
             }
@@ -91,8 +91,8 @@ final class Scope
 
         [$head, $rest] = explode('.', $name, 2);
 
-        for ($i = count($this->frames) - 1; $i >= 0; $i--) {
-            if (array_key_exists($head, $this->frames[$i])) {
+        for ($i = \count($this->frames) - 1; $i >= 0; $i--) {
+            if (\array_key_exists($head, $this->frames[$i])) {
                 $value = $this->frames[$i][$head];
                 $found = self::walk($value, $rest);
 
@@ -122,7 +122,7 @@ final class Scope
      */
     public function set(string $name, mixed $value): void
     {
-        $last = count($this->frames) - 1;
+        $last = \count($this->frames) - 1;
         $this->frames[$last][$name] = $value;
     }
 
@@ -155,8 +155,8 @@ final class Scope
                 return [false, null];
             }
 
-            if (is_array($value)) {
-                if (!array_key_exists($segment, $value)) {
+            if (\is_array($value)) {
+                if (!\array_key_exists($segment, $value)) {
                     return [false, null];
                 }
                 $value = $value[$segment];
@@ -171,7 +171,7 @@ final class Scope
                 continue;
             }
 
-            if (is_object($value)) {
+            if (\is_object($value)) {
                 if (isset($value->{$segment})) {
                     $value = $value->{$segment};
                     continue;

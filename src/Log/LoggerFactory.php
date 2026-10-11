@@ -12,9 +12,7 @@ use HtmlPhp\Config\LogDriver;
  */
 final class LoggerFactory
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function create(LogConfig $config): LoggerInterface
     {

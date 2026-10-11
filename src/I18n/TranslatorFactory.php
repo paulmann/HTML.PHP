@@ -17,9 +17,7 @@ use HtmlPhp\Event\Dispatcher;
  */
 final class TranslatorFactory
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function create(Container $container): TranslatorInterface
     {
@@ -29,7 +27,7 @@ final class TranslatorFactory
         return new Translator(
             $config->i18n,
             $container->service(Diagnostics::class),
-            $container->service(Dispatcher::class)
+            $container->service(Dispatcher::class),
         );
     }
 }

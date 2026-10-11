@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace HtmlPhp\WordPress\Maintenance;
 
+use HtmlPhp\Exception\TemplateException;
+
 final class Rest
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Registers a route; refusing registrations without an explicit
@@ -19,9 +19,9 @@ final class Rest
         string $route,
         callable $handler,
         string $methods = 'GET',
-        ?callable $permission = null
+        ?callable $permission = null,
     ): void {
-        if (!function_exists('register_rest_route')) {
+        if (!\function_exists('register_rest_route')) {
             throw new TemplateException('The REST API is not available.');
         }
 

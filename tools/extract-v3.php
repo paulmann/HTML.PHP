@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Splits the v3 single-file library into per-class PSR-4 files under ported/.
  * Raw material for the v4 rewrite — NOT part of the shipped library.

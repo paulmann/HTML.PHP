@@ -42,19 +42,13 @@ namespace {
 namespace HtmlPhp\Exception {
 
 /** Cache operation failure. */
-final class CacheException extends HtmlPhpException
-{
-}
+final class CacheException extends HtmlPhpException {}
 
 /** Invalid configuration. */
-final class ConfigException extends HtmlPhpException
-{
-}
+final class ConfigException extends HtmlPhpException {}
 
 /** Service container failure. */
-final class ContainerException extends HtmlPhpException
-{
-}
+final class ContainerException extends HtmlPhpException {}
 
 /**
  * Base class of every exception thrown by the library.
@@ -71,7 +65,7 @@ class HtmlPhpException extends \RuntimeException
         string $message,
         public readonly array $context = [],
         int $code = 0,
-        ?\Throwable $previous = null
+        ?\Throwable $previous = null,
     ) {
         parent::__construct($message, $code, $previous);
     }
@@ -89,7 +83,7 @@ class HtmlPhpException extends \RuntimeException
             $this->getMessage(),
             array_merge($this->context, $context),
             (int) $this->getCode(),
-            $this->getPrevious()
+            $this->getPrevious(),
         );
     }
 
@@ -102,7 +96,7 @@ class HtmlPhpException extends \RuntimeException
 
         $pairs = [];
         foreach ($this->context as $key => $value) {
-            $pairs[] = $key . '=' . (is_scalar($value) || $value === null
+            $pairs[] = $key . '=' . (\is_scalar($value) || $value === null
                 ? var_export($value, true)
                 : (json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '?'));
         }
@@ -112,39 +106,25 @@ class HtmlPhpException extends \RuntimeException
 }
 
 /** Internationalisation failure. */
-final class I18nException extends HtmlPhpException
-{
-}
+final class I18nException extends HtmlPhpException {}
 
 /** Filesystem operation failure. */
-final class IoException extends HtmlPhpException
-{
-}
+final class IoException extends HtmlPhpException {}
 
 /** Regular expression failure. */
-final class RegexException extends HtmlPhpException
-{
-}
+final class RegexException extends HtmlPhpException {}
 
 /** SSI processing failure. */
-final class SsiException extends HtmlPhpException
-{
-}
+final class SsiException extends HtmlPhpException {}
 
 /** Template processing failure. */
-class TemplateException extends HtmlPhpException
-{
-}
+class TemplateException extends HtmlPhpException {}
 
 /** Template could not be located. */
-final class TemplateNotFoundException extends TemplateException
-{
-}
+final class TemplateNotFoundException extends TemplateException {}
 
 /** Invalid template syntax. */
-final class TemplateSyntaxException extends TemplateException
-{
-}
+final class TemplateSyntaxException extends TemplateException {}
 
 }
 
@@ -172,9 +152,7 @@ interface ClockInterface
  */
 final class FrozenClock implements ClockInterface
 {
-    public function __construct(private int $timestamp)
-    {
-    }
+    public function __construct(private int $timestamp) {}
 
     public function set(int $timestamp): void
     {
@@ -208,9 +186,7 @@ final class FrozenClock implements ClockInterface
  */
 final class Pcre
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * `preg_replace_callback()` that throws on PCRE failure.
@@ -276,7 +252,7 @@ final class Pcre
         string $unicodePattern,
         string $bytePattern,
         string $replacement,
-        string $subject
+        string $subject,
     ): string {
         $result = preg_replace($unicodePattern, $replacement, $subject);
 
@@ -311,7 +287,7 @@ final class Pcre
     {
         return new RegexException(
             'Regular expression failed: ' . preg_last_error_msg(),
-            ['pattern' => Pcre::safePattern($pattern)]
+            ['pattern' => Pcre::safePattern($pattern)],
         );
     }
 
@@ -355,9 +331,7 @@ final class Str
 
     private const MAX_PRECISION = 100;
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Converts any template value to a string without emitting notices.
@@ -369,12 +343,12 @@ final class Str
     {
         return match (true) {
             $value === null => '',
-            is_string($value) => $value,
-            is_int($value) => (string) $value,
-            is_float($value) => is_finite($value)
+            \is_string($value) => $value,
+            \is_int($value) => (string) $value,
+            \is_float($value) => is_finite($value)
                 ? rtrim(rtrim(number_format($value, 14, '.', ''), '0'), '.')
                 : '',
-            is_bool($value) => $value ? '1' : '',
+            \is_bool($value) => $value ? '1' : '',
             $value instanceof \Stringable => (string) $value,
             $value instanceof \BackedEnum => self::stringify($value->value),
             default => '',
@@ -387,18 +361,18 @@ final class Str
      */
     public static function numericValue(mixed $value): float
     {
-        if (is_int($value) || is_float($value)) {
+        if (\is_int($value) || \is_float($value)) {
             return is_finite((float) $value) ? (float) $value : 0.0;
         }
 
-        if (!is_string($value)) {
+        if (!\is_string($value)) {
             return 0.0;
         }
 
         $number = str_replace(
             [' ', "\t", "\r", "\n", "\v", "\f", "\u{00A0}", "\u{202F}", "\u{2009}", "'"],
             '',
-            trim($value)
+            trim($value),
         );
 
         if ($number === '') {
@@ -434,7 +408,7 @@ final class Str
         $parts = explode(',', $number);
 
         // Three comma groups of exactly three digits are thousands separators.
-        return count($parts) > 2 && strlen((string) end($parts)) === 3
+        return \count($parts) > 2 && \strlen((string) end($parts)) === 3
             ? str_replace(',', '', $number)
             : str_replace(',', '.', $number);
     }
@@ -451,7 +425,7 @@ final class Str
      */
     public static function precision(mixed $precision): int
     {
-        $value = is_int($precision) || (is_string($precision) && preg_match('/^\d+$/', $precision) === 1)
+        $value = \is_int($precision) || (\is_string($precision) && preg_match('/^\d+$/', $precision) === 1)
             ? (int) $precision
             : 0;
 
@@ -507,7 +481,7 @@ final class Str
         float $value,
         int $decimals = 2,
         string $decimalPoint = '.',
-        string $thousandsSeparator = ','
+        string $thousandsSeparator = ',',
     ): string {
         $decimals = max(0, min(20, $decimals));
         $value = is_finite($value) ? $value : 0.0;
@@ -515,7 +489,7 @@ final class Str
         return self::fixNegativeZero(
             number_format($value, $decimals, $decimalPoint, $thousandsSeparator),
             $decimals,
-            $decimalPoint
+            $decimalPoint,
         );
     }
 
@@ -552,7 +526,7 @@ final class Str
             return rtrim($cut, " \t\n\r\0\x0B.,;:!?") . $suffix;
         }
 
-        if (strlen($text) <= $length) {
+        if (\strlen($text) <= $length) {
             return $text;
         }
 
@@ -569,7 +543,7 @@ final class Str
     /** Character count, multibyte-aware. */
     public static function length(string $text): int
     {
-        return self::hasMb() ? mb_strlen($text, 'UTF-8') : strlen($text);
+        return self::hasMb() ? mb_strlen($text, 'UTF-8') : \strlen($text);
     }
 
     /** Substring, multibyte-aware (`null` length means "to the end"). */
@@ -596,7 +570,7 @@ final class Str
             return '';
         }
 
-        if (function_exists('mb_ucfirst')) {
+        if (\function_exists('mb_ucfirst')) {
             return mb_ucfirst($text, 'UTF-8');
         }
 
@@ -615,18 +589,27 @@ final class Str
         return (string) preg_replace_callback(
             '/[\p{L}\p{N}]+/u',
             static fn(array $m): string => self::ucfirst($m[0]),
-            $text
+            $text,
         );
     }
 
     private static function hasMb(): bool
     {
-        return function_exists('mb_strlen');
+        return \function_exists('mb_strlen');
     }
 
     /**
-     * URL slug: transliterate, lower-case, collapse everything outside
-     * `[a-z0-9]` into `$separator`.
+     * URL slug: lower-case, apply the built-in transliteration map, collapse
+     * everything outside `[a-z0-9]` into `$separator`.
+     *
+     * Deterministic by contract: the map runs **before** any ICU call, so
+     * every character the map covers (Cyrillic + common European letters)
+     * produces the same slug whether or not `ext-intl` is loaded — slugs end
+     * up in URLs and storage, and must not depend on the host. ICU
+     * (`Any-Latin; Latin-ASCII; Lower()`) is consulted only when non-ASCII
+     * characters remain, i.e. for scripts the map does not cover (Greek,
+     * Georgian, …); without intl those are stripped like any other
+     * non-`[a-z0-9]` character.
      */
     public static function slugify(string $text, string $separator = '-'): string
     {
@@ -638,20 +621,25 @@ final class Str
 
         $separator = $separator === '' ? '-' : $separator;
 
-        if (function_exists('transliterator_transliterate')) {
+        // 1. Deterministic core: lower-case, then the built-in map. Map
+        //    coverage wins over ICU so the result never depends on ext-intl.
+        $text = strtr(self::lower($text), self::TRANSLITERATION);
+
+        // 2. ICU fallback for scripts the map does not cover, only while
+        //    non-ASCII characters remain (the `@` guards E_WARNING on
+        //    malformed UTF-8 input — transliterate() returns false then).
+        if ($text !== '' && preg_match('/[^\x00-\x7F]/', $text) === 1
+            && \function_exists('transliterator_transliterate')
+        ) {
             /** @var string|false $converted */
             $converted = @transliterator_transliterate(
                 'Any-Latin; Latin-ASCII; Lower()',
-                $text
+                $text,
             );
 
-            if (is_string($converted) && $converted !== '') {
+            if (\is_string($converted) && $converted !== '') {
                 $text = $converted;
             }
-        } else {
-            // No intl: lower-case first, then apply the built-in map so
-            // slugs stay meaningful without the extension.
-            $text = strtr(self::lower($text), self::TRANSLITERATION);
         }
 
         $text = (string) preg_replace('~[^a-z0-9]+~', $separator, $text);
@@ -701,7 +689,7 @@ final class Str
         $text = Pcre::replaceCallback(
             '~&#x([0-9A-Fa-f]{1,6});~',
             static fn(array $matches): string => '&#' . hexdec($matches[1]) . ';',
-            $text
+            $text,
         );
 
         $text = Pcre::replaceCallback(
@@ -709,13 +697,13 @@ final class Str
             static function (array $matches) use ($map): string {
                 $number = $matches[1];
 
-                if (is_array($map) && isset($map[$number])) {
+                if (\is_array($map) && isset($map[$number])) {
                     return '&' . self::stringify($map[$number]) . ';';
                 }
 
                 return '&#' . $number . ';';
             },
-            $text
+            $text,
         );
 
         return str_ireplace(['&thorn;', '&eth;', '&szlig;', '&nbsp;'], ['th', 'd', 'ss', ' '], $text);
@@ -768,14 +756,14 @@ final class Str
      */
     public static function sanitizeRecursive(array|string $input): array|string
     {
-        if (is_string($input)) {
+        if (\is_string($input)) {
             return htmlspecialchars($input, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
         }
 
         $result = [];
 
         foreach ($input as $key => $value) {
-            $result[$key] = is_array($value) || is_string($value)
+            $result[$key] = \is_array($value) || \is_string($value)
                 ? self::sanitizeRecursive($value)
                 : $value;
         }
@@ -847,12 +835,12 @@ final readonly class Cache
         public int $ttl = 0,
         public string $prefix = 'htmlphp',
         public bool $lockWrites = true,
-        public bool $hardenDirectory = true
+        public bool $hardenDirectory = true,
     ) {
         if ($ttl < 0 || $ttl > 86400 * 30) {
             throw new \HtmlPhp\Exception\ConfigException(
                 'cache.ttl must be between 0 and 30 days (seconds).',
-                ['value' => $ttl]
+                ['value' => $ttl],
             );
         }
     }
@@ -867,13 +855,13 @@ final readonly class Cache
             driver: CacheDriver::tryFrom($driver)
                 ?? throw new \HtmlPhp\Exception\ConfigException(
                     'cache.driver must be one of: null, array, file, apcu, wordpress.',
-                    ['value' => $driver]
+                    ['value' => $driver],
                 ),
             directory: (string) Config::value($config, 'directory', ''),
             ttl: Config::int($config, 'ttl', 0),
             prefix: (string) Config::value($config, 'prefix', 'htmlphp'),
             lockWrites: Config::bool($config, 'lock_writes', true),
-            hardenDirectory: Config::bool($config, 'harden_directory', true)
+            hardenDirectory: Config::bool($config, 'harden_directory', true),
         );
     }
 
@@ -956,9 +944,8 @@ final readonly class I18n
         public string $thousandsSeparator = ',',
         public string $dateFormat = 'Y-m-d',
         public string $timeFormat = 'H:i',
-        public string $dateTimeFormat = 'Y-m-d H:i'
-    ) {
-    }
+        public string $dateTimeFormat = 'Y-m-d H:i',
+    ) {}
 
     /** @param array<string, mixed> $config */
     public static function fromArray(array $config): self
@@ -969,7 +956,7 @@ final readonly class I18n
             locale: \HtmlPhp\I18n\Locale::normalize((string) Config::value($config, 'locale', 'en')),
             fallback: array_map(
                 static fn(string $locale): string => \HtmlPhp\I18n\Locale::normalize($locale),
-                Config::stringList($config, 'fallback') ?: ['en']
+                Config::stringList($config, 'fallback') ?: ['en'],
             ),
             domain: (string) Config::value($config, 'domain', 'messages'),
             paths: array_values(array_map(strval(...), Config::arrayValue($config, 'paths', []))),
@@ -980,7 +967,7 @@ final readonly class I18n
             thousandsSeparator: (string) Config::value($config, 'thousands_separator', ','),
             dateFormat: (string) Config::value($config, 'date_format', 'Y-m-d'),
             timeFormat: (string) Config::value($config, 'time_format', 'H:i'),
-            dateTimeFormat: (string) Config::value($config, 'datetime_format', 'Y-m-d H:i')
+            dateTimeFormat: (string) Config::value($config, 'datetime_format', 'Y-m-d H:i'),
         );
     }
 
@@ -1036,7 +1023,7 @@ final readonly class Limits
         public int $maxExecOutputBytes = 65_536,
         public int $execTimeoutSeconds = 5,
         public int $maxDiagnostics = 100,
-        public int $maxPrecision = 100
+        public int $maxPrecision = 100,
     ) {
         $this->guard('maxTemplateBytes', $this->maxTemplateBytes, 1024, self::MAX_TEMPLATE_BYTES_CEILING);
         $this->guard('maxIncludeBytes', $this->maxIncludeBytes, 1024, self::MAX_INCLUDE_BYTES_CEILING);
@@ -1071,7 +1058,7 @@ final readonly class Limits
             maxExecOutputBytes: Config::int($config, 'max_exec_output_bytes', 65_536),
             execTimeoutSeconds: Config::int($config, 'exec_timeout', 5),
             maxDiagnostics: Config::int($config, 'max_diagnostics', 100),
-            maxPrecision: Config::int($config, 'max_precision', 100)
+            maxPrecision: Config::int($config, 'max_precision', 100),
         );
     }
 
@@ -1100,7 +1087,7 @@ final readonly class Limits
         if ($value < $min || $value > $max) {
             throw new ConfigException(
                 "Limit '{$name}' must be between {$min} and {$max}.",
-                ['limit' => $name, 'value' => $value, 'min' => $min, 'max' => $max]
+                ['limit' => $name, 'value' => $value, 'min' => $min, 'max' => $max],
             );
         }
     }
@@ -1121,12 +1108,12 @@ final readonly class Log
         public string $path = '',
         public string $level = 'warning',
         public string $channel = 'htmlphp',
-        public bool $forwardDiagnostics = true
+        public bool $forwardDiagnostics = true,
     ) {
         if (!isset(self::LEVELS[$this->level])) {
             throw new \HtmlPhp\Exception\ConfigException(
                 'log.level must be a PSR-3 level name.',
-                ['value' => $level]
+                ['value' => $level],
             );
         }
     }
@@ -1140,12 +1127,12 @@ final readonly class Log
             driver: LogDriver::tryFrom($driver)
                 ?? throw new \HtmlPhp\Exception\ConfigException(
                     'log.driver must be one of: null, array, errorlog, file, syslog, wordpress.',
-                    ['value' => $driver]
+                    ['value' => $driver],
                 ),
             path: (string) Config::value($config, 'path', ''),
             level: (string) Config::value($config, 'level', 'warning'),
             channel: (string) Config::value($config, 'channel', 'htmlphp'),
-            forwardDiagnostics: Config::bool($config, 'forward_diagnostics', true)
+            forwardDiagnostics: Config::bool($config, 'forward_diagnostics', true),
         );
     }
 
@@ -1229,9 +1216,8 @@ final readonly class Security
         public ?array $allowedTags = null,
         public array $deniedExtensions = self::DENIED_EXTENSIONS_DEFAULT,
         public bool $denyPhpIncludes = true,
-        public bool $sanitizeExecOutput = true
-    ) {
-    }
+        public bool $sanitizeExecOutput = true,
+    ) {}
 
     /** @param array<string, mixed> $config */
     public static function fromArray(array $config): self
@@ -1239,15 +1225,15 @@ final readonly class Security
         $allowed = Config::arrayValue($config, 'allowed_tags', []);
 
         return new self(
-            allowedTags: $allowed === [] && !array_key_exists('allowed_tags', $config)
+            allowedTags: $allowed === [] && !\array_key_exists('allowed_tags', $config)
                 ? null
                 : self::normalizeTags($allowed),
             deniedExtensions: array_values(array_map(
                 static fn($ext): string => strtolower(ltrim((string) $ext, '.')),
-                Config::arrayValue($config, 'denied_extensions', self::DENIED_EXTENSIONS_DEFAULT)
+                Config::arrayValue($config, 'denied_extensions', self::DENIED_EXTENSIONS_DEFAULT),
             )),
             denyPhpIncludes: Config::bool($config, 'deny_php_includes', true),
-            sanitizeExecOutput: Config::bool($config, 'sanitize_exec_output', true)
+            sanitizeExecOutput: Config::bool($config, 'sanitize_exec_output', true),
         );
     }
 
@@ -1260,7 +1246,7 @@ final readonly class Security
         $normalized = [];
 
         foreach ($tags as $key => $value) {
-            $name = strtolower(trim((string) (is_int($key) ? $value : $key)));
+            $name = strtolower(trim((string) (\is_int($key) ? $value : $key)));
 
             if ($name !== '' && preg_match('/^[a-z][a-z0-9-]*$/', $name) === 1) {
                 $normalized[$name] = true;
@@ -1319,13 +1305,13 @@ final readonly class Ssi
         public string $execCgiMode = 'spawn',
         public mixed $execDelegate = null,
         public bool $processRenderedOutput = true,
-        public bool $printenvEnabled = true
+        public bool $printenvEnabled = true,
     ) {
         if ($execCgiMode !== 'spawn' && $execCgiMode !== 'include') {
             throw new ConfigException("ssi.exec_cgi_mode must be 'spawn' or 'include'.", ['value' => $execCgiMode]);
         }
 
-        if ($execDelegate !== null && !is_callable($execDelegate)) {
+        if ($execDelegate !== null && !\is_callable($execDelegate)) {
             throw new ConfigException('ssi.exec_delegate must be callable or null.');
         }
 
@@ -1340,7 +1326,7 @@ final readonly class Ssi
         $execMode = Config::value($config, 'exec_mode', ExecMode::Deny->value);
 
         // v3 stored a boolean master switch; accept `true/false` as deny/allows-nothing.
-        if (is_bool($execMode)) {
+        if (\is_bool($execMode)) {
             $execMode = $execMode ? ExecMode::AllowList->value : ExecMode::Deny->value;
         }
 
@@ -1363,7 +1349,7 @@ final readonly class Ssi
             execCgiMode: (string) Config::value($config, 'exec_cgi_mode', 'spawn'),
             execDelegate: Config::callableOrNull($config, 'exec_delegate'),
             processRenderedOutput: Config::bool($config, 'process_rendered_output', true),
-            printenvEnabled: Config::bool($config, 'printenv_enabled', true)
+            printenvEnabled: Config::bool($config, 'printenv_enabled', true),
         );
     }
 
@@ -1416,9 +1402,8 @@ final readonly class Syntax
         public string $missingPlaceholderFormat = '[missing:%s]',
         public bool $singleBraces = false,
         public bool $allowRawFilter = true,
-        public bool $strict = false
-    ) {
-    }
+        public bool $strict = false,
+    ) {}
 
     /** @param array<string, mixed> $config */
     public static function fromArray(array $config): self
@@ -1435,12 +1420,12 @@ final readonly class Syntax
             autoEscape: Config::bool($config, 'auto_escape', true),
             missingVar: MissingVarPolicy::tryFrom($missing)
                 ?? throw new \HtmlPhp\Exception\ConfigException(
-                    'syntax.missing_var must be one of: empty, keep, placeholder, throw.'
+                    'syntax.missing_var must be one of: empty, keep, placeholder, throw.',
                 ),
             missingPlaceholderFormat: (string) Config::value($config, 'missing_placeholder_format', '[missing:%s]'),
             singleBraces: Config::bool($config, 'single_braces', false),
             allowRawFilter: Config::bool($config, 'allow_raw_filter', true),
-            strict: Config::bool($config, 'strict', false)
+            strict: Config::bool($config, 'strict', false),
         );
     }
 
@@ -1484,10 +1469,10 @@ final readonly class Templates
         public array $paths = [],
         public array $namespaces = [],
         public string $extension = '.html',
-        public bool $cacheFileMTimes = true
+        public bool $cacheFileMTimes = true,
     ) {
         foreach ($this->paths as $path) {
-            if (!is_string($path) || $path === '') {
+            if (!\is_string($path) || $path === '') {
                 throw new \HtmlPhp\Exception\ConfigException('templates.paths must contain non-empty strings.');
             }
         }
@@ -1511,7 +1496,7 @@ final readonly class Templates
             paths: array_values(array_map(strval(...), $paths)),
             namespaces: $namespaces,
             extension: (string) Config::value($config, 'extension', '.html'),
-            cacheFileMTimes: Config::bool($config, 'cache_file_mtimes', true)
+            cacheFileMTimes: Config::bool($config, 'cache_file_mtimes', true),
         );
     }
 
@@ -1546,9 +1531,7 @@ use HtmlPhp\Exception\IoException;
  */
 final class AtomicWriter
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Writes `$data` to `$file` atomically.
@@ -1563,7 +1546,7 @@ final class AtomicWriter
             throw new IoException('The output file path is invalid.', ['file' => $file]);
         }
 
-        $directory = dirname($file);
+        $directory = \dirname($file);
 
         if (!is_dir($directory) || !is_writable($directory)) {
             throw new IoException("Output directory '{$directory}' is not writable.", ['dir' => $directory]);
@@ -1573,7 +1556,7 @@ final class AtomicWriter
             throw new IoException("Output file '{$file}' is not writable.", ['file' => $file]);
         }
 
-        $expected = strlen($data);
+        $expected = \strlen($data);
 
         $prefix = substr((string) preg_replace('~[^A-Za-z0-9._-]~', '_', basename($file)), 0, 32);
 
@@ -1638,9 +1621,7 @@ final class Files
 {
     public const int DEFAULT_MAX_BYTES = 8 * 1024 * 1024;
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Reads a whole file with a byte cap.
@@ -1738,12 +1719,12 @@ final class PathGuard
     public function __construct(
         array $roots,
         array $deniedExtensions = SecurityConfig::DENIED_EXTENSIONS_DEFAULT,
-        private readonly bool $allowParentPaths = false
+        private readonly bool $allowParentPaths = false,
     ) {
         $resolved = [];
 
         foreach ($roots as $root) {
-            if (!is_string($root) || $root === '') {
+            if (!\is_string($root) || $root === '') {
                 continue;
             }
 
@@ -1887,9 +1868,7 @@ final class Cleaner
     ];
 
     /** @param array<string, true> $allowedTags */
-    public function __construct(private readonly array $allowedTags = self::DEFAULT_ALLOWED_TAGS)
-    {
-    }
+    public function __construct(private readonly array $allowedTags = self::DEFAULT_ALLOWED_TAGS) {}
 
     /** Converts HTML tag names to lowercase without touching attributes. */
     public function lcTags(string $input): string
@@ -1897,7 +1876,7 @@ final class Cleaner
         return Pcre::replaceCallback(
             '~<(\s*/?\s*)([A-Za-z][A-Za-z0-9:_-]*)((?:"[^"]*"|\'[^\']*\'|[^\'">])*)>~',
             static fn(array $matches): string => '<' . $matches[1] . strtolower($matches[2]) . $matches[3] . '>',
-            $input
+            $input,
         );
     }
 
@@ -1932,7 +1911,7 @@ final class Cleaner
                 '~^[.,:\\\\/><!]+\s*|\s*[.,:\\\\/><!]+$~u',
                 '~^[.,:\\\\/><!]+\s*|\s*[.,:\\\\/><!]+$~',
                 '',
-                $buffer
+                $buffer,
             );
             $buffer = trim($buffer);
         }
@@ -1964,7 +1943,7 @@ final class Cleaner
         $html = Pcre::replaceCallback(
             '~<(/?)([A-Za-z][A-Za-z0-9:_-]*)(?:"[^"]*"|\'[^\']*\'|[^\'">])*>~s',
             fn(array $matches): string => $this->cleanTag($matches[1], $matches[2]),
-            $html
+            $html,
         );
 
         $html = Str::normalizeEntities($html);
@@ -2003,7 +1982,7 @@ class Escaper
      */
     public function __construct(private readonly mixed $customHtmlEscaper = null)
     {
-        if ($this->customHtmlEscaper !== null && !is_callable($this->customHtmlEscaper)) {
+        if ($this->customHtmlEscaper !== null && !\is_callable($this->customHtmlEscaper)) {
             throw new \InvalidArgumentException('The custom HTML escaper must be callable.');
         }
     }
@@ -2035,7 +2014,7 @@ class Escaper
         $result = preg_replace_callback(
             '/[^A-Za-z0-9\-._~:\/?#\[\]@!$()*+,;=%]/',
             static fn(array $m): string => rawurlencode($m[0]),
-            $value
+            $value,
         );
 
         return $result ?? $value;
@@ -2046,7 +2025,7 @@ class Escaper
     {
         $encoded = json_encode(
             $value,
-            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE
+            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE,
         );
 
         return $encoded === false ? 'null' : $encoded;
@@ -2058,7 +2037,7 @@ class Escaper
      */
     public function js(mixed $value): string
     {
-        return $this->json(is_scalar($value) || $value === null ? $value : Str::stringify($value));
+        return $this->json(\is_scalar($value) || $value === null ? $value : Str::stringify($value));
     }
 
     /** CSS-value escaping: every non-alphanumeric becomes `\HHHHHH `. */
@@ -2066,8 +2045,8 @@ class Escaper
     {
         return (string) preg_replace_callback(
             '/[^a-zA-Z0-9]/',
-            static fn(array $m): string => sprintf('\\%06X ', ord($m[0])),
-            $value
+            static fn(array $m): string => \sprintf('\\%06X ', \ord($m[0])),
+            $value,
         );
     }
 
@@ -2083,7 +2062,7 @@ class Escaper
         $sanitized = [];
 
         foreach ($input as $key => $value) {
-            $sanitized[$key] = is_array($value)
+            $sanitized[$key] = \is_array($value)
                 ? $this->sanitizeArray($value)
                 : htmlspecialchars(Str::stringify($value), ENT_QUOTES | ENT_HTML5 | ENT_SUBSTITUTE, 'UTF-8', true);
         }
@@ -2183,7 +2162,7 @@ abstract class AbstractLogger implements LoggerInterface
         $replacements = [];
 
         foreach ($context as $key => $value) {
-            if (is_scalar($value) || $value === null || $value instanceof \Stringable) {
+            if (\is_scalar($value) || $value === null || $value instanceof \Stringable) {
                 $replacements['{' . $key . '}'] = (string) ($value ?? 'null');
             }
         }
@@ -2201,14 +2180,12 @@ final class ArrayLogger extends AbstractLogger
     /** @var list<array{level: string, message: string, context: array<string, mixed>}> */
     private array $records = [];
 
-    public function __construct(private readonly int $cap = 1000)
-    {
-    }
+    public function __construct(private readonly int $cap = 1000) {}
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $message, array $context = []): void
     {
-        if (count($this->records) < $this->cap) {
+        if (\count($this->records) < $this->cap) {
             $this->records[] = ['level' => $level, 'message' => $message, 'context' => $context];
         }
     }
@@ -2239,9 +2216,8 @@ final class ErrorLogLogger extends AbstractLogger
 {
     public function __construct(
         private readonly string $channel = 'htmlphp',
-        private readonly string $minLevel = 'debug'
-    ) {
-    }
+        private readonly string $minLevel = 'debug',
+    ) {}
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $message, array $context = []): void
@@ -2250,13 +2226,13 @@ final class ErrorLogLogger extends AbstractLogger
             return;
         }
 
-        $line = sprintf(
+        $line = \sprintf(
             '[%s] %s.%s: %s%s',
             date('Y-m-d H:i:s'),
             $this->channel,
             $level,
             $this->interpolate($message, $context),
-            $context === [] ? '' : ' ' . (json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}')
+            $context === [] ? '' : ' ' . (json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}'),
         );
 
         error_log($line);
@@ -2275,9 +2251,8 @@ final class FileLogger extends AbstractLogger
     public function __construct(
         private readonly string $path,
         private readonly string $channel = 'htmlphp',
-        private readonly string $minLevel = 'warning'
-    ) {
-    }
+        private readonly string $minLevel = 'warning',
+    ) {}
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $message, array $context = []): void
@@ -2286,16 +2261,16 @@ final class FileLogger extends AbstractLogger
             return;
         }
 
-        $line = sprintf(
+        $line = \sprintf(
             "[%s] %s.%s: %s%s\n",
             date('Y-m-d H:i:s'),
             $this->channel,
             $level,
             $this->interpolate($message, $context),
-            $context === [] ? '' : ' ' . (json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}')
+            $context === [] ? '' : ' ' . (json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}'),
         );
 
-        $dir = dirname($this->path);
+        $dir = \dirname($this->path);
 
         if (!is_dir($dir)) {
             @mkdir($dir, 0775, true);
@@ -2310,9 +2285,7 @@ final class FileLogger extends AbstractLogger
  */
 final class LoggerFactory
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function create(LogConfig $config): LoggerInterface
     {
@@ -2379,49 +2352,31 @@ interface LoggerInterface
 final class NullLogger implements LoggerInterface
 {
     /** @param array<string, mixed> $context */
-    public function log(string $level, string $message, array $context = []): void
-    {
-    }
+    public function log(string $level, string $message, array $context = []): void {}
 
     /** @param array<string, mixed> $context */
-    public function debug(string $message, array $context = []): void
-    {
-    }
+    public function debug(string $message, array $context = []): void {}
 
     /** @param array<string, mixed> $context */
-    public function info(string $message, array $context = []): void
-    {
-    }
+    public function info(string $message, array $context = []): void {}
 
     /** @param array<string, mixed> $context */
-    public function notice(string $message, array $context = []): void
-    {
-    }
+    public function notice(string $message, array $context = []): void {}
 
     /** @param array<string, mixed> $context */
-    public function warning(string $message, array $context = []): void
-    {
-    }
+    public function warning(string $message, array $context = []): void {}
 
     /** @param array<string, mixed> $context */
-    public function error(string $message, array $context = []): void
-    {
-    }
+    public function error(string $message, array $context = []): void {}
 
     /** @param array<string, mixed> $context */
-    public function critical(string $message, array $context = []): void
-    {
-    }
+    public function critical(string $message, array $context = []): void {}
 
     /** @param array<string, mixed> $context */
-    public function alert(string $message, array $context = []): void
-    {
-    }
+    public function alert(string $message, array $context = []): void {}
 
     /** @param array<string, mixed> $context */
-    public function emergency(string $message, array $context = []): void
-    {
-    }
+    public function emergency(string $message, array $context = []): void {}
 }
 
 /**
@@ -2437,7 +2392,7 @@ final class Psr3Adapter extends AbstractLogger
     {
         if (!method_exists($this->logger, 'log')) {
             throw new \InvalidArgumentException(
-                'Psr3Adapter expects an object with a log($level, $message, array $context) method.'
+                'Psr3Adapter expects an object with a log($level, $message, array $context) method.',
             );
         }
     }
@@ -2456,9 +2411,7 @@ final class SyslogLogger extends AbstractLogger
 
     private bool $opened = false;
 
-    public function __construct(private readonly string $channel = 'htmlphp')
-    {
-    }
+    public function __construct(private readonly string $channel = 'htmlphp') {}
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $message, array $context = []): void
@@ -2513,13 +2466,11 @@ use HtmlPhp\Support\ClockInterface;
  */
 final class ApcuCache implements CacheInterface
 {
-    public function __construct(private readonly string $prefix = 'htmlphp', private readonly int $defaultTtl = 0)
-    {
-    }
+    public function __construct(private readonly string $prefix = 'htmlphp', private readonly int $defaultTtl = 0) {}
 
     public static function isSupported(): bool
     {
-        return function_exists('apcu_fetch') && (PHP_SAPI !== 'cli' || (bool) ini_get('apc.enable_cli'));
+        return \function_exists('apcu_fetch') && (PHP_SAPI !== 'cli' || (bool) \ini_get('apc.enable_cli'));
     }
 
     public function get(string $key): ?string
@@ -2527,7 +2478,7 @@ final class ApcuCache implements CacheInterface
         $success = false;
         $value = apcu_fetch($this->prefix($key), $success);
 
-        return $success && is_string($value) ? $value : null;
+        return $success && \is_string($value) ? $value : null;
     }
 
     public function set(string $key, string $value, int $ttl = 0): bool
@@ -2573,9 +2524,7 @@ final class ArrayCache implements CacheInterface
     /** @var array<string, array{0: string, 1: int}> value + expiry (0 = never) */
     private array $entries = [];
 
-    public function __construct(private readonly ?ClockInterface $clock = null, private readonly int $defaultTtl = 0)
-    {
-    }
+    public function __construct(private readonly ?ClockInterface $clock = null, private readonly int $defaultTtl = 0) {}
 
     public function get(string $key): ?string
     {
@@ -2617,7 +2566,7 @@ final class ArrayCache implements CacheInterface
 
     public function clear(): int
     {
-        $count = count($this->entries);
+        $count = \count($this->entries);
         $this->entries = [];
 
         return $count;
@@ -2625,7 +2574,7 @@ final class ArrayCache implements CacheInterface
 
     public function count(): int
     {
-        return count($this->entries);
+        return \count($this->entries);
     }
 
     private function now(): int
@@ -2640,9 +2589,7 @@ final class ArrayCache implements CacheInterface
  */
 final class CacheFactory
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function create(CacheConfig $config, ?Diagnostics $diagnostics = null): CacheInterface
     {
@@ -2660,12 +2607,12 @@ final class CacheFactory
                     $config->prefix,
                     $config->ttl,
                     $config->hardenDirectory,
-                    diagnostics: $diagnostics
+                    diagnostics: $diagnostics,
                 ),
             CacheDriver::Apcu => ApcuCache::isSupported()
                 ? new ApcuCache($config->prefix, $config->ttl)
                 : self::fallback($diagnostics, $config->ttl),
-            CacheDriver::WordPress => class_exists('\HtmlPhp\WordPress\WpCache') && function_exists('wp_cache_get')
+            CacheDriver::WordPress => class_exists('\HtmlPhp\WordPress\WpCache') && \function_exists('wp_cache_get')
                 ? new \HtmlPhp\WordPress\WpCache($config->prefix, $config->ttl, $diagnostics)
                 : self::fallback($diagnostics, $config->ttl),
         };
@@ -2675,7 +2622,7 @@ final class CacheFactory
     {
         $diagnostics?->record(
             Diagnostics::CACHE_IO,
-            'Configured cache driver unavailable; falling back to an in-process array cache.'
+            'Configured cache driver unavailable; falling back to an in-process array cache.',
         );
 
         return new ArrayCache(defaultTtl: $ttl);
@@ -2703,9 +2650,8 @@ final class FileCache implements CacheInterface
         private readonly int $defaultTtl = 0,
         private readonly bool $harden = true,
         private readonly ?ClockInterface $clock = null,
-        private readonly ?Diagnostics $diagnostics = null
-    ) {
-    }
+        private readonly ?Diagnostics $diagnostics = null,
+    ) {}
 
     public function get(string $key): ?string
     {
@@ -2723,9 +2669,9 @@ final class FileCache implements CacheInterface
 
         try {
             $meta = fgets($handle);
-            $decoded = is_string($meta) ? json_decode(trim($meta), true) : null;
+            $decoded = \is_string($meta) ? json_decode(trim($meta), true) : null;
 
-            if (!is_array($decoded)) {
+            if (!\is_array($decoded)) {
                 return null;
             }
 
@@ -2737,7 +2683,7 @@ final class FileCache implements CacheInterface
 
             $value = stream_get_contents($handle);
 
-            return is_string($value) ? $value : null;
+            return \is_string($value) ? $value : null;
         } finally {
             fclose($handle);
         }
@@ -2752,7 +2698,7 @@ final class FileCache implements CacheInterface
         $ttl = $ttl > 0 ? $ttl : $this->defaultTtl;
         $meta = json_encode(['e' => $ttl > 0 ? $this->now() + $ttl : 0]) . "\n";
         $path = $this->path($key);
-        $shard = dirname($path);
+        $shard = \dirname($path);
 
         if (!is_dir($shard) && !@mkdir($shard, 0775, true) && !is_dir($shard)) {
             $this->diagnostics?->record(Diagnostics::CACHE_IO, 'Cannot create cache shard.', ['dir' => $shard]);
@@ -2823,7 +2769,7 @@ final class FileCache implements CacheInterface
         }
 
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
         );
 
         /** @var \SplFileInfo $info */
@@ -2855,8 +2801,8 @@ final class FileCache implements CacheInterface
 
             $meta = fgets($handle);
             fclose($handle);
-            $decoded = is_string($meta) ? json_decode(trim($meta), true) : null;
-            $expiry = is_array($decoded) ? (int) ($decoded['e'] ?? 0) : 0;
+            $decoded = \is_string($meta) ? json_decode(trim($meta), true) : null;
+            $expiry = \is_array($decoded) ? (int) ($decoded['e'] ?? 0) : 0;
 
             if ($expiry !== 0 && $expiry <= $now) {
                 @unlink($file);
@@ -2900,7 +2846,7 @@ final class FileCache implements CacheInterface
                 $this->diagnostics?->record(
                     Diagnostics::CACHE_IO,
                     'Cannot harden cache directory; serve it outside the web root or deny access in your vhost.',
-                    ['dir' => $root]
+                    ['dir' => $root],
                 );
             }
         }
@@ -2954,7 +2900,7 @@ final class Psr16Adapter implements CacheInterface
         foreach (['get', 'set', 'delete', 'has', 'clear'] as $method) {
             if (!method_exists($this->cache, $method)) {
                 throw new \InvalidArgumentException(
-                    "Psr16Adapter expects a SimpleCache-shaped object; '{$method}' is missing."
+                    "Psr16Adapter expects a SimpleCache-shaped object; '{$method}' is missing.",
                 );
             }
         }
@@ -2964,7 +2910,7 @@ final class Psr16Adapter implements CacheInterface
     {
         $value = $this->cache->get($key, null);
 
-        return is_string($value) ? $value : ($value === null ? null : (string) $value);
+        return \is_string($value) ? $value : ($value === null ? null : (string) $value);
     }
 
     public function set(string $key, string $value, int $ttl = 0): bool
@@ -3188,9 +3134,8 @@ final readonly class Config
         public CacheConfig $cache = new CacheConfig(),
         public LogConfig $log = new LogConfig(),
         public SecurityConfig $security = new SecurityConfig(),
-        public Limits $limits = new Limits()
-    ) {
-    }
+        public Limits $limits = new Limits(),
+    ) {}
 
     public static function default(): self
     {
@@ -3213,7 +3158,7 @@ final readonly class Config
         $group = static function (string $key, array $known) use ($config): array {
             $value = $config[$key] ?? [];
 
-            if (!is_array($value)) {
+            if (!\is_array($value)) {
                 throw new ConfigException("Config group '{$key}' must be an array.", ['value' => $value]);
             }
 
@@ -3237,7 +3182,7 @@ final readonly class Config
                 'max_loop_rows', 'max_loop_depth', 'max_block_depth', 'max_passes',
                 'max_expression_length', 'max_exec_output_bytes', 'exec_timeout',
                 'max_diagnostics', 'max_precision',
-            ]))
+            ])),
         );
     }
 
@@ -3260,38 +3205,98 @@ final readonly class Config
 
     public function withDebug(bool $debug): self
     {
-        return new self($debug, $this->charset, $this->templates, $this->syntax, $this->ssi,
-            $this->i18n, $this->cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $debug,
+            $this->charset,
+            $this->templates,
+            $this->syntax,
+            $this->ssi,
+            $this->i18n,
+            $this->cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     public function withSsi(SsiConfig $ssi): self
     {
-        return new self($this->debug, $this->charset, $this->templates, $this->syntax, $ssi,
-            $this->i18n, $this->cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $this->debug,
+            $this->charset,
+            $this->templates,
+            $this->syntax,
+            $ssi,
+            $this->i18n,
+            $this->cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     public function withI18n(I18nConfig $i18n): self
     {
-        return new self($this->debug, $this->charset, $this->templates, $this->syntax, $this->ssi,
-            $i18n, $this->cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $this->debug,
+            $this->charset,
+            $this->templates,
+            $this->syntax,
+            $this->ssi,
+            $i18n,
+            $this->cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     public function withCache(CacheConfig $cache): self
     {
-        return new self($this->debug, $this->charset, $this->templates, $this->syntax, $this->ssi,
-            $this->i18n, $cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $this->debug,
+            $this->charset,
+            $this->templates,
+            $this->syntax,
+            $this->ssi,
+            $this->i18n,
+            $cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     public function withTemplates(TemplatesConfig $templates): self
     {
-        return new self($this->debug, $this->charset, $templates, $this->syntax, $this->ssi,
-            $this->i18n, $this->cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $this->debug,
+            $this->charset,
+            $templates,
+            $this->syntax,
+            $this->ssi,
+            $this->i18n,
+            $this->cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     public function withSyntax(SyntaxConfig $syntax): self
     {
-        return new self($this->debug, $this->charset, $this->templates, $syntax, $this->ssi,
-            $this->i18n, $this->cache, $this->log, $this->security, $this->limits);
+        return new self(
+            $this->debug,
+            $this->charset,
+            $this->templates,
+            $syntax,
+            $this->ssi,
+            $this->i18n,
+            $this->cache,
+            $this->log,
+            $this->security,
+            $this->limits,
+        );
     }
 
     /**
@@ -3310,22 +3315,22 @@ final readonly class Config
     /** @param array<string, mixed> $config */
     public static function value(array $config, string $key, mixed $default): mixed
     {
-        return array_key_exists($key, $config) && $config[$key] !== null ? $config[$key] : $default;
+        return \array_key_exists($key, $config) && $config[$key] !== null ? $config[$key] : $default;
     }
 
     /** @param array<string, mixed> $config */
     public static function bool(array $config, string $key, bool $default): bool
     {
-        if (!array_key_exists($key, $config) || $config[$key] === null) {
+        if (!\array_key_exists($key, $config) || $config[$key] === null) {
             return $default;
         }
 
         $value = $config[$key];
 
         return match (true) {
-            is_bool($value) => $value,
-            is_int($value) => $value !== 0,
-            is_string($value) => !in_array(strtolower($value), ['', '0', 'false', 'off', 'no'], true),
+            \is_bool($value) => $value,
+            \is_int($value) => $value !== 0,
+            \is_string($value) => !\in_array(strtolower($value), ['', '0', 'false', 'off', 'no'], true),
             default => (bool) $value,
         };
     }
@@ -3333,13 +3338,13 @@ final readonly class Config
     /** @param array<string, mixed> $config */
     public static function nullableBool(array $config, string $key): ?bool
     {
-        if (!array_key_exists($key, $config) || $config[$key] === null) {
+        if (!\array_key_exists($key, $config) || $config[$key] === null) {
             return null;
         }
 
         $value = $config[$key];
 
-        if (is_string($value) && strtolower($value) === 'auto') {
+        if (\is_string($value) && strtolower($value) === 'auto') {
             return null;
         }
 
@@ -3349,13 +3354,13 @@ final readonly class Config
     /** @param array<string, mixed> $config */
     public static function int(array $config, string $key, int $default): int
     {
-        if (!array_key_exists($key, $config) || $config[$key] === null) {
+        if (!\array_key_exists($key, $config) || $config[$key] === null) {
             return $default;
         }
 
         $value = $config[$key];
 
-        if (is_int($value)) {
+        if (\is_int($value)) {
             return $value;
         }
 
@@ -3375,7 +3380,7 @@ final readonly class Config
             return null;
         }
 
-        if (!is_scalar($value)) {
+        if (!\is_scalar($value)) {
             throw new ConfigException("Config key '{$key}' must be a string or null.", ['key' => $key]);
         }
 
@@ -3390,16 +3395,16 @@ final readonly class Config
     {
         $value = $config[$key] ?? [];
 
-        if (!is_array($value)) {
+        if (!\is_array($value)) {
             throw new ConfigException("Config key '{$key}' must be an array of strings.", ['key' => $key]);
         }
 
         return array_values(array_map(
-            static fn($item): string => is_scalar($item) ? (string) $item : throw new ConfigException(
+            static fn($item): string => \is_scalar($item) ? (string) $item : throw new ConfigException(
                 "Config key '{$key}' must contain only strings.",
-                ['key' => $key]
+                ['key' => $key],
             ),
-            $value
+            $value,
         ));
     }
 
@@ -3412,7 +3417,7 @@ final readonly class Config
     {
         $value = $config[$key] ?? $default;
 
-        if (!is_array($value)) {
+        if (!\is_array($value)) {
             throw new ConfigException("Config key '{$key}' must be an array.", ['key' => $key]);
         }
 
@@ -3428,7 +3433,7 @@ final readonly class Config
             return null;
         }
 
-        if (!is_callable($value)) {
+        if (!\is_callable($value)) {
             throw new ConfigException("Config key '{$key}' must be callable.", ['key' => $key]);
         }
 
@@ -3442,11 +3447,15 @@ final readonly class Config
     private static function rejectUnknown(array $config, array $known, string $group): void
     {
         foreach (array_keys($config) as $key) {
-            if (!is_string($key) || !in_array($key, $known, true)) {
+            if (!\is_string($key) || !\in_array($key, $known, true)) {
                 throw new ConfigException(
-                    sprintf('Unknown configuration key "%s" in group "%s". Known keys: %s.',
-                        (string) $key, $group, implode(', ', $known)),
-                    ['group' => $group, 'key' => $key]
+                    \sprintf(
+                        'Unknown configuration key "%s" in group "%s". Known keys: %s.',
+                        (string) $key,
+                        $group,
+                        implode(', ', $known),
+                    ),
+                    ['group' => $group, 'key' => $key],
                 );
             }
         }
@@ -3462,7 +3471,7 @@ final readonly class Config
     private static function mergeArrays(array $base, array $overrides): array
     {
         foreach ($overrides as $key => $value) {
-            if (is_array($value) && isset($base[$key]) && is_array($base[$key]) && self::isAssoc($value) && self::isAssoc($base[$key])) {
+            if (\is_array($value) && isset($base[$key]) && \is_array($base[$key]) && self::isAssoc($value) && self::isAssoc($base[$key])) {
                 $base[$key] = self::mergeArrays($base[$key], $value);
                 continue;
             }
@@ -3480,7 +3489,7 @@ final readonly class Config
             return false;
         }
 
-        return array_keys($array) !== range(0, count($array) - 1);
+        return array_keys($array) !== range(0, \count($array) - 1);
     }
 }
 
@@ -3535,7 +3544,7 @@ final class Container
 
     public function get(string $id): mixed
     {
-        if (array_key_exists($id, $this->instances)) {
+        if (\array_key_exists($id, $this->instances)) {
             return $this->instances[$id];
         }
 
@@ -3560,7 +3569,7 @@ final class Container
         if (!$service instanceof $id) {
             throw new ContainerException(
                 "Service '{$id}' resolved to " . get_debug_type($service) . '.',
-                ['id' => $id]
+                ['id' => $id],
             );
         }
 
@@ -3597,7 +3606,7 @@ final class Container
         $container->factory(Diagnostics::class, static fn(Container $c): Diagnostics => new Diagnostics(
             $c->service(Config::class)->limits->maxDiagnostics,
             $c->service(Config::class)->log->forwardDiagnostics ? $c->service(Log\LoggerInterface::class) : null,
-            $c->service(Event\Dispatcher::class)
+            $c->service(Event\Dispatcher::class),
         ));
 
         $container->factory(Event\Dispatcher::class, static fn(): Event\Dispatcher => new Event\Dispatcher());
@@ -3605,7 +3614,7 @@ final class Container
         $container->factory(Contracts\CacheInterface::class, static fn(Container $c): Contracts\CacheInterface
             => Cache\CacheFactory::create(
                 $c->service(Config::class)->cache,
-                $c->service(Diagnostics::class)
+                $c->service(Diagnostics::class),
             ));
 
         $container->factory(Html\Escaper::class, static fn(): Html\Escaper => new Html\Escaper());
@@ -3613,7 +3622,7 @@ final class Container
         $container->factory(I18n\Formats::class, static fn(Container $c): I18n\Formats
             => new I18n\Formats(
                 $c->service(Config::class)->i18n,
-                $c->service(Support\ClockInterface::class)
+                $c->service(Support\ClockInterface::class),
             ));
 
         $container->factory(Template\Filters::class, static fn(Container $c): Template\Filters => new Template\Filters(
@@ -3622,13 +3631,13 @@ final class Container
             $c->service(Html\Escaper::class),
             $c->service(I18n\TranslatorInterface::class),
             $c->service(I18n\Formats::class),
-            $c->service(Config::class)->syntax->strict
+            $c->service(Config::class)->syntax->strict,
         ));
 
         $container->factory(Template\TemplateLocator::class, static fn(Container $c): Template\TemplateLocator
             => new Template\TemplateLocator(
                 $c->service(Config::class)->templates,
-                $c->service(Config::class)->security
+                $c->service(Config::class)->security,
             ));
 
         $container->factory(I18n\TranslatorInterface::class, static fn(Container $c): I18n\TranslatorInterface
@@ -3639,7 +3648,7 @@ final class Container
             $c->service(Diagnostics::class),
             $c->service(Event\Dispatcher::class),
             $c->service(Html\Escaper::class),
-            $c->service(Support\ClockInterface::class)
+            $c->service(Support\ClockInterface::class),
         ));
 
         $container->factory(Template\Renderer::class, static fn(Container $c): Template\Renderer => new Template\Renderer(
@@ -3651,7 +3660,7 @@ final class Container
             $c->service(Template\Filters::class),
             $c->service(I18n\TranslatorInterface::class),
             $c->service(Html\Escaper::class),
-            $c->service(Template\TemplateLocator::class)
+            $c->service(Template\TemplateLocator::class),
         ));
 
         $container->factory(Template\Linter::class, static fn(Container $c): Template\Linter => new Template\Linter(
@@ -3659,12 +3668,12 @@ final class Container
             $c->service(Diagnostics::class),
             $c->service(Template\Filters::class),
             $c->service(Template\TemplateLocator::class),
-            ($t = $c->service(I18n\TranslatorInterface::class)) instanceof I18n\Translator ? $t : null
+            ($t = $c->service(I18n\TranslatorInterface::class)) instanceof I18n\Translator ? $t : null,
         ));
 
         $container->factory(Engine::class, static fn(Container $c): Engine => new Engine(
             $c->service(Config::class),
-            $c
+            $c,
         ));
 
         return $container;
@@ -3815,7 +3824,7 @@ final class Engine
 
     public function __construct(
         private readonly Config $config,
-        ?Container $container = null
+        ?Container $container = null,
     ) {
         $this->container = $container ?? Container::withDefaults($config);
         $this->container->instance(self::class, $this);
@@ -3858,7 +3867,7 @@ final class Engine
         if ($path === null) {
             throw new Exception\TemplateNotFoundException(
                 "Template '{$name}' could not be located.",
-                ['template' => $name, 'roots' => $this->locator()->roots()]
+                ['template' => $name, 'roots' => $this->locator()->roots()],
             );
         }
 
@@ -4106,9 +4115,7 @@ final class Engine
  */
 final class Input
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * `['get' => …, 'post' => …, 'cookie' => …, 'request' => …]` with every
@@ -4170,9 +4177,8 @@ final class RequestContext
         public readonly string $userAgent = '',
         public readonly string $acceptLanguage = '',
         public readonly string $referer = '',
-        public readonly array $server = []
-    ) {
-    }
+        public readonly array $server = [],
+    ) {}
 
     /**
      * Builds a context from a `$_SERVER`-shaped array.
@@ -4181,7 +4187,7 @@ final class RequestContext
      */
     public static function fromServer(array $server): self
     {
-        $string = static fn(string $key): string => isset($server[$key]) && is_scalar($server[$key])
+        $string = static fn(string $key): string => isset($server[$key]) && \is_scalar($server[$key])
             ? (string) $server[$key]
             : '';
 
@@ -4191,7 +4197,7 @@ final class RequestContext
 
         $clean = [];
         foreach ($server as $key => $value) {
-            if (is_string($key) && is_scalar($value)) {
+            if (\is_string($key) && \is_scalar($value)) {
                 $clean[$key] = (string) $value;
             }
         }
@@ -4200,17 +4206,17 @@ final class RequestContext
             documentRoot: $string('DOCUMENT_ROOT'),
             scriptName: $scriptName,
             requestUri: $requestUri,
-            documentName: is_string($path) && $path !== ''
+            documentName: \is_string($path) && $path !== ''
                 ? basename($path)
                 : ($scriptName !== '' ? basename($scriptName) : ''),
-            documentUri: is_string($path) && $path !== '' ? $path : ($scriptName !== '' ? $scriptName : '/'),
+            documentUri: \is_string($path) && $path !== '' ? $path : ($scriptName !== '' ? $scriptName : '/'),
             queryString: $string('QUERY_STRING'),
             method: strtoupper($string('REQUEST_METHOD') ?: 'GET'),
             remoteAddr: $string('REMOTE_ADDR'),
             userAgent: $string('HTTP_USER_AGENT'),
             acceptLanguage: $string('HTTP_ACCEPT_LANGUAGE'),
             referer: $string('HTTP_REFERER'),
-            server: $clean
+            server: $clean,
         );
     }
 
@@ -4272,7 +4278,7 @@ final class Scope
     /** Removes the innermost frame (the root frame is never removed). */
     public function pop(): void
     {
-        if (count($this->frames) > 1) {
+        if (\count($this->frames) > 1) {
             array_pop($this->frames);
         }
     }
@@ -4295,7 +4301,7 @@ final class Scope
 
     public function depth(): int
     {
-        return count($this->frames);
+        return \count($this->frames);
     }
 
     /**
@@ -4313,8 +4319,8 @@ final class Scope
 
         // Fast path: plain key in any frame, innermost first.
         if (!str_contains($name, '.')) {
-            for ($i = count($this->frames) - 1; $i >= 0; $i--) {
-                if (array_key_exists($name, $this->frames[$i])) {
+            for ($i = \count($this->frames) - 1; $i >= 0; $i--) {
+                if (\array_key_exists($name, $this->frames[$i])) {
                     return [true, $this->frames[$i][$name]];
                 }
             }
@@ -4324,8 +4330,8 @@ final class Scope
 
         [$head, $rest] = explode('.', $name, 2);
 
-        for ($i = count($this->frames) - 1; $i >= 0; $i--) {
-            if (array_key_exists($head, $this->frames[$i])) {
+        for ($i = \count($this->frames) - 1; $i >= 0; $i--) {
+            if (\array_key_exists($head, $this->frames[$i])) {
                 $value = $this->frames[$i][$head];
                 $found = self::walk($value, $rest);
 
@@ -4355,7 +4361,7 @@ final class Scope
      */
     public function set(string $name, mixed $value): void
     {
-        $last = count($this->frames) - 1;
+        $last = \count($this->frames) - 1;
         $this->frames[$last][$name] = $value;
     }
 
@@ -4388,8 +4394,8 @@ final class Scope
                 return [false, null];
             }
 
-            if (is_array($value)) {
-                if (!array_key_exists($segment, $value)) {
+            if (\is_array($value)) {
+                if (!\array_key_exists($segment, $value)) {
                     return [false, null];
                 }
                 $value = $value[$segment];
@@ -4404,7 +4410,7 @@ final class Scope
                 continue;
             }
 
-            if (is_object($value)) {
+            if (\is_object($value)) {
                 if (isset($value->{$segment})) {
                     $value = $value->{$segment};
                     continue;
@@ -4505,9 +4511,7 @@ use HtmlPhp\Version;
  */
 final class Attributes
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * @return array<string, string> lower-cased attribute name => raw value
@@ -4520,7 +4524,7 @@ final class Attributes
             '~([A-Za-z_][A-Za-z0-9_-]*)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s\'"]+))~s',
             $source,
             $matches,
-            \PREG_SET_ORDER | \PREG_UNMATCHED_AS_NULL
+            \PREG_SET_ORDER | \PREG_UNMATCHED_AS_NULL,
         );
 
         foreach ($matches as $match) {
@@ -4538,9 +4542,7 @@ final class Attributes
  */
 final class Builtins
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function isBuiltin(string $name): bool
     {
@@ -4563,7 +4565,7 @@ final class Builtins
         $lastModified = '';
         $currentFile = $context->document->file;
 
-        if (is_string($currentFile) && $currentFile !== '' && is_file($currentFile)) {
+        if (\is_string($currentFile) && $currentFile !== '' && is_file($currentFile)) {
             $modified = @filemtime($currentFile);
 
             if ($modified !== false) {
@@ -4603,7 +4605,7 @@ final class Builtins
             $uri = self::fromFile($request->requestUri !== '' ? $request->requestUri : $request->scriptName);
         }
 
-        if ($uri === '' && is_string($file) && $file !== '') {
+        if ($uri === '' && \is_string($file) && $file !== '') {
             $real = realpath($file);
 
             if ($real !== false && $root !== '') {
@@ -4611,7 +4613,7 @@ final class Builtins
                 $rootNormalized = rtrim(str_replace('\\', '/', $root), '/');
 
                 if (str_starts_with($normalized, $rootNormalized . '/')) {
-                    return '/' . substr($normalized, strlen($rootNormalized) + 1);
+                    return '/' . substr($normalized, \strlen($rootNormalized) + 1);
                 }
             }
         }
@@ -4673,7 +4675,7 @@ final class DirectiveRegistry
 
         if ($name === '' || preg_match('/^[a-z][a-z0-9_-]*$/', $name) !== 1) {
             throw new \InvalidArgumentException(
-                'Directive names must match [a-z][a-z0-9_-]* — got "' . $directive->name() . '".'
+                'Directive names must match [a-z][a-z0-9_-]* — got "' . $directive->name() . '".',
             );
         }
 
@@ -4721,9 +4723,8 @@ final readonly class DocumentInfo
         public ?string $file = null,
         public ?string $root = null,
         public ?RequestContext $request = null,
-        public array $vars = []
-    ) {
-    }
+        public array $vars = [],
+    ) {}
 
     /** Document for a plain string render (no file on disk). */
     public static function forString(?string $root = null, ?RequestContext $request = null): self
@@ -4761,9 +4762,8 @@ final class Exec
         private readonly SsiConfig $config,
         private readonly Limits $limits,
         private readonly SecurityConfig $security,
-        private readonly Diagnostics $diagnostics
-    ) {
-    }
+        private readonly Diagnostics $diagnostics,
+    ) {}
 
     /** Runs `#exec cmd="…"`. */
     public function runCmd(string $command, SsiContext $context): string
@@ -4795,7 +4795,7 @@ final class Exec
                 $this->diagnostics->record(
                     Diagnostics::SSI_EXEC_DENIED,
                     'SSI #exec cmd binary is not on ssi.exec_cmd_allow.',
-                    ['command' => $argv[0]]
+                    ['command' => $argv[0]],
                 );
 
                 return $context->errorText();
@@ -4833,7 +4833,7 @@ final class Exec
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_DENIED,
                 'SSI #exec cgi script did not resolve inside the document root.',
-                ['virtual' => $virtual]
+                ['virtual' => $virtual],
             );
 
             return $context->errorText();
@@ -4842,14 +4842,14 @@ final class Exec
         $extension = strtolower(pathinfo($script, PATHINFO_EXTENSION));
         $allowedExtensions = array_map(
             static fn(string $value): string => strtolower($value),
-            $this->config->execCgiExtensions
+            $this->config->execCgiExtensions,
         );
 
-        if ($decision['mode'] !== 'delegate' && !in_array($extension, $allowedExtensions, true)) {
+        if ($decision['mode'] !== 'delegate' && !\in_array($extension, $allowedExtensions, true)) {
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_DENIED,
                 'SSI #exec cgi extension is not allowed.',
-                ['script' => $script, 'extension' => $extension]
+                ['script' => $script, 'extension' => $extension],
             );
 
             return $context->errorText();
@@ -4875,7 +4875,7 @@ final class Exec
 
         $argv = [PHP_BINARY, '-d', 'display_errors=0', '-d', 'log_errors=0', '-f', $script];
 
-        return $this->runProcess($argv, $environment, dirname($script));
+        return $this->runProcess($argv, $environment, \dirname($script));
     }
 
     // ---------------------------------------------------------------- policy
@@ -4906,7 +4906,7 @@ final class Exec
     {
         $callback = $this->config->execDelegate;
 
-        if (!is_callable($callback)) {
+        if (!\is_callable($callback)) {
             return $this->deny($kind, 'SSI #exec delegate is not callable.');
         }
 
@@ -4916,7 +4916,7 @@ final class Exec
             'root' => $context->documentRoot(),
         ]);
 
-        if (is_string($result)) {
+        if (\is_string($result)) {
             return ['mode' => 'deny', 'output' => $this->sanitize($result)];
         }
 
@@ -4944,7 +4944,7 @@ final class Exec
     public static function tokenizeCommand(string $command): array
     {
         $tokens = [];
-        $length = strlen($command);
+        $length = \strlen($command);
         $current = '';
         $quoted = false;
         $hasToken = false;
@@ -5061,7 +5061,7 @@ final class Exec
     {
         $value = $context->request()->server[$key] ?? null;
 
-        return is_string($value) && $value !== '' ? $value : $default;
+        return \is_string($value) && $value !== '' ? $value : $default;
     }
 
     // ------------------------------------------------------------- execution
@@ -5088,11 +5088,11 @@ final class Exec
 
         $process = @proc_open($argv, $descriptors, $pipes, $cwd, $filteredEnvironment);
 
-        if (!is_resource($process)) {
+        if (!\is_resource($process)) {
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
                 'SSI #exec could not spawn the process.',
-                ['argv' => $argv]
+                ['argv' => $argv],
             );
 
             return '';
@@ -5124,14 +5124,14 @@ final class Exec
                 }
 
                 if ($chunk !== '') {
-                    $remaining = $maxBytes - strlen($output);
+                    $remaining = $maxBytes - \strlen($output);
 
                     if ($remaining <= 0) {
                         $truncated = true;
                         break;
                     }
 
-                    if (strlen($chunk) > $remaining) {
+                    if (\strlen($chunk) > $remaining) {
                         $chunk = substr($chunk, 0, $remaining);
                         $truncated = true;
                     }
@@ -5153,11 +5153,11 @@ final class Exec
         }
 
         if ($timedOut || $truncated) {
-            @proc_terminate($process, defined('SIGKILL') ? SIGKILL : 9);
+            @proc_terminate($process, \defined('SIGKILL') ? SIGKILL : 9);
         }
 
         foreach ($pipes as $pipe) {
-            if (is_resource($pipe)) {
+            if (\is_resource($pipe)) {
                 @fclose($pipe);
             }
         }
@@ -5167,20 +5167,20 @@ final class Exec
         if ($timedOut) {
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
-                sprintf('SSI #exec timed out after %d second(s).', $timeout),
-                ['argv' => $argv]
+                \sprintf('SSI #exec timed out after %d second(s).', $timeout),
+                ['argv' => $argv],
             );
         } elseif ($truncated) {
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
-                sprintf('SSI #exec output truncated at %d byte(s).', $maxBytes),
-                ['argv' => $argv]
+                \sprintf('SSI #exec output truncated at %d byte(s).', $maxBytes),
+                ['argv' => $argv],
             );
         } elseif ($status !== 0) {
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
-                sprintf('SSI #exec exited with status %d.', $status),
-                ['argv' => $argv]
+                \sprintf('SSI #exec exited with status %d.', $status),
+                ['argv' => $argv],
             );
         }
 
@@ -5205,7 +5205,7 @@ final class Exec
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
                 'SSI #exec cgi include threw: ' . $error->getMessage(),
-                ['script' => $script]
+                ['script' => $script],
             );
 
             return $context->errorText();
@@ -5213,12 +5213,12 @@ final class Exec
 
         $output = (string) ob_get_clean();
 
-        if (strlen($output) > $maxBytes) {
+        if (\strlen($output) > $maxBytes) {
             $output = substr($output, 0, $maxBytes);
             $this->diagnostics->record(
                 Diagnostics::SSI_EXEC_FAILED,
-                sprintf('SSI #exec output truncated at %d byte(s).', $maxBytes),
-                ['script' => $script]
+                \sprintf('SSI #exec output truncated at %d byte(s).', $maxBytes),
+                ['script' => $script],
             );
         }
 
@@ -5252,7 +5252,7 @@ final class Exec
  */
 final class Expression
 {
-        /** @var list<array{0: string, 1: string}> token stream [type, value] */
+    /** @var list<array{0: string, 1: string}> token stream [type, value] */
     private array $tokens = [];
     private int $position = 0;
     private SsiContext $context;
@@ -5273,11 +5273,11 @@ final class Expression
             return false;
         }
 
-        if (strlen($expression) > $context->limits()->maxExpressionLength) {
+        if (\strlen($expression) > $context->limits()->maxExpressionLength) {
             $context->diagnostics()->record(
                 Diagnostics::SSI_EXPR_ERROR,
                 'SSI expression is too long.',
-                ['length' => strlen($expression)]
+                ['length' => \strlen($expression)],
             );
 
             return false;
@@ -5289,11 +5289,11 @@ final class Expression
             $parser->tokens = $parser->tokenize($expression);
             $result = $parser->parseOr();
 
-            if ($parser->position < count($parser->tokens)) {
+            if ($parser->position < \count($parser->tokens)) {
                 $context->diagnostics()->record(
                     Diagnostics::SSI_EXPR_ERROR,
                     'Trailing input in SSI expression.',
-                    ['expression' => $expression]
+                    ['expression' => $expression],
                 );
 
                 return false;
@@ -5304,7 +5304,7 @@ final class Expression
             $context->diagnostics()->record(
                 Diagnostics::SSI_EXPR_ERROR,
                 'Invalid SSI expression: ' . $error->getMessage(),
-                ['expression' => $expression]
+                ['expression' => $expression],
             );
 
             return false;
@@ -5327,7 +5327,7 @@ final class Expression
     private function tokenize(string $source): array
     {
         $tokens = [];
-        $length = strlen($source);
+        $length = \strlen($source);
         $index = 0;
 
         while ($index < $length) {
@@ -5408,11 +5408,9 @@ final class Expression
                 continue;
             }
 
-            if (preg_match('~[A-Za-z0-9_.,:;@+/\\\\*-]+~', $source, $matches, 0, $index) === 1
-                && $matches[0] !== ''
-            ) {
+            if (preg_match('~[A-Za-z0-9_.,:;@+/\\\\*-]+~', $source, $matches, 0, $index) === 1) {
                 $tokens[] = ['word', $matches[0]];
-                $index += strlen($matches[0]);
+                $index += \strlen($matches[0]);
                 continue;
             }
 
@@ -5428,7 +5426,7 @@ final class Expression
     private function readQuoted(string $source, int $index): array
     {
         $quote = $source[$index];
-        $length = strlen($source);
+        $length = \strlen($source);
         $value = '';
         ++$index;
 
@@ -5465,14 +5463,14 @@ final class Expression
     {
         if (($source[$index + 1] ?? '') === '{') {
             if (preg_match('~\$\{([A-Za-z_][A-Za-z0-9_.-]*)\}~A', $source, $matches, 0, $index) === 1) {
-                return [$matches[1], $index + strlen($matches[0])];
+                return [$matches[1], $index + \strlen($matches[0])];
             }
 
             throw new ExpressionSyntaxError('malformed ${NAME} reference');
         }
 
         if (preg_match('~\$([A-Za-z_][A-Za-z0-9_.-]*)~A', $source, $matches, 0, $index) === 1) {
-            return [$matches[1], $index + strlen($matches[0])];
+            return [$matches[1], $index + \strlen($matches[0])];
         }
 
         throw new ExpressionSyntaxError('malformed $NAME reference');
@@ -5483,7 +5481,7 @@ final class Expression
      */
     private function readRegex(string $source, int $index): array
     {
-        $length = strlen($source);
+        $length = \strlen($source);
         $value = '';
         ++$index;
 
@@ -5519,17 +5517,17 @@ final class Expression
             return true;
         }
 
-        $previous = $tokens[count($tokens) - 1][0];
+        $previous = $tokens[\count($tokens) - 1][0];
 
         // After a file-test operator ("/" starts a PATH word, not a regex).
-        return in_array($previous, ['=', '==', '!=', '(', '!', '&&', '||'], true);
+        return \in_array($previous, ['=', '==', '!=', '(', '!', '&&', '||'], true);
     }
 
     private function fileTestAt(string $source, int $index): bool
     {
         $pair = substr($source, $index, 2);
 
-        return in_array($pair, ['-f', '-d', '-e', '-s', '-x', '-r', '-w', '-A', '-F', '-U'], true)
+        return \in_array($pair, ['-f', '-d', '-e', '-s', '-x', '-r', '-w', '-A', '-F', '-U'], true)
             && !preg_match('~[A-Za-z0-9_]~', $source[$index + 2] ?? ' ');
     }
 
@@ -5597,7 +5595,7 @@ final class Expression
         [$leftValue, $leftRegex] = $this->parseOperand();
         $token = $this->peek();
 
-        if ($token === null || !in_array($token[0], ['=', '==', '!=', '<', '<=', '>', '>='], true)) {
+        if ($token === null || !\in_array($token[0], ['=', '==', '!=', '<', '<=', '>', '>='], true)) {
             if ($leftRegex) {
                 throw new ExpressionSyntaxError('a /regex/ needs a comparison operator');
             }
@@ -5708,7 +5706,7 @@ final class Expression
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_EXPR_ERROR,
                 'Invalid regular expression in SSI condition.',
-                ['pattern' => $pattern]
+                ['pattern' => $pattern],
             );
 
             return false;
@@ -5730,7 +5728,7 @@ final class Expression
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_EXPR_ERROR,
                 'SSI file test ' . $operator . ' (subrequest) is not supported and evaluates to false.',
-                ['path' => $path]
+                ['path' => $path],
             );
 
             return false;
@@ -5791,9 +5789,7 @@ final class Expression
  * Never escapes the engine: {@see Expression::evaluate()} catches it,
  * records a diagnostic and yields `false` (mod_include parity).
  */
-final class ExpressionSyntaxError extends \Exception
-{
-}
+final class ExpressionSyntaxError extends \Exception {}
 
 /**
  * Apache mod_include compatible SSI processor.
@@ -5823,7 +5819,7 @@ final class Processor
         private readonly Diagnostics $diagnostics,
         private readonly Dispatcher $events,
         private readonly Escaper $escaper,
-        private readonly ClockInterface $clock
+        private readonly ClockInterface $clock,
     ) {
         $this->exec = new Exec($config->ssi, $config->limits, $config->security, $diagnostics);
         $this->registry = new DirectiveRegistry();
@@ -5857,7 +5853,7 @@ final class Processor
             $this->config->limits,
             $this->diagnostics,
             $this->events,
-            $this->clock
+            $this->clock,
         );
 
         $output = (new Scanner($context, $this->escaper, $this->exec, $this->registry))->run($html);
@@ -5898,7 +5894,7 @@ final class Processor
             $this->config->limits,
             $this->diagnostics,
             $this->events,
-            $this->clock
+            $this->clock,
         );
 
         return $context->builtins();
@@ -5937,9 +5933,8 @@ final class Scanner
         private readonly SsiContext $context,
         private readonly Escaper $escaper,
         private readonly Exec $exec,
-        private readonly DirectiveRegistry $registry
-    ) {
-    }
+        private readonly DirectiveRegistry $registry,
+    ) {}
 
     public function run(string $html): string
     {
@@ -5970,7 +5965,7 @@ final class Scanner
 
                 return '';
             },
-            $html
+            $html,
         );
 
         return $result;
@@ -5984,14 +5979,14 @@ final class Scanner
 
         $parts = preg_split(self::DIRECTIVE_PATTERN, $html, -1, PREG_SPLIT_DELIM_CAPTURE);
 
-        if ($parts === false || count($parts) === 1) {
+        if ($parts === false || \count($parts) === 1) {
             return $html;
         }
 
         // preg_split with two capture groups yields: text, body, rest, text, …
         // Text outside the currently active conditional branch is dropped.
         $output = $this->active() ? $parts[0] : '';
-        $count = count($parts);
+        $count = \count($parts);
 
         for ($index = 1; $index + 2 < $count; $index += 3) {
             $body = (string) $parts[$index];
@@ -6053,7 +6048,7 @@ final class Scanner
         $this->context->diagnostics()->record(
             Diagnostics::SSI_UNKNOWN_DIRECTIVE,
             'Unknown SSI directive left in output.',
-            ['directive' => $name]
+            ['directive' => $name],
         );
 
         return $original;
@@ -6067,7 +6062,7 @@ final class Scanner
 
     private function parentActive(): bool
     {
-        $depth = count($this->frames);
+        $depth = \count($this->frames);
 
         return $depth === 0 || $this->frames[$depth - 1]['active'];
     }
@@ -6075,7 +6070,7 @@ final class Scanner
     /** Activity of the frames below the top one (used by #elif/#else). */
     private function parentActiveExcludingTop(): bool
     {
-        $depth = count($this->frames);
+        $depth = \count($this->frames);
 
         return $depth <= 1 || $this->frames[$depth - 2]['active'];
     }
@@ -6098,7 +6093,7 @@ final class Scanner
         }
 
         if ($name === 'if') {
-            if (count($this->frames) >= self::MAX_CONDITIONAL_DEPTH) {
+            if (\count($this->frames) >= self::MAX_CONDITIONAL_DEPTH) {
                 $diagnostics->record(Diagnostics::SSI_EXPR_ERROR, 'SSI conditional nesting is too deep.');
                 $this->frames[] = ['active' => false, 'taken' => true];
 
@@ -6118,7 +6113,7 @@ final class Scanner
             return;
         }
 
-        $top = &$this->frames[count($this->frames) - 1];
+        $top = &$this->frames[\count($this->frames) - 1];
 
         if ($name === 'else') {
             $top['active'] = $this->parentActiveExcludingTop() && !$top['taken'];
@@ -6164,7 +6159,7 @@ final class Scanner
             $this->context->sizefmt = strtolower($attributes['sizefmt']);
         }
 
-        if (array_key_exists('errmsg', $attributes)) {
+        if (\array_key_exists('errmsg', $attributes)) {
             $this->context->errmsg = $attributes['errmsg'];
         }
 
@@ -6183,7 +6178,7 @@ final class Scanner
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_EXEC_DENIED,
                 'SSI #set target name is reserved or invalid.',
-                ['name' => $name]
+                ['name' => $name],
             );
         }
 
@@ -6218,7 +6213,7 @@ final class Scanner
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_INCLUDE_FAILED,
                 'SSI include could not be resolved or is outside the document root.',
-                ['target' => $label]
+                ['target' => $label],
             );
 
             return $fallback();
@@ -6231,7 +6226,7 @@ final class Scanner
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_INCLUDE_CYCLE,
                 'SSI include cycle detected.',
-                ['target' => $label, 'path' => $path]
+                ['target' => $label, 'path' => $path],
             );
 
             return $fallback();
@@ -6243,7 +6238,7 @@ final class Scanner
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_INCLUDE_FAILED,
                 'SSI include could not be read.',
-                ['path' => $path]
+                ['path' => $path],
             );
 
             return $fallback();
@@ -6276,7 +6271,7 @@ final class Scanner
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_INCLUDE_FAILED,
                 'SSI include stub block was not found in this document.',
-                ['target' => $label, 'stub' => $stub]
+                ['target' => $label, 'stub' => $stub],
             );
         }
 
@@ -6405,7 +6400,7 @@ final class Scanner
         }
 
         foreach ($this->context->document->vars as $name => $value) {
-            if (is_string($name) && !isset($variables[$name]) && !isset(SsiContext::RESERVED[$name])) {
+            if (\is_string($name) && !isset($variables[$name]) && !isset(SsiContext::RESERVED[$name])) {
                 $variables[$name] = Str::stringify($value);
             }
         }
@@ -6445,7 +6440,7 @@ final class Scanner
         // Default (Apache): the current document.
         $current = $this->context->document->file;
 
-        return is_string($current) && $current !== '' && is_file($current) ? $current : null;
+        return \is_string($current) && $current !== '' && is_file($current) ? $current : null;
     }
 
     // ------------------------------------------------------------- variables
@@ -6480,7 +6475,7 @@ final class Scanner
 
                 return $context->resolve($name) ?? $matches[0];
             },
-            $protected
+            $protected,
         );
 
         return str_replace("\x01", '$', $expanded);
@@ -6495,13 +6490,11 @@ final class Scanner
  */
 final class SizeFormat
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function format(int $bytes, string $style = 'abbrev'): string
     {
-        return Str::formatSize($bytes, in_array(strtolower($style), ['bytes', 'byte'], true) ? 'bytes' : 'abbrev');
+        return Str::formatSize($bytes, \in_array(strtolower($style), ['bytes', 'byte'], true) ? 'bytes' : 'abbrev');
     }
 }
 
@@ -6559,7 +6552,7 @@ final class SsiContext
         private readonly Diagnostics $diagnostics,
         private readonly Dispatcher $events,
         private readonly ClockInterface $clock,
-        private readonly int $now = 0
+        private readonly int $now = 0,
     ) {
         $this->timefmt = $config->timeFormat !== '' ? $config->timeFormat : TimeFormat::DEFAULT_FORMAT;
         $this->sizefmt = $config->sizeFormat->value;
@@ -6618,7 +6611,7 @@ final class SsiContext
             $this->diagnostics,
             $this->events,
             $this->clock,
-            $this->timestamp()
+            $this->timestamp(),
         );
 
         $child->depth = $this->depth + 1;
@@ -6647,7 +6640,7 @@ final class SsiContext
         $map = Builtins::map($this);
         $filtered = $this->events->filter('htmlphp.ssi.builtins', $map);
 
-        return $this->builtins = is_array($filtered) ? $filtered : $map;
+        return $this->builtins = \is_array($filtered) ? $filtered : $map;
     }
 
     public function resetBuiltins(): void
@@ -6687,7 +6680,7 @@ final class SsiContext
             return $this->builtins()[$name] ?? '';
         }
 
-        if (array_key_exists($name, $this->vars)) {
+        if (\array_key_exists($name, $this->vars)) {
             return $this->vars[$name];
         }
 
@@ -6697,7 +6690,7 @@ final class SsiContext
             return $value === null ? null : $value;
         }
 
-        if (array_key_exists($name, $this->document->vars)) {
+        if (\array_key_exists($name, $this->document->vars)) {
             return Str::stringify($this->document->vars[$name]);
         }
 
@@ -6709,7 +6702,7 @@ final class SsiContext
     {
         $allow = $this->config->echoAllow;
 
-        return $allow === [] || isset($allow[$name]) || in_array($name, $allow, true);
+        return $allow === [] || isset($allow[$name]) || \in_array($name, $allow, true);
     }
 
     /** True when `#set` may define this name. */
@@ -6761,7 +6754,7 @@ final class SsiContext
             return $current;
         }
 
-        $directory = dirname($current);
+        $directory = \dirname($current);
 
         return $directory === '' || $directory === '.' ? null : $directory;
     }
@@ -6779,7 +6772,7 @@ final class SsiContext
             $this->diagnostics->record(
                 Diagnostics::SSI_LIMIT_REACHED,
                 'SSI include depth limit reached.',
-                ['depth' => $this->depth]
+                ['depth' => $this->depth],
             );
 
             return false;
@@ -6789,7 +6782,7 @@ final class SsiContext
             $this->diagnostics->record(
                 Diagnostics::SSI_LIMIT_REACHED,
                 'SSI directive budget exhausted.',
-                ['processed' => $this->processed]
+                ['processed' => $this->processed],
             );
 
             return false;
@@ -6939,7 +6932,7 @@ final class SsiContext
             return true;
         }
 
-        return !in_array($extension, $this->security->deniedExtensions, true);
+        return !\in_array($extension, $this->security->deniedExtensions, true);
     }
 }
 
@@ -6974,9 +6967,7 @@ final class TimeFormat
     /** Every date() formatting character; literals must be escaped. */
     private const string DATE_TOKENS = 'dDjlNSwzWFmMntLoYyaABgGXxhHisuevIOPTZcrUp';
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Converts a strftime()-style format into a date()-compatible one.
@@ -6988,7 +6979,7 @@ final class TimeFormat
     public static function strftimeToDate(string $format): string
     {
         $converted = '';
-        $length = strlen($format);
+        $length = \strlen($format);
 
         $escapeLiteral = static function (string $char): string {
             if ($char === '\\') {
@@ -7038,7 +7029,7 @@ final class TimeFormat
 
         if (str_contains($dateFormat, self::DOY_MARKER)) {
             $dayOfYear = (int) ($gmt ? gmdate('z', $timestamp) : date('z', $timestamp)) + 1;
-            $result = str_replace(self::DOY_MARKER, sprintf('%03d', $dayOfYear), $result);
+            $result = str_replace(self::DOY_MARKER, \sprintf('%03d', $dayOfYear), $result);
         }
 
         return $result;
@@ -7070,9 +7061,7 @@ use HtmlPhp\Support\Str;
  */
 final class Auditor
 {
-    public function __construct(private readonly Translator $translator)
-    {
-    }
+    public function __construct(private readonly Translator $translator) {}
 
     /**
      * @param list<array{msgid: string, msgid_plural: ?string, context: string, domain: string, references: list<string>}> $entries
@@ -7133,7 +7122,7 @@ final class Auditor
             'missing' => $missing,
             'unused' => $unused,
             'total' => $total,
-            'translated' => $total - count($missing),
+            'translated' => $total - \count($missing),
         ];
     }
 
@@ -7150,29 +7139,29 @@ final class Auditor
             ? (int) round($report['translated'] / $report['total'] * 100)
             : 100;
 
-        $lines[] = sprintf(
+        $lines[] = \sprintf(
             'Locale %s: %d/%d messages translated (%d%%), %d unused.',
             $report['locale'],
             $report['translated'],
             $report['total'],
             $percent,
-            count($report['unused'])
+            \count($report['unused']),
         );
 
-        foreach (array_slice($report['missing'], 0, 50) as $entry) {
+        foreach (\array_slice($report['missing'], 0, 50) as $entry) {
             $lines[] = '  missing: ' . self::label($entry);
         }
 
-        if (count($report['missing']) > 50) {
-            $lines[] = sprintf('  … and %d more missing.', count($report['missing']) - 50);
+        if (\count($report['missing']) > 50) {
+            $lines[] = \sprintf('  … and %d more missing.', \count($report['missing']) - 50);
         }
 
-        foreach (array_slice($report['unused'], 0, 20) as $entry) {
+        foreach (\array_slice($report['unused'], 0, 20) as $entry) {
             $lines[] = '  unused:  ' . self::label($entry);
         }
 
-        if (count($report['unused']) > 20) {
-            $lines[] = sprintf('  … and %d more unused.', count($report['unused']) - 20);
+        if (\count($report['unused']) > 20) {
+            $lines[] = \sprintf('  … and %d more unused.', \count($report['unused']) - 20);
         }
 
         return $lines;
@@ -7225,7 +7214,7 @@ final class Catalog
         string $path,
         string $locale,
         string $domain = 'messages',
-        ?Diagnostics $diagnostics = null
+        ?Diagnostics $diagnostics = null,
     ): ?self {
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 
@@ -7238,7 +7227,7 @@ final class Catalog
 
             $messages = include $path;
 
-            return is_array($messages)
+            return \is_array($messages)
                 ? self::fromArray($messages, $locale, $domain)
                 : self::failed($diagnostics, 'PHP catalogue did not return an array.', $path);
         }
@@ -7262,7 +7251,7 @@ final class Catalog
         if ($extension === 'json') {
             $decoded = json_decode($contents, true);
 
-            return is_array($decoded)
+            return \is_array($decoded)
                 ? self::fromArray($decoded, $locale, $domain)
                 : self::failed($diagnostics, 'JSON catalogue is malformed.', $path);
         }
@@ -7283,18 +7272,31 @@ final class Catalog
     {
         $catalog = new self(Locale::normalize($locale), $domain);
 
+        /**
+         * Parse state, mutated by reference from the loop below. Typed loosely
+         * on purpose: the literal initializer shape does not survive
+         * reference-flow analysis and would fake "always false" guards.
+         *
+         * @var array<string, mixed>
+         */
         $entry = ['context' => '', 'id' => '', 'idPlural' => '', 'forms' => [], 'fuzzy' => false];
         $target = null; // ['id'|'context'|'idPlural'|'form', int]
         $lines = preg_split('~\r\n|\r|\n~', $source) ?: [];
 
         $flush = static function () use (&$entry, $catalog): void {
-            if ($entry['id'] !== '' || $entry['forms'] !== []) {
+            // $entry is mutated by reference below; typed locals keep the
+            // guard honest for static analysis (the literal init shape does
+            // not survive reference flow).
+            $id = (string) $entry['id'];
+            $forms = (array) $entry['forms'];
+
+            if ($id !== '' || $forms !== []) {
                 $catalog->store(
-                    $entry['context'],
-                    $entry['id'],
-                    $entry['idPlural'],
-                    $entry['forms'],
-                    $entry['fuzzy']
+                    (string) $entry['context'],
+                    $id,
+                    (string) $entry['idPlural'],
+                    $forms,
+                    (bool) $entry['fuzzy'],
                 );
             }
 
@@ -7313,7 +7315,7 @@ final class Catalog
             if ($line[0] === '#') {
                 if (str_starts_with($line, '#,')) {
                     $flags = array_map('trim', explode(',', substr($line, 2)));
-                    $entry['fuzzy'] = $entry['fuzzy'] || in_array('fuzzy', $flags, true);
+                    $entry['fuzzy'] = $entry['fuzzy'] || \in_array('fuzzy', $flags, true);
                 }
 
                 // #. #: #| and plain # comments carry no payload for us.
@@ -7325,7 +7327,7 @@ final class Catalog
                 $payload = $m[3];
 
                 if (str_starts_with($keyword, 'msgstr[')) {
-                    $target = ['form', (int) ($m[2] ?? 0)];
+                    $target = ['form', (int) $m[2]];
                 } elseif ($keyword === 'msgstr') {
                     $target = ['form', 0];
                 } elseif ($keyword === 'msgid') {
@@ -7388,7 +7390,7 @@ final class Catalog
             return null;
         }
 
-        $length = strlen($payload);
+        $length = \strlen($payload);
         $value = '';
 
         for ($index = 1; $index < $length; ++$index) {
@@ -7422,10 +7424,9 @@ final class Catalog
         string $binary,
         string $locale,
         string $domain = 'messages',
-        ?Diagnostics $diagnostics = null
-    ): ?self
-    {
-        $length = strlen($binary);
+        ?Diagnostics $diagnostics = null,
+    ): ?self {
+        $length = \strlen($binary);
 
         if ($length < 28) {
             $diagnostics?->record(Diagnostics::CATALOG_PARSE, 'MO catalogue is truncated.');
@@ -7448,7 +7449,7 @@ final class Catalog
         if ($majorRevision > 1) {
             $diagnostics?->record(
                 Diagnostics::CATALOG_PARSE,
-                sprintf('Unsupported MO revision %d.', $majorRevision)
+                \sprintf('Unsupported MO revision %d.', $majorRevision),
             );
 
             return null;
@@ -7577,14 +7578,14 @@ final class Catalog
     {
         $this->pluralForms = PluralForms::parse($this->headers['plural-forms'] ?? null, $this->locale);
 
-        if (in_array($this->charset, ['utf-8', 'utf8', 'ascii', 'us-ascii'], true)) {
+        if (\in_array($this->charset, ['utf-8', 'utf8', 'ascii', 'us-ascii'], true)) {
             return;
         }
 
         $charset = $this->charset;
 
         $convert = static function (string $text) use ($charset): string {
-            if (function_exists('iconv')) {
+            if (\function_exists('iconv')) {
                 $converted = @iconv($charset, 'UTF-8//TRANSLIT', $text);
 
                 if ($converted !== false) {
@@ -7592,10 +7593,10 @@ final class Catalog
                 }
             }
 
-            if (function_exists('mb_convert_encoding')) {
+            if (\function_exists('mb_convert_encoding')) {
                 $converted = @mb_convert_encoding($text, 'UTF-8', $charset);
 
-                if (is_string($converted)) {
+                if (\is_string($converted)) {
                     return $converted;
                 }
             }
@@ -7646,7 +7647,7 @@ final class Catalog
 
         $form = $entry['plurals'][$formIndex] ?? null;
 
-        return is_string($form) && $form !== '' ? $form : null;
+        return \is_string($form) && $form !== '' ? $form : null;
     }
 
     public function has(string $msgid, string $context = ''): bool
@@ -7669,7 +7670,7 @@ final class Catalog
 
     public function count(): int
     {
-        return count($this->messages);
+        return \count($this->messages);
     }
 
     /**
@@ -7688,11 +7689,11 @@ final class Catalog
 
         $headers = $messages['headers'] ?? null;
 
-        if (is_array($headers)) {
+        if (\is_array($headers)) {
             $lines = [];
 
             foreach ($headers as $name => $value) {
-                if (is_string($name) && is_scalar($value)) {
+                if (\is_string($name) && \is_scalar($value)) {
                     $lines[] = $name . ': ' . $value;
                 }
             }
@@ -7701,7 +7702,7 @@ final class Catalog
         }
 
         foreach ($messages as $key => $value) {
-            if (!is_string($key) || $key === 'headers') {
+            if (!\is_string($key) || $key === 'headers') {
                 continue;
             }
 
@@ -7709,16 +7710,16 @@ final class Catalog
                 ? explode(self::CONTEXT_SEPARATOR, $key, 2)
                 : ['', $key];
 
-            if (is_string($value)) {
+            if (\is_string($value)) {
                 $catalog->store($context, $msgid, '', [0 => $value], false);
                 continue;
             }
 
-            if (is_array($value) && $value !== []) {
+            if (\is_array($value) && $value !== []) {
                 $forms = [];
 
                 foreach (array_values($value) as $index => $form) {
-                    if (is_scalar($form) || $form === null) {
+                    if (\is_scalar($form) || $form === null) {
                         $forms[$index] = (string) $form;
                     }
                 }
@@ -7823,7 +7824,7 @@ final class Extractor
         }
 
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
         );
 
         /** @var \SplFileInfo $info */
@@ -7834,7 +7835,7 @@ final class Extractor
 
             $contents = @file_get_contents($info->getPathname());
 
-            if (is_string($contents)) {
+            if (\is_string($contents)) {
                 $this->scan($contents, $info->getPathname());
                 $scanned[] = $info->getPathname();
             }
@@ -7923,7 +7924,7 @@ final class Extractor
             '~<!--@Trans\b(.*?)-->(.*?)<!--@EndTrans\s*(?:[^>]*)?-->~is',
             $source,
             $matches,
-            PREG_OFFSET_CAPTURE
+            PREG_OFFSET_CAPTURE,
         );
 
         if ($count === 0 || $count === false) {
@@ -7949,7 +7950,7 @@ final class Extractor
                 $plural,
                 trim($attrs['context'] ?? ''),
                 $domain !== '' ? $domain : 'messages',
-                $this->reference($source, $name, (int) $whole[1])
+                $this->reference($source, $name, (int) $whole[1]),
             );
         }
     }
@@ -7976,7 +7977,7 @@ final class Extractor
             static function () use (&$index): string {
                 return '{' . $index++ . '}';
             },
-            $body
+            $body,
         );
 
         $body = (string) preg_replace('~\s+~', ' ', $body);
@@ -7991,7 +7992,7 @@ final class Extractor
         if (isset($this->index[$key])) {
             $entry = &$this->entries[$this->index[$key]];
 
-            if (!in_array($reference, $entry['references'], true)) {
+            if (!\in_array($reference, $entry['references'], true)) {
                 $entry['references'][] = $reference;
             }
 
@@ -8000,7 +8001,7 @@ final class Extractor
             return;
         }
 
-        $this->index[$key] = count($this->entries);
+        $this->index[$key] = \count($this->entries);
         $this->entries[] = [
             'msgid' => $msgid,
             'msgid_plural' => $plural,
@@ -8012,7 +8013,7 @@ final class Extractor
 
     private function reference(string $source, string $name, int $offset): string
     {
-        if ($offset <= 0 || $offset > strlen($source)) {
+        if ($offset <= 0 || $offset > \strlen($source)) {
             return $name;
         }
 
@@ -8026,7 +8027,7 @@ final class Extractor
         return str_replace(
             ["\x00", "\\", '"', "\n", "\t", "\r"],
             ['', '\\\\', '\\"', '\\n', '\\t', '\\r'],
-            $text
+            $text,
         );
     }
 }
@@ -8058,9 +8059,8 @@ class Formats
 
     public function __construct(
         protected readonly I18nConfig $config,
-        protected readonly ?ClockInterface $clock = null
-    ) {
-    }
+        protected readonly ?ClockInterface $clock = null,
+    ) {}
 
     /**
      * Formats a number with the locale's separators.
@@ -8073,7 +8073,7 @@ class Formats
             Str::numericValue($value),
             $decimals ?? $this->config->numberDecimals,
             $point,
-            $thousands
+            $thousands,
         );
     }
 
@@ -8123,8 +8123,8 @@ class Formats
         };
 
         return $future
-            ? sprintf('in %d %s%s', $unit[1], $unit[0], $unit[1] === 1 ? '' : 's')
-            : sprintf('%d %s%s ago', $unit[1], $unit[0], $unit[1] === 1 ? '' : 's');
+            ? \sprintf('in %d %s%s', $unit[1], $unit[0], $unit[1] === 1 ? '' : 's')
+            : \sprintf('%d %s%s ago', $unit[1], $unit[0], $unit[1] === 1 ? '' : 's');
     }
 
     /** @return array{0: string, 1: string} */
@@ -8158,7 +8158,7 @@ class Formats
             return $value->getTimestamp();
         }
 
-        if (is_int($value)) {
+        if (\is_int($value)) {
             return $value;
         }
 
@@ -8188,9 +8188,7 @@ final class Locale
 {
     public const DEFAULT_LOCALE = 'en';
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Normalises any locale spelling to "ll_CC":
@@ -8255,7 +8253,7 @@ final class Locale
             $tag = self::normalize(trim((string) $segments[0]));
             $quality = 1.0;
 
-            foreach (array_slice($segments, 1) as $parameter) {
+            foreach (\array_slice($segments, 1) as $parameter) {
                 if (preg_match('~^\s*q\s*=\s*([0-9.]+)\s*$~i', $parameter, $m) === 1) {
                     $quality = max(0.0, min(1.0, (float) $m[1]));
                 }
@@ -8285,7 +8283,7 @@ final class Locale
     {
         $availableList = array_values(array_map(
             static fn(mixed $locale): string => self::normalize((string) $locale),
-            $available
+            $available,
         ));
 
         if ($availableList === []) {
@@ -8301,7 +8299,7 @@ final class Locale
                 continue;
             }
 
-            if (in_array($wanted, $availableList, true)) {
+            if (\in_array($wanted, $availableList, true)) {
                 return $wanted;
             }
 
@@ -8413,7 +8411,7 @@ final class PluralForms
         $count = 2;
         $expression = 'n != 1';
 
-        $header = is_string($header) ? trim($header) : '';
+        $header = \is_string($header) ? trim($header) : '';
 
         if ($header !== '') {
             if (preg_match('~nplurals\s*=\s*(\d+)~i', $header, $m) === 1) {
@@ -8423,7 +8421,7 @@ final class PluralForms
             if (preg_match('~plural\s*=\s*(.+?)\s*;?\s*$~is', $header, $m) === 1) {
                 $candidate = trim($m[1]);
 
-                if ($candidate !== '' && strlen($candidate) <= self::MAX_EXPRESSION_LENGTH) {
+                if ($candidate !== '' && \strlen($candidate) <= self::MAX_EXPRESSION_LENGTH) {
                     $expression = $candidate;
                 }
             }
@@ -8454,7 +8452,7 @@ final class PluralForms
             $this->position = 0;
             $value = $this->parseTernary($n);
 
-            if ($this->position < count($this->tokens)) {
+            if ($this->position < \count($this->tokens)) {
                 return $n === 1 ? 0 : min(1, $this->count - 1);
             }
         } catch (\RuntimeException) {
@@ -8474,7 +8472,7 @@ final class PluralForms
     private static function tokenize(string $expression): ?array
     {
         $tokens = [];
-        $length = strlen($expression);
+        $length = \strlen($expression);
         $index = 0;
 
         while ($index < $length) {
@@ -8488,7 +8486,7 @@ final class PluralForms
             if (ctype_digit($char)) {
                 preg_match('~\d+~A', $expression, $m, 0, $index);
                 $tokens[] = ['int', $m[0]];
-                $index += strlen($m[0]);
+                $index += \strlen($m[0]);
                 continue;
             }
 
@@ -8500,7 +8498,7 @@ final class PluralForms
 
             $two = substr($expression, $index, 2);
 
-            if (in_array($two, ['==', '!=', '<=', '>=', '&&', '||'], true)) {
+            if (\in_array($two, ['==', '!=', '<=', '>=', '&&', '||'], true)) {
                 $tokens[] = [$two, $two];
                 $index += 2;
                 continue;
@@ -8609,7 +8607,7 @@ final class PluralForms
         $left = $this->parseAdditive($n);
 
         while (($token = $this->peek()) !== null
-            && in_array($token[0], ['<', '<=', '>', '>='], true)) {
+            && \in_array($token[0], ['<', '<=', '>', '>='], true)) {
             ++$this->position;
             $right = $this->parseAdditive($n);
             $left = match ($token[0]) {
@@ -8641,7 +8639,7 @@ final class PluralForms
         $left = $this->parseUnary($n);
 
         while (($token = $this->peek()) !== null
-            && in_array($token[0], ['*', '/', '%'], true)) {
+            && \in_array($token[0], ['*', '/', '%'], true)) {
             ++$this->position;
             $right = $this->parseUnary($n);
 
@@ -8731,7 +8729,7 @@ final class Translator implements TranslatorInterface
         private readonly I18nConfig $config,
         private readonly Diagnostics $diagnostics,
         private readonly Dispatcher $events,
-        private readonly ?string $acceptLanguage = null
+        private readonly ?string $acceptLanguage = null,
     ) {
         $this->locale = $this->detectLocale();
     }
@@ -8965,7 +8963,7 @@ final class Translator implements TranslatorInterface
         return Locale::negotiate(
             $this->availableLocales(),
             $acceptLanguage ?? $this->acceptLanguage,
-            $this->locale
+            $this->locale,
         );
     }
 
@@ -8981,7 +8979,7 @@ final class Translator implements TranslatorInterface
         foreach ($this->config->fallback as $locale) {
             $normalized = Locale::normalize(Str::stringify($locale));
 
-            if ($normalized !== '' && !in_array($normalized, $chain, true)) {
+            if ($normalized !== '' && !\in_array($normalized, $chain, true)) {
                 $chain[] = $normalized;
             }
         }
@@ -9016,7 +9014,7 @@ final class Translator implements TranslatorInterface
         int $count,
         string $context,
         array $args = [],
-        ?string $domain = null
+        ?string $domain = null,
     ): string {
         return $this->translate($singular, $plural, $count, $context, $args, $domain);
     }
@@ -9031,7 +9029,7 @@ final class Translator implements TranslatorInterface
         int $count,
         string $context,
         array $args,
-        ?string $domain
+        ?string $domain,
     ): string {
         $domain = $domain ?? $this->config->domain;
 
@@ -9086,7 +9084,7 @@ final class Translator implements TranslatorInterface
             $result,
             $msgid,
             $domain,
-            $this->locale()
+            $this->locale(),
         ));
     }
 
@@ -9100,11 +9098,11 @@ final class Translator implements TranslatorInterface
     {
         $mode = $this->config->useWordPress;
 
-        if (is_bool($mode)) {
+        if (\is_bool($mode)) {
             return $mode;
         }
 
-        return defined('ABSPATH') && function_exists('__') && function_exists('determine_locale');
+        return \defined('ABSPATH') && \function_exists('__') && \function_exists('determine_locale');
     }
 
     private function viaWordpress(
@@ -9112,25 +9110,25 @@ final class Translator implements TranslatorInterface
         ?string $plural,
         int $count,
         string $context,
-        string $domain
+        string $domain,
     ): ?string {
         $result = null;
 
         try {
-            if ($plural !== null && function_exists('_nx') && function_exists('_n')) {
+            if ($plural !== null && \function_exists('_nx') && \function_exists('_n')) {
                 $result = $context !== ''
                     ? _nx($msgid, $plural, $count, $context, $domain)
                     : _n($msgid, $plural, $count, $domain);
-            } elseif ($context !== '' && function_exists('_x')) {
+            } elseif ($context !== '' && \function_exists('_x')) {
                 $result = _x($msgid, $context, $domain);
-            } elseif (function_exists('__')) {
+            } elseif (\function_exists('__')) {
                 $result = __($msgid, $domain);
             }
         } catch (\Throwable) {
             return null;
         }
 
-        if (!is_string($result) || $result === '') {
+        if (!\is_string($result) || $result === '') {
             return null;
         }
 
@@ -9179,9 +9177,7 @@ final class Translator implements TranslatorInterface
  */
 final class TranslatorFactory
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function create(Container $container): TranslatorInterface
     {
@@ -9191,7 +9187,7 @@ final class TranslatorFactory
         return new Translator(
             $config->i18n,
             $container->service(Diagnostics::class),
-            $container->service(Dispatcher::class)
+            $container->service(Dispatcher::class),
         );
     }
 }
@@ -9238,7 +9234,7 @@ interface TranslatorInterface
         int $count,
         string $context,
         array $args = [],
-        ?string $domain = null
+        ?string $domain = null,
     ): string;
 
     /** Active locale, normalised (`ll` or `ll_CC`). */
@@ -9323,9 +9319,7 @@ final class Expression
     /** @var array<string, array<array-key, mixed>> memoized ASTs keyed by source */
     private static array $asts = [];
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Evaluates `$source` against `$scope`.
@@ -9360,11 +9354,11 @@ final class Expression
     /** Truthiness used by `<!--@If-->`: PHP rules, `'0'`/`''`/`[]`/null are false. */
     public static function truthy(mixed $value): bool
     {
-        if (is_string($value)) {
+        if (\is_string($value)) {
             return $value !== '' && $value !== '0';
         }
 
-        if (is_array($value)) {
+        if (\is_array($value)) {
             return $value !== [];
         }
 
@@ -9391,10 +9385,10 @@ final class Expression
             throw new TemplateSyntaxException('Empty expression.');
         }
 
-        if (strlen($source) > $maxLength) {
+        if (\strlen($source) > $maxLength) {
             throw new TemplateSyntaxException(
                 'Expression is too long.',
-                ['length' => strlen($source), 'limit' => $maxLength]
+                ['length' => \strlen($source), 'limit' => $maxLength],
             );
         }
 
@@ -9409,7 +9403,7 @@ final class Expression
     private function tokenize(string $source): array
     {
         $tokens = [];
-        $length = strlen($source);
+        $length = \strlen($source);
         $index = 0;
 
         while ($index < $length) {
@@ -9431,7 +9425,7 @@ final class Expression
                 $tokens[] = ['num', str_contains($m[0], '.') || str_contains($m[0], 'e') || str_contains($m[0], 'E')
                     ? (float) $m[0]
                     : (int) $m[0]];
-                $index += strlen($m[0]);
+                $index += \strlen($m[0]);
                 continue;
             }
 
@@ -9444,7 +9438,7 @@ final class Expression
             if (ctype_alpha($char) || $char === '_') {
                 preg_match('~[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*~A', $source, $m, 0, $index);
                 $word = $m[0];
-                $index += strlen($word);
+                $index += \strlen($word);
                 $lower = strtolower($word);
                 $tokens[] = match ($lower) {
                     'true' => ['bool', true],
@@ -9461,17 +9455,17 @@ final class Expression
             }
 
             foreach (['===', '!==', '==', '!=', '<=', '>=', '&&', '||', '??', '<', '>', '!',
-                      '+', '-', '*', '/', '%', '~', '(', ')', ',', '?', ':'] as $candidate) {
+                '+', '-', '*', '/', '%', '~', '(', ')', ',', '?', ':'] as $candidate) {
                 if (str_starts_with(substr($source, $index), $candidate)) {
                     $tokens[] = ['op', $candidate];
-                    $index += strlen($candidate);
+                    $index += \strlen($candidate);
                     continue 2;
                 }
             }
 
             throw new TemplateSyntaxException(
                 'Unexpected character "' . $char . '" in expression.',
-                ['position' => $index]
+                ['position' => $index],
             );
         }
 
@@ -9482,7 +9476,7 @@ final class Expression
     private function readString(string $source, int $index): array
     {
         $quote = $source[$index];
-        $length = strlen($source);
+        $length = \strlen($source);
         $value = '';
         ++$index;
 
@@ -9584,14 +9578,14 @@ final class Expression
         $operators = ['==', '!=', '===', '!==', '<', '<=', '>', '>=', 'in', 'matches'];
         $left = $this->parseAdditive();
 
-        while (($token = $this->peek()) !== null && $token[0] === 'op' && in_array($token[1], $operators, true)) {
+        while (($token = $this->peek()) !== null && $token[0] === 'op' && \in_array($token[1], $operators, true)) {
             $operator = $token[1];
             $this->next();
 
             if ($operator === 'matches') {
                 $pattern = $this->parseAdditive();
 
-                if ($pattern[0] !== 'lit' || !is_string($pattern[1])) {
+                if ($pattern[0] !== 'lit' || !\is_string($pattern[1])) {
                     throw new TemplateSyntaxException('The right side of "matches" must be a string literal.');
                 }
 
@@ -9631,7 +9625,7 @@ final class Expression
     {
         $left = $this->{$next}();
 
-        while (($token = $this->peek()) !== null && $token[0] === 'op' && in_array($token[1], $operators, true)) {
+        while (($token = $this->peek()) !== null && $token[0] === 'op' && \in_array($token[1], $operators, true)) {
             $operator = $token[1];
             $this->next();
             $left = [$operator, $left, $this->{$next}()];
@@ -9760,7 +9754,7 @@ final class Expression
 
     private function expectEnd(string $source): void
     {
-        if ($this->position < count($this->tokens)) {
+        if ($this->position < \count($this->tokens)) {
             throw new TemplateSyntaxException('Trailing input in expression.', ['expression' => $source]);
         }
     }
@@ -9809,7 +9803,7 @@ final class Expression
             return Str::numericValue($left) == Str::numericValue($right);
         }
 
-        if (is_string($left) && is_string($right)) {
+        if (\is_string($left) && \is_string($right)) {
             return $left === $right;
         }
 
@@ -9862,11 +9856,11 @@ final class Expression
 
     private static function in(mixed $needle, mixed $haystack): bool
     {
-        if (is_array($haystack)) {
-            return in_array($needle, $haystack, false);
+        if (\is_array($haystack)) {
+            return \in_array($needle, $haystack, false);
         }
 
-        if (is_string($haystack) && (is_string($needle) || is_numeric($needle))) {
+        if (\is_string($haystack) && (\is_string($needle) || is_numeric($needle))) {
             return $haystack !== '' && str_contains($haystack, Str::stringify($needle));
         }
 
@@ -9909,10 +9903,10 @@ final class Expression
     /** @param list<array<array-key, mixed>> $args */
     private static function call(string $name, array $args, Scope $scope): mixed
     {
-        if (!in_array($name, self::FUNCTIONS, true)) {
+        if (!\in_array($name, self::FUNCTIONS, true)) {
             throw new TemplateSyntaxException(
                 'Function "' . $name . '" is not allowed in expressions.',
-                ['allowed' => self::FUNCTIONS]
+                ['allowed' => self::FUNCTIONS],
             );
         }
 
@@ -9921,7 +9915,7 @@ final class Expression
         return match ($name) {
             'count', 'length' => self::countOf($values[0] ?? null),
             'empty' => !self::truthy($values[0] ?? null),
-            'defined' => is_string($values[0] ?? null) ? $scope->has((string) $values[0]) : ($values[0] ?? null) !== null,
+            'defined' => \is_string($values[0] ?? null) ? $scope->has((string) $values[0]) : ($values[0] ?? null) !== null,
             'min' => $values === [] ? 0 : min(array_map(Str::numericValue(...), $values)),
             'max' => $values === [] ? 0 : max(array_map(Str::numericValue(...), $values)),
             'abs' => abs(Str::numericValue($values[0] ?? 0)),
@@ -9941,21 +9935,21 @@ final class Expression
     private static function countOf(mixed $value): int
     {
         return match (true) {
-            is_array($value) => count($value),
-            $value instanceof \Countable => count($value),
+            \is_array($value) => \count($value),
+            $value instanceof \Countable => \count($value),
             $value instanceof \Traversable => iterator_count($value),
-            is_string($value) => Str::length($value),
-            default => $value === null || $value === '' ? 0 : 1,
+            \is_string($value) => Str::length($value),
+            default => $value === null ? 0 : 1,
         };
     }
 
     private static function numeric(mixed $value): float|int
     {
-        if (is_int($value)) {
+        if (\is_int($value)) {
             return $value;
         }
 
-        if (is_float($value)) {
+        if (\is_float($value)) {
             return is_finite($value) ? $value : 0.0;
         }
 
@@ -9984,9 +9978,8 @@ final class Filters
         private readonly Escaper $escaper,
         private readonly TranslatorInterface $translator,
         private readonly Formats $formats,
-        private readonly bool $strict = false
-    ) {
-    }
+        private readonly bool $strict = false,
+    ) {}
 
     /** Registers (or replaces) a filter. Names are lower-cased `[a-z0-9_]+`. */
     public function add(string $name, callable $callback): void
@@ -10086,12 +10079,12 @@ final class Filters
                     Str::numericValue($value),
                     (int) ($args[0] ?? 2),
                     (string) ($args[1] ?? '.'),
-                    (string) ($args[2] ?? ',')
+                    (string) ($args[2] ?? ','),
                 )
                 : $this->formats->number(
                     Str::numericValue($value),
                     null,
-                    isset($args[0]) ? (int) $args[0] : null
+                    isset($args[0]) ? (int) $args[0] : null,
                 ),
             'round' => Str::round(Str::numericValue($value), $args[0] ?? 0),
             'cleanround' => Str::cleanRound(Str::numericValue($value), $args[0] ?? 0),
@@ -10112,7 +10105,7 @@ final class Filters
                 $string,
                 (int) ($args[0] ?? 0),
                 $args[1] ?? ' ',
-                (int) ($args[2] ?? 0) === 1 ? STR_PAD_LEFT : STR_PAD_RIGHT
+                (int) ($args[2] ?? 0) === 1 ? STR_PAD_LEFT : STR_PAD_RIGHT,
             ),
             'repeat' => str_repeat($string, max(0, min(1000, (int) ($args[0] ?? 2)))),
             'translate' => $this->translator->t($string),
@@ -10154,13 +10147,13 @@ final class Filters
 
     private static function isIterableValue(mixed $value): bool
     {
-        return is_array($value) || $value instanceof \Traversable;
+        return \is_array($value) || $value instanceof \Traversable;
     }
 
     /** @return array<array-key, mixed> */
     private static function toArray(mixed $value): array
     {
-        if (is_array($value)) {
+        if (\is_array($value)) {
             return $value;
         }
 
@@ -10170,17 +10163,17 @@ final class Filters
     private static function lengthOf(mixed $value): int
     {
         return match (true) {
-            is_array($value) => count($value),
-            $value instanceof \Countable => count($value),
+            \is_array($value) => \count($value),
+            $value instanceof \Countable => \count($value),
             $value instanceof \Traversable => iterator_count($value),
-            is_string($value) => Str::length($value),
-            default => $value === null || $value === '' ? 0 : 1,
+            \is_string($value) => Str::length($value),
+            default => $value === null ? 0 : 1,
         };
     }
 
     private static function edge(mixed $value, bool $first): mixed
     {
-        if (is_string($value)) {
+        if (\is_string($value)) {
             $length = Str::length($value);
 
             return $length === 0 ? '' : ($first ? Str::substr($value, 0, 1) : Str::substr($value, $length - 1, 1));
@@ -10192,7 +10185,7 @@ final class Filters
             return '';
         }
 
-        return $first ? array_values($array)[0] : array_values($array)[count($array) - 1];
+        return $first ? array_values($array)[0] : array_values($array)[\count($array) - 1];
     }
 
     private static function sorted(mixed $value, bool $descending): mixed
@@ -10209,7 +10202,7 @@ final class Filters
 
     private static function sliced(mixed $value, int $offset, ?int $length): mixed
     {
-        if (is_string($value)) {
+        if (\is_string($value)) {
             return Str::substr($value, $offset, $length);
         }
 
@@ -10217,7 +10210,7 @@ final class Filters
             return $value;
         }
 
-        return array_slice(self::toArray($value), $offset, $length, true);
+        return \array_slice(self::toArray($value), $offset, $length, true);
     }
 }
 
@@ -10239,9 +10232,8 @@ final readonly class LintIssue
         public string $message,
         public string $file = '-',
         public int $line = 0,
-        public array $context = []
-    ) {
-    }
+        public array $context = [],
+    ) {}
 
     public function isError(): bool
     {
@@ -10250,13 +10242,13 @@ final readonly class LintIssue
 
     public function format(): string
     {
-        return sprintf(
+        return \sprintf(
             '%s:%d %s [%s] %s',
             $this->file,
             $this->line,
             strtoupper($this->severity),
             $this->code,
-            $this->message
+            $this->message,
         );
     }
 
@@ -10289,9 +10281,8 @@ final class Linter
         private readonly Diagnostics $diagnostics,
         private readonly Filters $filters,
         private readonly TemplateLocator $locator,
-        private readonly ?Translator $translator = null
-    ) {
-    }
+        private readonly ?Translator $translator = null,
+    ) {}
 
     /**
      * Lints one template source.
@@ -10354,7 +10345,7 @@ final class Linter
         }
 
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS)
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
         );
 
         /** @var \SplFileInfo $info */
@@ -10365,7 +10356,7 @@ final class Linter
 
             $extension = strtolower($info->getExtension());
 
-            if (!in_array($extension, ['html', 'htm', 'txt', 'shtml', 'xhtml'], true)) {
+            if (!\in_array($extension, ['html', 'htm', 'txt', 'shtml', 'xhtml'], true)) {
                 continue;
             }
 
@@ -10400,7 +10391,7 @@ final class Linter
             '~<!--@([A-Za-z][A-Za-z0-9]*)(.*?)-->~s',
             $source,
             $matches,
-            PREG_OFFSET_CAPTURE | PREG_SET_ORDER
+            PREG_OFFSET_CAPTURE | PREG_SET_ORDER,
         );
 
         if ($count === 0 || $count === false) {
@@ -10423,7 +10414,7 @@ final class Linter
             if (!isset($known[$name])
                 && !isset($mids[$name])
                 && !isset(self::KNOWN_STANDALONE[$name])
-                && !in_array($name, ['endloop', 'endif', 'endunless', 'endsection', 'endtrans', 'endraw', 'endcomment'], true)
+                && !\in_array($name, ['endloop', 'endif', 'endunless', 'endsection', 'endtrans', 'endraw', 'endcomment'], true)
             ) {
                 $issues[] = new LintIssue('error', 'unknown-tag', 'Unknown template tag "@' . $name . '".', $origin, $line);
                 continue;
@@ -10437,19 +10428,19 @@ final class Linter
             $closes = array_search($name, $known, true);
 
             if ($closes !== false) {
-                $top = $open === [] ? null : $open[count($open) - 1];
+                $top = $open === [] ? null : $open[\count($open) - 1];
 
                 if ($top === null || $top[0] !== $closes) {
                     $issues[] = new LintIssue(
                         'error',
                         'unbalanced-tag',
-                        sprintf(
+                        \sprintf(
                             '"@%s" closes %s.',
                             $name,
-                            $top === null ? 'nothing' : 'an open "@' . $top[0] . '" from line ' . $top[1]
+                            $top === null ? 'nothing' : 'an open "@' . $top[0] . '" from line ' . $top[1],
                         ),
                         $origin,
-                        $line
+                        $line,
                     );
 
                     continue; // the opener stays open — it is still unclosed
@@ -10566,7 +10557,7 @@ final class Linter
 
                 return $m[1] . '{' . $payload . '}';
             },
-            $text
+            $text,
         );
     }
 
@@ -10575,7 +10566,7 @@ final class Linter
     {
         $spec = $node->attribute('spec');
 
-        if (!is_array($spec)) {
+        if (!\is_array($spec)) {
             return;
         }
 
@@ -10585,7 +10576,7 @@ final class Linter
             $span = abs((int) $spec['to'] - (int) $spec['source']);
 
             if ($span > $this->config->limits->maxLoopRows) {
-                $issues[] = new LintIssue('warning', 'loop-range-too-large', sprintf('Loop range spans %d rows (limit %d).', $span, $this->config->limits->maxLoopRows), $origin, $line);
+                $issues[] = new LintIssue('warning', 'loop-range-too-large', \sprintf('Loop range spans %d rows (limit %d).', $span, $this->config->limits->maxLoopRows), $origin, $line);
             }
         }
     }
@@ -10625,10 +10616,10 @@ final class Linter
             $issues[] = new LintIssue(
                 'error',
                 'unresolved-' . $node->kind,
-                sprintf('"%s" cannot be located in the configured template paths.', $template),
+                \sprintf('"%s" cannot be located in the configured template paths.', $template),
                 $origin,
                 $line,
-                ['template' => $template]
+                ['template' => $template],
             );
         }
     }
@@ -10667,7 +10658,7 @@ final class Linter
         $catalogue = $this->translator->catalogue($locale, $this->config->i18n->domain);
 
         if ($catalogue !== null && !$catalogue->has($msgid)) {
-            $issues[] = new LintIssue('warning', 'untranslated-message', sprintf('"%s" has no %s translation.', $msgid, $locale), $origin, $line, ['msgid' => $msgid]);
+            $issues[] = new LintIssue('warning', 'untranslated-message', \sprintf('"%s" has no %s translation.', $msgid, $locale), $origin, $line, ['msgid' => $msgid]);
         }
     }
 
@@ -10694,10 +10685,10 @@ final class Linter
 
         foreach ($matches as $match) {
             $name = strtolower((string) $match[1][0]);
-            $payload = (string) ($match[2][0] ?? '');
+            $payload = (string) $match[2][0];
             $line = substr_count($source, "\n", 0, (int) $match[0][1]) + 1;
 
-            if (!in_array($name, $known, true)) {
+            if (!\in_array($name, $known, true)) {
                 $issues[] = new LintIssue('warning', 'unknown-ssi-directive', 'Unknown SSI directive "#' . $name . '" (left in output).', $origin, $line);
                 continue;
             }
@@ -10717,7 +10708,7 @@ final class Linter
                 $before = $this->diagnostics->count(Diagnostics::SSI_EXPR_ERROR);
                 \HtmlPhp\Ssi\Expression::evaluate($expression, $this->lintContext());
 
-                foreach (array_slice($this->diagnostics->byCode(Diagnostics::SSI_EXPR_ERROR), $before) as $entry) {
+                foreach (\array_slice($this->diagnostics->byCode(Diagnostics::SSI_EXPR_ERROR), $before) as $entry) {
                     $issues[] = new LintIssue('error', 'ssi-bad-expr', $entry['message'], $origin, $line, ['expression' => $expression]);
                 }
                 continue;
@@ -10752,7 +10743,7 @@ final class Linter
             $this->config->limits,
             $this->diagnostics,
             new \HtmlPhp\Event\Dispatcher(),
-            new \HtmlPhp\Support\SystemClock()
+            new \HtmlPhp\Support\SystemClock(),
         );
     }
 
@@ -10809,9 +10800,8 @@ final class Node
     public function __construct(
         public readonly string $kind,
         public readonly array $attributes = [],
-        public readonly array $children = []
-    ) {
-    }
+        public readonly array $children = [],
+    ) {}
 
     /** @param list<Node> $children */
     public function withChildren(array $children): self
@@ -10870,7 +10860,7 @@ final class RenderContext
         public readonly Diagnostics $diagnostics,
         bool $autoEscape,
         MissingVarPolicy $missingVar,
-        bool $structure
+        bool $structure,
     ) {
         $this->autoEscape = $autoEscape;
         $this->missingVar = $missingVar;
@@ -10941,9 +10931,8 @@ final readonly class RenderOptions
          *
          * @var array<string, mixed>|null
          */
-        public ?array $ssiVars = null
-    ) {
-    }
+        public ?array $ssiVars = null,
+    ) {}
 
     /**
      * Convenience constructor from a v3-style options array (migration aid).
@@ -10953,14 +10942,14 @@ final readonly class RenderOptions
     public static function fromArray(array $options): self
     {
         return new self(
-            file: isset($options['file']) && is_string($options['file']) ? $options['file'] : null,
-            root: isset($options['root']) && is_string($options['root']) ? $options['root'] : null,
+            file: isset($options['file']) && \is_string($options['file']) ? $options['file'] : null,
+            root: isset($options['root']) && \is_string($options['root']) ? $options['root'] : null,
             ssi: isset($options['ssi']) ? (bool) $options['ssi'] : null,
             structure: isset($options['loops']) ? (bool) $options['loops'] : (isset($options['structure']) ? (bool) $options['structure'] : null),
             autoEscape: isset($options['escape']) ? (bool) $options['escape'] : null,
             cache: isset($options['cache']) ? (bool) $options['cache'] : null,
             ttl: isset($options['ttl']) ? (int) $options['ttl'] : null,
-            locale: isset($options['locale']) && is_string($options['locale']) ? $options['locale'] : null
+            locale: isset($options['locale']) && \is_string($options['locale']) ? $options['locale'] : null,
         );
     }
 }
@@ -11604,9 +11593,8 @@ final class Substitution
         private readonly Filters $filters,
         private readonly Escaper $escaper,
         private readonly TranslatorInterface $translator,
-        private readonly Diagnostics $diagnostics
-    ) {
-    }
+        private readonly Diagnostics $diagnostics,
+    ) {}
 
     /**
      * Applies every substitution form to `$html` (single pass per form).
@@ -11615,7 +11603,7 @@ final class Substitution
         string $html,
         Scope $scope,
         bool $autoEscape,
-        MissingVarPolicy $missingPolicy
+        MissingVarPolicy $missingPolicy,
     ): string {
         if ($html === '') {
             return '';
@@ -11640,7 +11628,7 @@ final class Substitution
 
                 return $this->finish($value, $filters, $autoEscape);
             },
-            $html
+            $html,
         );
 
         // #{NAME} — alternate brace form.
@@ -11649,7 +11637,7 @@ final class Substitution
             function (array $matches) use ($scope, $autoEscape, $missingPolicy): string {
                 return $this->substitute((string) $matches[1], $matches[0], $scope, $autoEscape, $missingPolicy);
             },
-            $html
+            $html,
         );
 
         // %{NAME} — the primary form.
@@ -11658,7 +11646,7 @@ final class Substitution
             function (array $matches) use ($scope, $autoEscape, $missingPolicy): string {
                 return $this->substitute((string) $matches[1], $matches[0], $scope, $autoEscape, $missingPolicy);
             },
-            $html
+            $html,
         );
 
         // {NAME} — opt-in single-brace form (off by default: clashes with CSS/JS).
@@ -11668,7 +11656,7 @@ final class Substitution
                 function (array $matches) use ($scope, $autoEscape, $missingPolicy): string {
                     return $this->substitute((string) $matches[1], $matches[0], $scope, $autoEscape, $missingPolicy);
                 },
-                $html
+                $html,
             );
         }
 
@@ -11683,7 +11671,7 @@ final class Substitution
         string $original,
         Scope $scope,
         bool $autoEscape,
-        MissingVarPolicy $missingPolicy
+        MissingVarPolicy $missingPolicy,
     ): string {
         [$name, $filters] = self::splitFilters($payload);
 
@@ -11708,17 +11696,17 @@ final class Substitution
             $this->diagnostics->record(
                 Diagnostics::MISSING_VAR,
                 'Template variable is not defined.',
-                ['name' => $name, 'policy' => $policy->value]
+                ['name' => $name, 'policy' => $policy->value],
             );
         }
 
         return match ($policy) {
             MissingVarPolicy::Empty => '',
             MissingVarPolicy::Keep => $original,
-            MissingVarPolicy::Placeholder => sprintf($this->syntax->missingPlaceholderFormat, $name),
+            MissingVarPolicy::Placeholder => \sprintf($this->syntax->missingPlaceholderFormat, $name),
             MissingVarPolicy::Throw => throw new TemplateException(
                 "Template variable '{$name}' is not defined.",
-                ['name' => $name]
+                ['name' => $name],
             ),
         };
     }
@@ -11741,7 +11729,7 @@ final class Substitution
                     $this->diagnostics->record(
                         Diagnostics::FILTER_UNKNOWN,
                         'The "raw" filter is disabled by configuration.',
-                        []
+                        [],
                     );
 
                     continue;
@@ -11772,7 +11760,7 @@ final class Substitution
                 continue; // a disabled raw filter must not suppress escaping
             }
 
-            if (in_array($lower, self::ESCAPING_FILTERS, true)) {
+            if (\in_array($lower, self::ESCAPING_FILTERS, true)) {
                 return $string;
             }
         }
@@ -11791,7 +11779,7 @@ final class Substitution
     {
         $pairs = [];
 
-        for ($index = 0, $count = count($args); $index + 1 < $count; $index += 2) {
+        for ($index = 0, $count = \count($args); $index + 1 < $count; $index += 2) {
             $placeholder = $args[$index];
             $value = $args[$index + 1];
 
@@ -11856,7 +11844,7 @@ final class Substitution
         $parts = [];
         $current = '';
         $quote = null;
-        $length = strlen($segment);
+        $length = \strlen($segment);
 
         for ($index = 0; $index < $length; ++$index) {
             $char = $segment[$index];
@@ -11976,9 +11964,9 @@ final class TagParser
             $start = (int) $match[0][1];
             $tokens[] = [
                 'name' => strtolower((string) $match[1][0]),
-                'payload' => trim((string) ($match[2][0] ?? '')),
+                'payload' => trim((string) $match[2][0]),
                 'start' => $start,
-                'end' => $start + strlen((string) $match[0][0]),
+                'end' => $start + \strlen((string) $match[0][0]),
             ];
         }
 
@@ -12016,12 +12004,12 @@ final class TagParser
                 return;
             }
 
-            $top = &$stack[count($stack) - 1];
+            $top = &$stack[\count($stack) - 1];
 
             if ($top['inElse']) {
                 $top['else'][] = self::text($slice);
             } elseif ($top['branches'] !== [] && ($top['type'] === 'if' || $top['type'] === 'unless')) {
-                $last = count($top['branches']) - 1;
+                $last = \count($top['branches']) - 1;
                 $top['branches'][$last]['nodes'][] = self::text($slice);
             } else {
                 $top['children'][] = self::text($slice);
@@ -12037,12 +12025,12 @@ final class TagParser
                 return;
             }
 
-            $top = &$stack[count($stack) - 1];
+            $top = &$stack[\count($stack) - 1];
 
             if ($top['inElse']) {
                 $top['else'][] = $node;
             } elseif ($top['branches'] !== [] && ($top['type'] === 'if' || $top['type'] === 'unless')) {
-                $last = count($top['branches']) - 1;
+                $last = \count($top['branches']) - 1;
                 $top['branches'][$last]['nodes'][] = $node;
             } else {
                 $top['children'][] = $node;
@@ -12051,7 +12039,7 @@ final class TagParser
             unset($top);
         };
 
-        $count = count($tokens);
+        $count = \count($tokens);
 
         for ($index = 0; $index < $count; ++$index) {
             $token = $tokens[$index];
@@ -12075,7 +12063,7 @@ final class TagParser
                 }
 
                 $closeEnd = strpos($this->source, '-->', $close);
-                $closeEnd = $closeEnd === false ? strlen($this->source) : $closeEnd + 3;
+                $closeEnd = $closeEnd === false ? \strlen($this->source) : $closeEnd + 3;
 
                 if ($name === 'raw') {
                     $appendNode(new Node('raw', [
@@ -12089,8 +12077,8 @@ final class TagParser
             }
 
             // ---- openers ----------------------------------------------
-            if (in_array($name, self::OPENERS, true)) {
-                if ($name === 'trans' && $stack !== [] && $stack[count($stack) - 1]['type'] === 'trans') {
+            if (\in_array($name, self::OPENERS, true)) {
+                if ($name === 'trans' && $stack !== [] && $stack[\count($stack) - 1]['type'] === 'trans') {
                     throw $this->error('Nested <!--@Trans--> blocks are not allowed.', $token['start']);
                 }
 
@@ -12112,11 +12100,11 @@ final class TagParser
             if (isset(self::CLOSERS[$name])) {
                 $expected = self::CLOSERS[$name];
 
-                if ($stack === [] || $stack[count($stack) - 1]['type'] !== $expected) {
+                if ($stack === [] || $stack[\count($stack) - 1]['type'] !== $expected) {
                     throw $this->error(
                         'Unexpected <!--@' . $name . '-->'
-                        . ($stack === [] ? ' without an opener.' : ' inside <!--@' . $stack[count($stack) - 1]['type'] . '-->.'),
-                        $token['start']
+                        . ($stack === [] ? ' without an opener.' : ' inside <!--@' . $stack[\count($stack) - 1]['type'] . '-->.'),
+                        $token['start'],
                     );
                 }
 
@@ -12131,7 +12119,7 @@ final class TagParser
                     throw $this->error('Unexpected <!--@' . ucfirst($name) . '--> without an opener.', $token['start']);
                 }
 
-                $top = &$stack[count($stack) - 1];
+                $top = &$stack[\count($stack) - 1];
 
                 if ($name === 'plural') {
                     if ($top['type'] !== 'trans') {
@@ -12178,10 +12166,10 @@ final class TagParser
             throw $this->error('Unknown template tag "' . $name . '".', $token['start']);
         }
 
-        $flushText($cursor, strlen($this->source));
+        $flushText($cursor, \strlen($this->source));
 
         if ($stack !== []) {
-            $frame = $stack[count($stack) - 1];
+            $frame = $stack[\count($stack) - 1];
             throw $this->error('Unclosed <!--@' . ucfirst((string) $frame['type']) . '--> block.', (int) $frame['start']);
         }
 
@@ -12261,7 +12249,7 @@ final class TagParser
         $with = isset($attributes['with']) && $attributes['with'] !== ''
             ? array_values(array_filter(array_map(
                 static fn(string $part): string => trim($part),
-                explode(',', $attributes['with'])
+                explode(',', $attributes['with']),
             ), static fn(string $part): bool => $part !== ''))
             : null;
 
@@ -12287,7 +12275,7 @@ final class TagParser
         }
 
         // `<!--@Set total="price * qty" -->` — single name="expr" attribute.
-        if (count($attributes) === 1) {
+        if (\count($attributes) === 1) {
             $name = (string) array_key_first($attributes);
 
             if (preg_match('~^[A-Za-z_][A-Za-z0-9_.]*$~', $name) === 1) {
@@ -12302,7 +12290,7 @@ final class TagParser
 
         throw new TemplateSyntaxException(
             '<!--@Set--> requires name="expression" syntax.',
-            ['payload' => $payload, 'line' => $line]
+            ['payload' => $payload, 'line' => $line],
         );
     }
 
@@ -12347,7 +12335,7 @@ final class TagParser
 
         throw new TemplateSyntaxException(
             'Cannot parse <!--@Loop--> header.',
-            ['payload' => $payload, 'line' => $line]
+            ['payload' => $payload, 'line' => $line],
         );
     }
 
@@ -12391,7 +12379,7 @@ final class TagParser
 
     private function line(int $offset): int
     {
-        return substr_count($this->source, "\n", 0, max(0, min($offset, strlen($this->source)))) + 1;
+        return substr_count($this->source, "\n", 0, max(0, min($offset, \strlen($this->source)))) + 1;
     }
 
     private function error(string $message, int $offset): TemplateSyntaxException
@@ -12424,9 +12412,8 @@ final class TemplateLocator
 
     public function __construct(
         private readonly TemplatesConfig $config,
-        private readonly SecurityConfig $security
-    ) {
-    }
+        private readonly SecurityConfig $security,
+    ) {}
 
     private function guardFor(string $root): PathGuard
     {
@@ -12447,7 +12434,7 @@ final class TemplateLocator
 
         $key = $name . '|' . ($baseDir ?? '');
 
-        if (array_key_exists($key, $this->resolved)) {
+        if (\array_key_exists($key, $this->resolved)) {
             $cached = $this->resolved[$key];
 
             return $cached === false ? null : $cached;
@@ -12547,9 +12534,8 @@ final class TreeRenderer
         private readonly Substitution $substitution,
         private readonly TemplateLocator $locator,
         private readonly Renderer $renderer,
-        private readonly TranslatorInterface $translator
-    ) {
-    }
+        private readonly TranslatorInterface $translator,
+    ) {}
 
     /**
      * @param list<Node> $nodes
@@ -12610,7 +12596,7 @@ final class TreeRenderer
             $this->diagnostics->record(
                 Diagnostics::LOOP_GUARD,
                 'Loop nesting is too deep; block skipped.',
-                ['line' => $spec['line'] ?? 0]
+                ['line' => $spec['line'] ?? 0],
             );
 
             return '';
@@ -12619,7 +12605,7 @@ final class TreeRenderer
         $rc->stats->loops++;
 
         $rows = $this->loopIterable($spec, $rc);
-        $total = count($rows);
+        $total = \count($rows);
 
         if ($total === 0) {
             $else = $node->attribute('else', []);
@@ -12664,8 +12650,8 @@ final class TreeRenderer
         if ($truncated) {
             $this->diagnostics->record(
                 Diagnostics::LOOP_GUARD,
-                sprintf('Loop truncated at the configured row limit (%d).', $maxRows),
-                ['source' => $spec['source'], 'limit' => $maxRows]
+                \sprintf('Loop truncated at the configured row limit (%d).', $maxRows),
+                ['source' => $spec['source'], 'limit' => $maxRows],
             );
         }
 
@@ -12705,7 +12691,7 @@ final class TreeRenderer
                 $this->diagnostics->record(
                     Diagnostics::MISSING_VAR,
                     'Loop source is not defined; treated as empty.',
-                    ['name' => $source]
+                    ['name' => $source],
                 );
             }
 
@@ -12723,7 +12709,7 @@ final class TreeRenderer
      */
     public static function normalizeIterable(mixed $value): array
     {
-        if (is_array($value)) {
+        if (\is_array($value)) {
             return $value;
         }
 
@@ -12733,7 +12719,7 @@ final class TreeRenderer
 
         if ($value instanceof \ArrayAccess && $value instanceof \Countable) {
             $items = [];
-            $total = count($value);
+            $total = \count($value);
 
             for ($index = 0; $index < $total; ++$index) {
                 $items[$index] = $value[$index];
@@ -12742,7 +12728,7 @@ final class TreeRenderer
             return $items;
         }
 
-        if (is_object($value)) {
+        if (\is_object($value)) {
             return get_object_vars($value);
         }
 
@@ -12766,7 +12752,7 @@ final class TreeRenderer
 
         if ($spec['mode'] === 'rows') {
             // v3 semantics: the row's own fields enter the scope directly.
-            if (is_array($row) || is_object($row)) {
+            if (\is_array($row) || \is_object($row)) {
                 foreach (self::normalizeIterable($row) as $name => $field) {
                     $frame[(string) $name] = $field;
                 }
@@ -12837,7 +12823,7 @@ final class TreeRenderer
     {
         try {
             return Expression::truthy(
-                Expression::evaluate($expression, $rc->scope, $this->config->limits->maxExpressionLength)
+                Expression::evaluate($expression, $rc->scope, $this->config->limits->maxExpressionLength),
             );
         } catch (TemplateException $error) {
             if ($this->config->syntax->strict) {
@@ -12847,7 +12833,7 @@ final class TreeRenderer
             $this->diagnostics->record(
                 Diagnostics::TEMPLATE_LINT,
                 'Invalid condition expression; branch skipped: ' . $error->getMessage(),
-                ['expression' => $expression]
+                ['expression' => $expression],
             );
 
             return false;
@@ -12894,7 +12880,7 @@ final class TreeRenderer
         if ($frame === null) {
             $this->diagnostics->record(
                 Diagnostics::TEMPLATE_LINT,
-                '<!--@SectionParent--> used outside of a section.'
+                '<!--@SectionParent--> used outside of a section.',
             );
 
             return '';
@@ -12928,7 +12914,7 @@ final class TreeRenderer
         /** @var list<string>|null $with */
         $with = $node->attribute('with');
 
-        $baseDir = $rc->currentFile !== null ? dirname($rc->currentFile) : null;
+        $baseDir = $rc->currentFile !== null ? \dirname($rc->currentFile) : null;
         $path = $this->locator->locate($template, $baseDir);
 
         if ($path === null) {
@@ -12938,7 +12924,7 @@ final class TreeRenderer
 
             throw new TemplateNotFoundException(
                 "Partial template '{$template}' could not be located.",
-                ['template' => $template, 'line' => $node->attribute('line')]
+                ['template' => $template, 'line' => $node->attribute('line')],
             );
         }
 
@@ -12973,7 +12959,7 @@ final class TreeRenderer
             $this->diagnostics->record(
                 Diagnostics::TEMPLATE_LINT,
                 '<!--@Set--> target name is invalid.',
-                ['name' => $name]
+                ['name' => $name],
             );
 
             return '';
@@ -13059,7 +13045,7 @@ final class TreeRenderer
                         '%{' . $payload . '}',
                         $rc->scope,
                         false,
-                        $rc->missingVar
+                        $rc->missingVar,
                     );
 
                     // Keys are the bare indices; Translator::interpolate()
@@ -13071,7 +13057,7 @@ final class TreeRenderer
 
                     return $placeholder;
                 },
-                $text
+                $text,
             );
 
             $msgid .= $text;
@@ -13099,11 +13085,11 @@ final class TreeRenderer
 
 namespace HtmlPhp\WordPress\Maintenance {
 
+use HtmlPhp\Exception\TemplateException;
+
 final class Assets
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Enqueues a stylesheet; the version is the file mtime when the file
@@ -13124,27 +13110,29 @@ final class Assets
         self::enqueue('script', $handle, $src, $deps, null, $inFooter);
     }
 
+
+    /** @param list<string> $deps */
     private static function enqueue(string $kind, string $handle, string $src, array $deps, ?string $media, bool $inFooter = false): void
     {
         $version = self::version($src);
 
         if ($kind === 'style') {
-            if (function_exists('wp_register_style')) {
+            if (\function_exists('wp_register_style')) {
                 wp_register_style($handle, $src, $deps, $version, $media);
             }
 
-            if (function_exists('wp_enqueue_style')) {
+            if (\function_exists('wp_enqueue_style')) {
                 wp_enqueue_style($handle);
             }
 
             return;
         }
 
-        if (function_exists('wp_register_script')) {
+        if (\function_exists('wp_register_script')) {
             wp_register_script($handle, $src, $deps, $version, $inFooter);
         }
 
-        if (function_exists('wp_enqueue_script')) {
+        if (\function_exists('wp_enqueue_script')) {
             wp_enqueue_script($handle);
         }
     }
@@ -13157,13 +13145,13 @@ final class Assets
         $path = $src;
 
         if (preg_match('~^https?://~i', $path) === 1) {
-            if (function_exists('home_url')) {
+            if (\function_exists('home_url')) {
                 $home = (string) home_url();
 
                 if ($home !== '' && str_starts_with($path, $home)) {
-                    $relative = substr($path, strlen($home));
+                    $relative = substr($path, \strlen($home));
 
-                    if (function_exists('wp_normalize_path') && \defined('ABSPATH')) {
+                    if (\function_exists('wp_normalize_path') && \defined('ABSPATH')) {
                         $path = rtrim((string) \ABSPATH, '/\\') . '/' . ltrim($relative, '/');
                     }
                 }
@@ -13184,9 +13172,7 @@ final class Assets
 
 final class Cron
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Schedules a recurring event when it is not already scheduled.
@@ -13195,7 +13181,7 @@ final class Cron
      */
     public static function schedule(string $hook, string $recurrence = 'daily', array $args = []): bool
     {
-        if (!function_exists('wp_next_scheduled')) {
+        if (!\function_exists('wp_next_scheduled')) {
             throw new TemplateException('WP-Cron is not available.');
         }
 
@@ -13211,7 +13197,7 @@ final class Cron
      */
     public static function unschedule(string $hook, array $args = []): bool
     {
-        if (!function_exists('wp_next_scheduled')) {
+        if (!\function_exists('wp_next_scheduled')) {
             throw new TemplateException('WP-Cron is not available.');
         }
 
@@ -13229,7 +13215,7 @@ final class Cron
      */
     public static function next(string $hook, array $args = []): ?int
     {
-        if (!function_exists('wp_next_scheduled')) {
+        if (!\function_exists('wp_next_scheduled')) {
             return null;
         }
 
@@ -13249,9 +13235,7 @@ final class Cron
 
 final class Db
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * The global $wpdb instance (or null outside WordPress).
@@ -13260,7 +13244,7 @@ final class Db
     {
         $wpdb = $GLOBALS['wpdb'] ?? null;
 
-        return is_object($wpdb) ? $wpdb : null;
+        return \is_object($wpdb) ? $wpdb : null;
     }
 
     /**
@@ -13308,7 +13292,7 @@ final class Db
         $wpdb = self::wpdb() ?? throw new TemplateException('$wpdb is not available.');
         $row = $wpdb->get_row(self::prepare($sql, $params), \ARRAY_A);
 
-        return is_array($row) ? $row : null;
+        return \is_array($row) ? $row : null;
     }
 
     /**
@@ -13320,7 +13304,7 @@ final class Db
         $wpdb = self::wpdb() ?? throw new TemplateException('$wpdb is not available.');
         $rows = $wpdb->get_results(self::prepare($sql, $params), \ARRAY_A);
 
-        return is_array($rows) ? array_values($rows) : [];
+        return \is_array($rows) ? array_values($rows) : [];
     }
 
     /**
@@ -13335,7 +13319,7 @@ final class Db
                     (DATA_LENGTH + INDEX_LENGTH) AS bytes
              FROM information_schema.TABLES
              WHERE TABLE_SCHEMA = DATABASE()
-             ORDER BY bytes DESC'
+             ORDER BY bytes DESC',
         );
 
         $sizes = [];
@@ -13370,15 +13354,16 @@ final class Db
 
 final class Health
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * @return list<array{code: string, severity: 'info'|'warning'|'critical', message: string}>
      */
     /**
      * Runs every check; pass the engine to include its diagnostics backlog.
+     */
+    /**
+     * @return list<array{code: string, severity: string, message: string}>
      */
     public static function check(?\HtmlPhp\Engine $engine = null): array
     {
@@ -13395,16 +13380,16 @@ final class Health
         }
 
         // Memory limit.
-        $memory = self::iniBytes((string) ini_get('memory_limit'));
+        $memory = self::iniBytes((string) \ini_get('memory_limit'));
 
         if ($memory > 0 && $memory < 64 * 1024 * 1024) {
-            $issues[] = self::issue('memory-low', 'warning', 'memory_limit is below 64M (' . ini_get('memory_limit') . ').');
+            $issues[] = self::issue('memory-low', 'warning', 'memory_limit is below 64M (' . \ini_get('memory_limit') . ').');
         }
 
         // Disk space.
-        if (function_exists('wp_upload_dir')) {
+        if (\function_exists('wp_upload_dir')) {
             $uploads = wp_upload_dir();
-            $base = is_array($uploads) ? (string) ($uploads['basedir'] ?? '') : '';
+            $base = (string) ($uploads['basedir'] ?? '');
 
             if ($base !== '' && is_dir($base)) {
                 if (!is_writable($base)) {
@@ -13424,7 +13409,7 @@ final class Health
         // Database connectivity.
         $wpdb = $GLOBALS['wpdb'] ?? null;
 
-        if (is_object($wpdb) && method_exists($wpdb, 'check_connection')) {
+        if (\is_object($wpdb) && method_exists($wpdb, 'check_connection')) {
             if (!$wpdb->check_connection($silent = true)) {
                 $issues[] = self::issue('db-down', 'critical', 'The database connection is not alive.');
             }
@@ -13436,7 +13421,7 @@ final class Health
         }
 
         // Pending updates.
-        if (class_exists(Updates::class) && function_exists('get_site_transient')) {
+        if (class_exists(Updates::class) && \function_exists('get_site_transient')) {
             $pending = Updates::count();
 
             if ($pending > 0) {
@@ -13498,19 +13483,19 @@ final class Logs
 {
     private const array LEVELS = ['debug', 'info', 'warning', 'error', 'critical'];
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function directory(): string
     {
-        if (\defined('HTML_WP_LOG_DIR') && \is_string(\HTML_WP_LOG_DIR) && \HTML_WP_LOG_DIR !== '') {
-            return rtrim(\HTML_WP_LOG_DIR, "/\\");
+        $configured = \defined('HTML_WP_LOG_DIR') ? \constant('HTML_WP_LOG_DIR') : null;
+
+        if (\is_string($configured) && $configured !== '') {
+            return rtrim($configured, "/\\");
         }
 
-        if (function_exists('wp_upload_dir')) {
+        if (\function_exists('wp_upload_dir')) {
             $uploads = wp_upload_dir();
-            $base = is_array($uploads) ? (string) ($uploads['basedir'] ?? '') : '';
+            $base = (string) ($uploads['basedir'] ?? '');
 
             if ($base !== '' && is_dir($base)) {
                 return rtrim($base, "/\\") . \DIRECTORY_SEPARATOR . 'html-php-logs';
@@ -13530,19 +13515,19 @@ final class Logs
      */
     public static function write(string $level, string $message, array $context = []): bool
     {
-        $level = in_array($level, self::LEVELS, true) ? $level : 'info';
+        $level = \in_array($level, self::LEVELS, true) ? $level : 'info';
         $directory = self::directory();
 
         if (!is_dir($directory) && !@mkdir($directory, 0o755, true) && !is_dir($directory)) {
             return false;
         }
 
-        $line = sprintf(
+        $line = \sprintf(
             "[%s] %s: %s%s\n",
             date('Y-m-d H:i:s'),
             strtoupper($level),
             $message,
-            $context === [] ? '' : ' ' . (string) json_encode($context, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE)
+            $context === [] ? '' : ' ' . (string) json_encode($context, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE),
         );
 
         $written = @file_put_contents(self::file(), $line, \FILE_APPEND | \LOCK_EX);
@@ -13552,11 +13537,13 @@ final class Logs
         return $written !== false;
     }
 
+    /** @param array<string, mixed> $context */
     public static function info(string $message, array $context = []): bool
     {
         return self::write('info', $message, $context);
     }
 
+    /** @param array<string, mixed> $context */
     public static function error(string $message, array $context = []): bool
     {
         return self::write('error', $message, $context);
@@ -13574,7 +13561,7 @@ final class Logs
 
         $removed = 0;
 
-        while (count($files) > $keep) {
+        while (\count($files) > $keep) {
             $oldest = (string) array_shift($files);
 
             if (@unlink($oldest)) {
@@ -13601,15 +13588,13 @@ final class Logs
         $content = (string) @file_get_contents($file);
         $all = array_values(array_filter(explode("\n", $content), static fn(string $l): bool => trim($l) !== ''));
 
-        return array_slice($all, -$lines);
+        return \array_slice($all, -$lines);
     }
 }
 
 final class Nonces
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function create(string $action = 'htmlphp_action'): string
     {
@@ -13622,7 +13607,7 @@ final class Nonces
     {
         self::requireWordPress();
 
-        if (!is_string($nonce) || $nonce === '') {
+        if (!\is_string($nonce) || $nonce === '') {
             return false;
         }
 
@@ -13644,7 +13629,7 @@ final class Nonces
     {
         self::requireWordPress();
 
-        $escape = static fn(string $value): string => function_exists('esc_attr')
+        $escape = static fn(string $value): string => \function_exists('esc_attr')
             ? esc_attr($value)
             : htmlspecialchars($value, \ENT_QUOTES);
 
@@ -13654,7 +13639,7 @@ final class Nonces
 
     private static function requireWordPress(): void
     {
-        if (!function_exists('wp_create_nonce')) {
+        if (!\function_exists('wp_create_nonce')) {
             throw new TemplateException('WordPress nonce API is not available.');
         }
     }
@@ -13665,9 +13650,7 @@ final class Notices
     private const string QUEUE_KEY = 'notices_queue';
     private static bool $installed = false;
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Queues a notice for the next admin screen.
@@ -13677,15 +13660,15 @@ final class Notices
      */
     public static function add(string $text, string $type = 'info', bool $dismissible = true): void
     {
-        $type = in_array($type, ['info', 'success', 'warning', 'error'], true) ? $type : 'info';
+        $type = \in_array($type, ['info', 'success', 'warning', 'error'], true) ? $type : 'info';
         $queue = Options::getArray(self::QUEUE_KEY);
         $queue[] = ['text' => $text, 'type' => $type, 'dismissible' => $dismissible];
-        Options::set(self::QUEUE_KEY, array_slice($queue, -50));
+        Options::set(self::QUEUE_KEY, \array_slice($queue, -50));
     }
 
     public static function install(): void
     {
-        if (self::$installed || !function_exists('add_action')) {
+        if (self::$installed || !\function_exists('add_action')) {
             return;
         }
 
@@ -13706,12 +13689,12 @@ final class Notices
 
         Options::delete(self::QUEUE_KEY);
 
-        $escape = static fn(string $value): string => function_exists('esc_attr')
+        $escape = static fn(string $value): string => \function_exists('esc_attr')
             ? esc_attr($value)
             : htmlspecialchars($value, \ENT_QUOTES);
 
         foreach ($queue as $notice) {
-            $class = 'notice notice-' . (is_string($notice['type'] ?? null) ? $notice['type'] : 'info');
+            $class = 'notice notice-' . (\is_string($notice['type'] ?? null) ? $notice['type'] : 'info');
             $class .= !empty($notice['dismissible']) ? ' is-dismissible' : '';
 
             echo '<div class="' . $escape($class) . '"><p>'
@@ -13737,13 +13720,11 @@ final class Notices
 
 final class Options
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function get(string $key, mixed $default = null, string $prefix = 'htmlphp_'): mixed
     {
-        if (!function_exists('get_option')) {
+        if (!\function_exists('get_option')) {
             return $GLOBALS['htmlphp_options'][$prefix . $key] ?? $default;
         }
 
@@ -13754,7 +13735,7 @@ final class Options
 
     public static function set(string $key, mixed $value, string $prefix = 'htmlphp_'): bool
     {
-        if (!function_exists('update_option')) {
+        if (!\function_exists('update_option')) {
             $GLOBALS['htmlphp_options'][$prefix . $key] = $value;
 
             return true;
@@ -13765,7 +13746,7 @@ final class Options
 
     public static function delete(string $key, string $prefix = 'htmlphp_'): bool
     {
-        if (!function_exists('delete_option')) {
+        if (!\function_exists('delete_option')) {
             unset($GLOBALS['htmlphp_options'][$prefix . $key]);
 
             return true;
@@ -13785,7 +13766,7 @@ final class Options
     {
         $value = self::get($key, $default, $prefix);
 
-        return is_bool($value) ? $value : filter_var($value, \FILTER_VALIDATE_BOOL);
+        return \is_bool($value) ? $value : filter_var($value, \FILTER_VALIDATE_BOOL);
     }
 
     /**
@@ -13795,15 +13776,13 @@ final class Options
     {
         $value = self::get($key, [], $prefix);
 
-        return is_array($value) ? $value : [];
+        return \is_array($value) ? $value : [];
     }
 }
 
 final class Rest
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Registers a route; refusing registrations without an explicit
@@ -13814,9 +13793,9 @@ final class Rest
         string $route,
         callable $handler,
         string $methods = 'GET',
-        ?callable $permission = null
+        ?callable $permission = null,
     ): void {
-        if (!function_exists('register_rest_route')) {
+        if (!\function_exists('register_rest_route')) {
             throw new TemplateException('The REST API is not available.');
         }
 
@@ -13850,9 +13829,7 @@ final class Rest
 
 final class SystemInfo
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * @return array<string, mixed>
@@ -13863,34 +13840,34 @@ final class SystemInfo
 
         $info = [
             'wordpress' => [
-                'version' => is_string($wp_version ?? null)
+                'version' => \is_string($wp_version ?? null)
                     ? $wp_version
-                    : (function_exists('get_bloginfo') ? (string) get_bloginfo('version') : 'unknown'),
-                'multisite' => function_exists('is_multisite') ? (bool) is_multisite() : false,
-                'locale' => function_exists('determine_locale') ? (string) determine_locale() : '',
+                    : (\function_exists('get_bloginfo') ? (string) get_bloginfo('version') : 'unknown'),
+                'multisite' => \function_exists('is_multisite') ? (bool) is_multisite() : false,
+                'locale' => \function_exists('determine_locale') ? (string) determine_locale() : '',
                 'debug' => \defined('WP_DEBUG') && \WP_DEBUG === true,
                 'script_debug' => \defined('SCRIPT_DEBUG') && \SCRIPT_DEBUG === true,
                 'cron_disabled' => \defined('DISABLE_WP_CRON') && \DISABLE_WP_CRON === true,
                 'memory_limit' => \defined('WP_MEMORY_LIMIT') ? (string) \WP_MEMORY_LIMIT : '',
-                'site_url' => function_exists('home_url') ? (string) home_url('/') : '',
+                'site_url' => \function_exists('home_url') ? (string) home_url('/') : '',
                 'active_theme' => self::themeName(),
                 'plugins_active' => self::activePlugins(),
-                'db_version' => is_object($wpdb ?? null) && property_exists($wpdb, 'db_version')
+                'db_version' => \is_object($wpdb ?? null) && property_exists($wpdb, 'db_version')
                     ? (string) $wpdb->db_version
                     : '',
-                'db_charset' => is_object($wpdb ?? null) && property_exists($wpdb, 'charset')
+                'db_charset' => \is_object($wpdb ?? null) && property_exists($wpdb, 'charset')
                     ? (string) $wpdb->charset
                     : '',
             ],
             'php' => [
                 'version' => \PHP_VERSION,
                 'sapi' => \PHP_SAPI,
-                'memory_limit' => (string) ini_get('memory_limit'),
-                'max_execution_time' => (string) ini_get('max_execution_time'),
-                'upload_max_filesize' => (string) ini_get('upload_max_filesize'),
-                'post_max_size' => (string) ini_get('post_max_size'),
-                'opcache' => function_exists('opcache_get_status')
-                    && (bool) (ini_get('opcache.enable') ?? false),
+                'memory_limit' => (string) \ini_get('memory_limit'),
+                'max_execution_time' => (string) \ini_get('max_execution_time'),
+                'upload_max_filesize' => (string) \ini_get('upload_max_filesize'),
+                'post_max_size' => (string) \ini_get('post_max_size'),
+                'opcache' => \function_exists('opcache_get_status')
+                    && (bool) \ini_get('opcache.enable'),
                 'extensions' => self::relevantExtensions(),
             ],
             'server' => [
@@ -13922,7 +13899,7 @@ final class SystemInfo
         $loaded = [];
 
         foreach ($wanted as $extension) {
-            if (extension_loaded($extension)) {
+            if (\extension_loaded($extension)) {
                 $loaded[] = $extension;
             }
         }
@@ -13932,13 +13909,13 @@ final class SystemInfo
 
     private static function themeName(): string
     {
-        if (!function_exists('wp_get_theme')) {
+        if (!\function_exists('wp_get_theme')) {
             return '';
         }
 
         $theme = wp_get_theme();
 
-        return is_object($theme) && method_exists($theme, 'get') ? (string) $theme->get('Name') : '';
+        return method_exists($theme, 'get') ? (string) $theme->get('Name') : '';
     }
 
     /**
@@ -13946,23 +13923,23 @@ final class SystemInfo
      */
     private static function activePlugins(): array
     {
-        if (!function_exists('get_option')) {
+        if (!\function_exists('get_option')) {
             return [];
         }
 
         $plugins = get_option('active_plugins', []);
 
-        return is_array($plugins) ? array_values(array_map('strval', $plugins)) : [];
+        return \is_array($plugins) ? array_values(array_map('strval', $plugins)) : [];
     }
 
     private static function diskFree(): string
     {
-        if (!function_exists('wp_upload_dir')) {
+        if (!\function_exists('wp_upload_dir')) {
             return '';
         }
 
         $uploads = wp_upload_dir();
-        $base = is_array($uploads) ? (string) ($uploads['basedir'] ?? '') : '';
+        $base = (string) ($uploads['basedir'] ?? '');
 
         if ($base === '' || !is_dir($base)) {
             return '';
@@ -13976,13 +13953,11 @@ final class SystemInfo
 
 final class Transients
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function get(string $key, mixed $default = null, string $prefix = 'htmlphp_'): mixed
     {
-        if (!function_exists('get_transient')) {
+        if (!\function_exists('get_transient')) {
             return $default;
         }
 
@@ -13994,7 +13969,7 @@ final class Transients
 
     public static function set(string $key, mixed $value, int $ttl = 3600, string $prefix = 'htmlphp_'): bool
     {
-        if (!function_exists('set_transient')) {
+        if (!\function_exists('set_transient')) {
             return false;
         }
 
@@ -14004,7 +13979,7 @@ final class Transients
 
     public static function delete(string $key, string $prefix = 'htmlphp_'): bool
     {
-        if (!function_exists('delete_transient')) {
+        if (!\function_exists('delete_transient')) {
             return false;
         }
 
@@ -14033,9 +14008,7 @@ final class Transients
 
 final class Updates
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * @return array{core: list<array<string, mixed>>, plugins: list<array<string, mixed>>, themes: list<array<string, mixed>>, last_checked: ?int}
@@ -14044,17 +14017,17 @@ final class Updates
     {
         $result = ['core' => [], 'plugins' => [], 'themes' => [], 'last_checked' => null];
 
-        if (!function_exists('get_site_transient')) {
+        if (!\function_exists('get_site_transient')) {
             return $result;
         }
 
         $core = get_site_transient('update_core');
 
-        if (is_object($core)) {
+        if (\is_object($core)) {
             $result['last_checked'] = isset($core->last_checked) ? (int) $core->last_checked : null;
 
             foreach ((array) ($core->updates ?? []) as $update) {
-                if (is_object($update) && ($update->response ?? '') === 'upgrade') {
+                if (\is_object($update) && ($update->response ?? '') === 'upgrade') {
                     $result['core'][] = [
                         'version' => (string) ($update->version ?? ''),
                         'php' => (string) ($update->php_version ?? ''),
@@ -14066,9 +14039,9 @@ final class Updates
 
         $plugins = get_site_transient('update_plugins');
 
-        if (is_object($plugins)) {
+        if (\is_object($plugins)) {
             foreach ((array) ($plugins->response ?? []) as $file => $update) {
-                if (!is_object($update)) {
+                if (!\is_object($update)) {
                     continue;
                 }
 
@@ -14082,11 +14055,11 @@ final class Updates
 
         $themes = get_site_transient('update_themes');
 
-        if (is_object($themes)) {
+        if (\is_object($themes)) {
             foreach ((array) ($themes->response ?? []) as $slug => $update) {
                 $result['themes'][] = [
                     'slug' => (string) $slug,
-                    'new_version' => (string) (is_array($update) ? ($update['new_version'] ?? '') : ''),
+                    'new_version' => (string) (\is_array($update) ? ($update['new_version'] ?? '') : ''),
                 ];
             }
         }
@@ -14098,7 +14071,7 @@ final class Updates
     {
         $update = self::check();
 
-        return count($update['core']) + count($update['plugins']) + count($update['themes']);
+        return \count($update['core']) + \count($update['plugins']) + \count($update['themes']);
     }
 }
 
@@ -14140,15 +14113,13 @@ final class AdminPage
 
     private static ?Engine $engine = null;
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function install(Engine $engine): void
     {
         self::$engine = $engine;
 
-        if (!function_exists('add_management_page')) {
+        if (!\function_exists('add_management_page')) {
             return;
         }
 
@@ -14157,7 +14128,7 @@ final class AdminPage
             'HTML.PHP',
             'manage_options',
             self::SLUG,
-            static fn(): string => self::renderPage()
+            static fn(): string => self::renderPage(),
         );
     }
 
@@ -14209,8 +14180,8 @@ final class AdminPage
                     'tabs' => self::tabs(),
                     'data' => self::tabData($engine, $tab),
                     'nonce_field' => Nonces::field(self::NONCE_ACTION),
-                    'admin_post_url' => function_exists('admin_url') ? admin_url('admin-post.php') : '',
-                    'page_url' => function_exists('admin_url') ? admin_url('tools.php?page=' . self::SLUG) : '',
+                    'admin_post_url' => \function_exists('admin_url') ? admin_url('admin-post.php') : '',
+                    'page_url' => \function_exists('admin_url') ? admin_url('tools.php?page=' . self::SLUG) : '',
                 ]);
             } catch (\Throwable) {
                 // fall through to the built-in markup
@@ -14235,7 +14206,7 @@ final class AdminPage
 
     private static function currentTab(): string
     {
-        $tab = isset($_GET['tab']) && is_scalar($_GET['tab']) ? (string) $_GET['tab'] : 'health';
+        $tab = isset($_GET['tab']) && \is_scalar($_GET['tab']) ? (string) $_GET['tab'] : 'health';
 
         foreach (self::tabs() as $entry) {
             if ($entry['id'] === $tab) {
@@ -14281,7 +14252,7 @@ final class AdminPage
             foreach ($engine->lintDirectory($root) as $file => $issues) {
                 $report[$file] = array_map(
                     static fn(\HtmlPhp\Template\LintIssue $issue): array => $issue->toArray(),
-                    $issues
+                    $issues,
                 );
             }
         }
@@ -14292,17 +14263,17 @@ final class AdminPage
     private static function builtinPage(Engine $engine, string $tab): string
     {
         $esc = static fn(mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $url = function_exists('admin_url') ? admin_url('tools.php?page=' . self::SLUG) : '';
+        $url = \function_exists('admin_url') ? admin_url('tools.php?page=' . self::SLUG) : '';
 
         $nav = '';
         foreach (self::tabs() as $entry) {
             $active = $entry['id'] === $tab ? ' class="current"' : '';
-            $nav .= sprintf(
+            $nav .= \sprintf(
                 '<a href="%s&amp;tab=%s"%s>%s</a> | ',
                 $esc($url),
                 $esc($entry['id']),
                 $active,
-                $esc($entry['label'])
+                $esc($entry['label']),
             );
         }
 
@@ -14326,11 +14297,11 @@ final class AdminPage
         $rows = '';
 
         foreach (Health::check($engine) as $finding) {
-            $rows .= sprintf(
+            $rows .= \sprintf(
                 '<li><strong>%s</strong> [%s] %s</li>',
                 htmlspecialchars((string) ($finding['code'] ?? ''), ENT_QUOTES, 'UTF-8'),
                 htmlspecialchars((string) ($finding['severity'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                htmlspecialchars((string) ($finding['message'] ?? ''), ENT_QUOTES, 'UTF-8')
+                htmlspecialchars((string) ($finding['message'] ?? ''), ENT_QUOTES, 'UTF-8'),
             );
         }
 
@@ -14351,12 +14322,12 @@ final class AdminPage
             $out .= '<li><code>' . htmlspecialchars((string) $file, ENT_QUOTES, 'UTF-8') . '</code><ul>';
 
             foreach ($issues as $issue) {
-                $out .= sprintf(
+                $out .= \sprintf(
                     '<li>[%s] line %d: %s (%s)</li>',
                     htmlspecialchars((string) ($issue['severity'] ?? ''), ENT_QUOTES, 'UTF-8'),
                     (int) ($issue['line'] ?? 0),
                     htmlspecialchars((string) ($issue['message'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                    htmlspecialchars((string) ($issue['code'] ?? ''), ENT_QUOTES, 'UTF-8')
+                    htmlspecialchars((string) ($issue['code'] ?? ''), ENT_QUOTES, 'UTF-8'),
                 );
             }
 
@@ -14385,11 +14356,11 @@ final class AdminPage
 
         foreach ($stats as $domain => $locales) {
             foreach ($locales as $locale => $count) {
-                $rows .= sprintf(
+                $rows .= \sprintf(
                     '<li><code>%s/%s</code>: %d message(s)</li>',
                     htmlspecialchars((string) $domain, ENT_QUOTES, 'UTF-8'),
                     htmlspecialchars((string) $locale, ENT_QUOTES, 'UTF-8'),
-                    (int) $count
+                    (int) $count,
                 );
             }
         }
@@ -14420,10 +14391,10 @@ final class AdminPage
             $out .= '<h3>' . htmlspecialchars((string) $section, ENT_QUOTES, 'UTF-8') . '</h3><ul>';
 
             foreach ((array) $values as $key => $value) {
-                $out .= sprintf(
+                $out .= \sprintf(
                     '<li><strong>%s</strong>: <code>%s</code></li>',
                     htmlspecialchars((string) $key, ENT_QUOTES, 'UTF-8'),
-                    htmlspecialchars(is_scalar($value) || $value === null ? (string) $value : (string) json_encode($value), ENT_QUOTES, 'UTF-8')
+                    htmlspecialchars(\is_scalar($value) || $value === null ? (string) $value : (string) json_encode($value), ENT_QUOTES, 'UTF-8'),
                 );
             }
 
@@ -14435,7 +14406,7 @@ final class AdminPage
 
     private static function postForm(string $action, string $label, string $tab): string
     {
-        $url = function_exists('admin_url') ? admin_url('admin-post.php') : '';
+        $url = \function_exists('admin_url') ? admin_url('admin-post.php') : '';
 
         return '<form method="post" action="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">'
             . '<input type="hidden" name="action" value="htmlphp_action">'
@@ -14448,13 +14419,13 @@ final class AdminPage
 
     private static function capable(): bool
     {
-        return !function_exists('current_user_can') || current_user_can('manage_options');
+        return !\function_exists('current_user_can') || current_user_can('manage_options');
     }
 
     /** @param array<string, string> $query */
     private static function redirect(string $status, array $query = []): void
     {
-        if (!function_exists('wp_safe_redirect') || !function_exists('admin_url')) {
+        if (!\function_exists('wp_safe_redirect') || !\function_exists('admin_url')) {
             return;
         }
 
@@ -14466,7 +14437,7 @@ final class AdminPage
 
         wp_safe_redirect($url);
 
-        if (function_exists('exit_after_redirect')) {
+        if (\function_exists('exit_after_redirect')) {
             exit_after_redirect();
         }
     }
@@ -14500,9 +14471,7 @@ final class Bridge
     /** @var array<string, mixed> */
     private static array $options = [];
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Boots (once) and returns the engine.
@@ -14526,7 +14495,7 @@ final class Bridge
         self::$options = $options + [
             'shortcode' => null,
             'content_ssi' => false,
-            'admin_bar' => defined('WP_DEBUG') && (bool) constant('WP_DEBUG'),
+            'admin_bar' => \defined('WP_DEBUG') && (bool) \constant('WP_DEBUG'),
             'cli' => true,
             'admin_page' => true,
             'mirror_events' => true,
@@ -14558,11 +14527,11 @@ final class Bridge
         $paths = $config['templates']['paths'] ?? [];
         $themePaths = [];
 
-        if (function_exists('get_stylesheet_directory')) {
+        if (\function_exists('get_stylesheet_directory')) {
             $themePaths[] = rtrim((string) get_stylesheet_directory(), '/\\') . '/htmlphp';
         }
 
-        if (function_exists('get_template_directory')) {
+        if (\function_exists('get_template_directory')) {
             $themePaths[] = rtrim((string) get_template_directory(), '/\\') . '/htmlphp';
         }
 
@@ -14571,11 +14540,11 @@ final class Bridge
                 'paths' => [...$themePaths, ...$paths],
             ],
             'ssi' => [
-                'document_root' => defined('ABSPATH') ? rtrim((string) constant('ABSPATH'), '/\\') : null,
+                'document_root' => \defined('ABSPATH') ? rtrim((string) \constant('ABSPATH'), '/\\') : null,
             ],
             'cache' => [
                 'enabled' => true,
-                'driver' => function_exists('wp_cache_get') ? 'wordpress' : 'file',
+                'driver' => \function_exists('wp_cache_get') ? 'wordpress' : 'file',
                 'directory' => self::uploadsCacheDir(),
             ],
             'log' => [
@@ -14602,7 +14571,7 @@ final class Bridge
     private static function mergeDeep(array $base, array $overrides): array
     {
         foreach ($overrides as $key => $value) {
-            if (is_array($value) && isset($base[$key]) && is_array($base[$key])) {
+            if (\is_array($value) && isset($base[$key]) && \is_array($base[$key])) {
                 $base[$key] = self::mergeDeep($base[$key], $value);
                 continue;
             }
@@ -14615,9 +14584,9 @@ final class Bridge
 
     private static function uploadsCacheDir(): string
     {
-        if (function_exists('wp_upload_dir')) {
+        if (\function_exists('wp_upload_dir')) {
             $uploads = wp_upload_dir();
-            $base = is_array($uploads) ? (string) ($uploads['basedir'] ?? '') : '';
+            $base = (string) ($uploads['basedir'] ?? '');
 
             if ($base !== '') {
                 return $base . '/htmlphp-cache';
@@ -14629,7 +14598,7 @@ final class Bridge
 
     private static function installHooks(Engine $engine): void
     {
-        if (!function_exists('add_action')) {
+        if (!\function_exists('add_action')) {
             return;
         }
 
@@ -14637,7 +14606,7 @@ final class Bridge
             self::mirrorEvents($engine);
         }
 
-        if (is_string(self::$options['shortcode']) && self::$options['shortcode'] !== '') {
+        if (\is_string(self::$options['shortcode']) && self::$options['shortcode'] !== '') {
             self::registerGenericShortcode($engine, (string) self::$options['shortcode']);
         }
 
@@ -14652,7 +14621,7 @@ final class Bridge
                 } catch (\Throwable $error) {
                     $engine->diagnostics()->record(
                         Diagnostics::WP_BRIDGE,
-                        'Content SSI failed: ' . $error->getMessage()
+                        'Content SSI failed: ' . $error->getMessage(),
                     );
 
                     return $content;
@@ -14664,13 +14633,13 @@ final class Bridge
             add_action('admin_bar_menu', static function (mixed $bar) use ($engine): void {
                 $stats = $engine->stats();
 
-                if (!$stats instanceof RenderStats || !is_object($bar) || !method_exists($bar, 'add_node')) {
+                if (!$stats instanceof RenderStats || !\is_object($bar) || !method_exists($bar, 'add_node')) {
                     return;
                 }
 
                 $bar->add_node([
                     'id' => 'htmlphp-stats',
-                    'title' => sprintf('HTML.PHP %.2fms/%d tpl', $stats->durationMs, count($stats->templates)),
+                    'title' => \sprintf('HTML.PHP %.2fms/%d tpl', $stats->durationMs, \count($stats->templates)),
                     'href' => admin_url('tools.php?page=htmlphp'),
                 ]);
             }, 999);
@@ -14699,17 +14668,17 @@ final class Bridge
         $dispatcher = $engine->events();
 
         $dispatcher->on('htmlphp.render', static function (string $text, string $origin) {
-            return function_exists('apply_filters') ? apply_filters('htmlphp_render', $text, $origin) : $text;
+            return \function_exists('apply_filters') ? apply_filters('htmlphp_render', $text, $origin) : $text;
         }, 1000);
 
         $dispatcher->on('htmlphp.error', static function (string $code, string $message, array $context): void {
-            if (function_exists('do_action')) {
+            if (\function_exists('do_action')) {
                 do_action('htmlphp_error', $code, $message, $context);
             }
         });
 
         $dispatcher->on('htmlphp.translate', static function (string $text, string $msgid, string $domain, string $locale) {
-            return function_exists('apply_filters')
+            return \function_exists('apply_filters')
                 ? apply_filters('htmlphp_translate', $text, $msgid, $domain, $locale)
                 : $text;
         }, 1000);
@@ -14724,15 +14693,15 @@ final class Bridge
     {
         $tag = preg_replace('~[^a-z0-9_-]~i', '', $tag) ?? '';
 
-        if ($tag === '' || !function_exists('add_shortcode')) {
+        if ($tag === '' || !\function_exists('add_shortcode')) {
             return;
         }
 
         add_shortcode($tag, static function (mixed $atts, mixed $content = null) use ($engine): string {
-            $attributes = is_array($atts) ? $atts : [];
+            $attributes = \is_array($atts) ? $atts : [];
             $template = '';
 
-            if (isset($attributes['template']) && is_scalar($attributes['template'])) {
+            if (isset($attributes['template']) && \is_scalar($attributes['template'])) {
                 $template = (string) $attributes['template'];
                 unset($attributes['template']);
             }
@@ -14741,11 +14710,11 @@ final class Bridge
                 return '';
             }
 
-            $vars = ['content' => is_string($content) ? $content : ''];
+            $vars = ['content' => \is_string($content) ? $content : ''];
 
             foreach ($attributes as $key => $value) {
-                if (is_string($key) && \HtmlPhp\Support\Str::isValidVariableName($key)) {
-                    $vars[$key] = is_scalar($value) || $value === null ? $value : '';
+                if (\is_string($key) && \HtmlPhp\Support\Str::isValidVariableName($key)) {
+                    $vars[$key] = \is_scalar($value) || $value === null ? $value : '';
                 }
             }
 
@@ -14759,7 +14728,7 @@ final class Bridge
                 $engine->diagnostics()->record(
                     Diagnostics::WP_BRIDGE,
                     'Shortcode render failed: ' . $error->getMessage(),
-                    ['template' => $template]
+                    ['template' => $template],
                 );
 
                 return '';
@@ -14771,7 +14740,7 @@ final class Bridge
     {
         if (self::$engine === null) {
             throw new \RuntimeException(
-                'HtmlPhp\WordPress\Bridge is not booted — call Bridge::boot() on plugins_loaded.'
+                'HtmlPhp\WordPress\Bridge is not booted — call Bridge::boot() on plugins_loaded.',
             );
         }
 
@@ -14827,7 +14796,7 @@ final class Cli
             $this->line('== ' . strtoupper($section) . ' ==');
 
             foreach ((array) ($info[$section] ?? []) as $key => $value) {
-                $this->line(sprintf('  %-22s %s', (string) $key, $this->flat($value)));
+                $this->line(\sprintf('  %-22s %s', (string) $key, $this->flat($value)));
             }
         }
     }
@@ -14851,7 +14820,7 @@ final class Cli
         foreach ((array) ($assoc['var'] ?? []) as $pair) {
             $parts = explode('=', (string) $pair, 2);
 
-            if (count($parts) === 2) {
+            if (\count($parts) === 2) {
                 $vars[$parts[0]] = $parts[1];
             }
         }
@@ -14926,7 +14895,7 @@ final class Cli
 
         if ($action === 'clear') {
             $removed = $engine->clearCache();
-            $this->success(sprintf('Removed %d cache entr%s.', $removed, $removed === 1 ? 'y' : 'ies'));
+            $this->success(\sprintf('Removed %d cache entr%s.', $removed, $removed === 1 ? 'y' : 'ies'));
 
             return;
         }
@@ -14960,7 +14929,7 @@ final class Cli
             if ($out !== '') {
                 file_put_contents($out, $pot) === false
                     ? $this->error('Cannot write ' . $out)
-                    : $this->success(sprintf('Wrote %d message(s) from %d file(s) to %s.', count($extractor->entries()), count($files), $out));
+                    : $this->success(\sprintf('Wrote %d message(s) from %d file(s) to %s.', \count($extractor->entries()), \count($files), $out));
 
                 return;
             }
@@ -15005,7 +14974,7 @@ final class Cli
     {
         foreach (Health::check(Bridge::engine()) as $finding) {
             $severity = (string) ($finding['severity'] ?? 'info');
-            $this->report($severity, sprintf('%s — %s', (string) ($finding['code'] ?? ''), (string) ($finding['message'] ?? '')));
+            $this->report($severity, \sprintf('%s — %s', (string) ($finding['code'] ?? ''), (string) ($finding['message'] ?? '')));
         }
     }
 
@@ -15050,7 +15019,7 @@ final class Cli
     /** @param mixed $value */
     private function flat($value): string
     {
-        if (is_scalar($value) || $value === null) {
+        if (\is_scalar($value) || $value === null) {
             return (string) $value;
         }
 
@@ -15074,15 +15043,13 @@ final class Cli
  */
 final class Mailer
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * @param string|list<string> $to
      * @param array<string, mixed> $vars
      * @param string|list<string> $headers extra headers (Content-Type is added unless present)
-     * @param list<string> $attachments
+     * @param string|list<string> $attachments
      */
     public static function send(
         Engine $engine,
@@ -15090,10 +15057,10 @@ final class Mailer
         string $subjectTemplate,
         string $bodyTemplate,
         array $vars = [],
-        array $headers = [],
-        array $attachments = []
+        string|array $headers = [],
+        string|array $attachments = [],
     ): bool {
-        if (!function_exists('wp_mail')) {
+        if (!\function_exists('wp_mail')) {
             return false;
         }
 
@@ -15101,20 +15068,26 @@ final class Mailer
         $subject = trim(self::render($engine, $subjectTemplate, $vars, false));
         $body = self::render($engine, $bodyTemplate, $vars, true);
 
+        // wp_mail accepts "string | string[]" for both; normalise once, here.
+        $headerList = \is_string($headers) ? ($headers !== '' ? [$headers] : []) : array_values($headers);
+        $attachmentList = \is_string($attachments)
+            ? ($attachments !== '' ? [$attachments] : [])
+            : array_values($attachments);
+
         $hasContentType = false;
 
-        foreach ($headers as $header) {
-            if (is_string($header) && stripos($header, 'content-type:') === 0) {
+        foreach ($headerList as $header) {
+            if (\is_string($header) && stripos($header, 'content-type:') === 0) {
                 $hasContentType = true;
                 break;
             }
         }
 
         if (!$hasContentType) {
-            $headers[] = 'Content-Type: text/html; charset=UTF-8';
+            $headerList[] = 'Content-Type: text/html; charset=UTF-8';
         }
 
-        return (bool) wp_mail($to, $subject, $body, $headers, $attachments);
+        return (bool) wp_mail($to, $subject, $body, $headerList, $attachmentList);
     }
 
     /**
@@ -15150,9 +15123,7 @@ final class Mailer
  */
 final class Shortcodes
 {
-    public function __construct(private readonly Engine $engine)
-    {
-    }
+    public function __construct(private readonly Engine $engine) {}
 
     /**
      * @param array<string, mixed> $defaults merged under the shortcode attributes
@@ -15161,7 +15132,7 @@ final class Shortcodes
     {
         $tag = preg_replace('~[^a-z0-9_-]~i', '', $tag) ?? '';
 
-        if ($tag === '' || !function_exists('add_shortcode')) {
+        if ($tag === '' || !\function_exists('add_shortcode')) {
             return;
         }
 
@@ -15170,15 +15141,15 @@ final class Shortcodes
         $handler = static function (mixed $atts, mixed $content = null) use ($engine, $template, $defaults): string {
             $vars = $defaults;
 
-            if (is_array($atts)) {
+            if (\is_array($atts)) {
                 foreach ($atts as $key => $value) {
-                    if (is_string($key) && Str::isValidVariableName($key)) {
-                        $vars[$key] = is_scalar($value) || $value === null ? $value : '';
+                    if (\is_string($key) && Str::isValidVariableName($key)) {
+                        $vars[$key] = \is_scalar($value) || $value === null ? $value : '';
                     }
                 }
             }
 
-            $vars['content'] = is_string($content) ? $content : '';
+            $vars['content'] = \is_string($content) ? $content : '';
 
             try {
                 $path = TemplateLoader::locate($template) ?? $template;
@@ -15188,7 +15159,7 @@ final class Shortcodes
                 $engine->diagnostics()->record(
                     Diagnostics::WP_BRIDGE,
                     'Shortcode render failed: ' . $error->getMessage(),
-                    ['template' => $template]
+                    ['template' => $template],
                 );
 
                 return '';
@@ -15212,9 +15183,7 @@ final class TemplateLoader
     /** Suffixes tried for a bare slug, in order. */
     private const array SUFFIXES = ['.ssi.htm', '.ssi.html', '.ssi', '.htm', '.html', '.tpl'];
 
-    public function __construct(private readonly \HtmlPhp\Engine $engine)
-    {
-    }
+    public function __construct(private readonly \HtmlPhp\Engine $engine) {}
 
     /**
      * Finds the first existing template among candidate names.
@@ -15227,7 +15196,7 @@ final class TemplateLoader
      */
     public static function locate(string|array $names, array $dirs = []): ?string
     {
-        $names = is_string($names) ? [$names] : $names;
+        $names = \is_string($names) ? [$names] : $names;
         $candidates = [];
 
         foreach ($names as $name) {
@@ -15239,7 +15208,7 @@ final class TemplateLoader
             // asked for by name (source-disclosure guard).
             $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 
-            if (in_array($extension, ['php', 'phtml', 'phar', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps'], true)) {
+            if (\in_array($extension, ['php', 'phtml', 'phar', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps'], true)) {
                 continue;
             }
 
@@ -15256,7 +15225,7 @@ final class TemplateLoader
             return null;
         }
 
-        if (function_exists('locate_template')) {
+        if (\function_exists('locate_template')) {
             $found = (string) locate_template($candidates);
 
             if ($found !== '' && is_file($found)) {
@@ -15265,7 +15234,7 @@ final class TemplateLoader
         }
 
         foreach ($dirs as $dir) {
-            if (!is_string($dir) || !is_dir($dir)) {
+            if (!\is_string($dir) || !is_dir($dir)) {
                 continue;
             }
 
@@ -15303,14 +15272,14 @@ final class TemplateLoader
         if ($path === null) {
             throw new \HtmlPhp\Exception\TemplateNotFoundException(
                 'No WordPress template could be located.',
-                ['names' => (array) $names]
+                ['names' => (array) $names],
             );
         }
 
         return $this->engine->renderFile(
             $path,
             $this->withWordPressContext($vars),
-            new \HtmlPhp\Template\RenderOptions(file: $path)
+            new \HtmlPhp\Template\RenderOptions(file: $path),
         );
     }
 
@@ -15327,7 +15296,7 @@ final class TemplateLoader
 
         $dirs = [];
 
-        if (function_exists('get_stylesheet_directory')) {
+        if (\function_exists('get_stylesheet_directory')) {
             $dirs[] = (string) get_stylesheet_directory() . '/template-parts';
             $dirs[] = (string) get_stylesheet_directory();
         }
@@ -15338,7 +15307,7 @@ final class TemplateLoader
             $this->engine->diagnostics()->record(
                 \HtmlPhp\Diagnostics::WP_BRIDGE,
                 'Template part not found.',
-                ['slug' => $slug, 'name' => $name ?? '']
+                ['slug' => $slug, 'name' => $name ?? ''],
             );
 
             return '';
@@ -15347,7 +15316,7 @@ final class TemplateLoader
         return $this->engine->renderFile(
             $path,
             $this->withWordPressContext($vars),
-            new \HtmlPhp\Template\RenderOptions(file: $path)
+            new \HtmlPhp\Template\RenderOptions(file: $path),
         );
     }
 
@@ -15361,7 +15330,7 @@ final class TemplateLoader
     {
         $context = [];
 
-        if (function_exists('get_bloginfo')) {
+        if (\function_exists('get_bloginfo')) {
             $context['wp_blogname'] = (string) get_bloginfo('name');
             $context['wp_description'] = (string) get_bloginfo('description');
             $context['wp_version'] = (string) get_bloginfo('version');
@@ -15369,7 +15338,7 @@ final class TemplateLoader
             $context['wp_language'] = (string) get_bloginfo('language');
         }
 
-        if (function_exists('home_url')) {
+        if (\function_exists('home_url')) {
             $context['wp_home_url'] = (string) home_url('/');
         }
 
@@ -15403,29 +15372,29 @@ final class WpCache implements CacheInterface
     public function __construct(
         private readonly string $prefix = 'htmlphp',
         private readonly int $defaultTtl = 0,
-        private readonly ?Diagnostics $diagnostics = null
+        private readonly ?Diagnostics $diagnostics = null,
     ) {
-        $blogId = function_exists('get_current_blog_id') ? (int) get_current_blog_id() : 0;
+        $blogId = \function_exists('get_current_blog_id') ? (int) get_current_blog_id() : 0;
         $this->group = self::GROUP_BASE . ($blogId > 0 ? '_' . $blogId : '');
     }
 
     public function get(string $key): ?string
     {
-        if (!function_exists('wp_cache_get')) {
+        if (!\function_exists('wp_cache_get')) {
             return null;
         }
 
         $found = false;
         $value = wp_cache_get($this->objectKey($key), $this->group, false, $found);
 
-        if ($found && is_string($value)) {
+        if ($found && \is_string($value)) {
             return $value;
         }
 
-        if (function_exists('get_transient')) {
+        if (\function_exists('get_transient')) {
             $stored = get_transient($this->prefix . ':' . $key);
 
-            if (is_string($stored)) {
+            if (\is_string($stored)) {
                 wp_cache_set($this->objectKey($key), $stored, $this->group);
 
                 return $stored;
@@ -15437,7 +15406,13 @@ final class WpCache implements CacheInterface
 
     public function set(string $key, string $value, int $ttl = 0): bool
     {
-        if (!function_exists('wp_cache_set')) {
+        if (!\function_exists('wp_cache_set')) {
+            $this->diagnostics?->record(
+                Diagnostics::CACHE_IO,
+                'WordPress object cache unavailable; entry was not stored.',
+                ['key' => $key],
+            );
+
             return false;
         }
 
@@ -15445,7 +15420,7 @@ final class WpCache implements CacheInterface
 
         wp_cache_set($this->objectKey($key), $value, $this->group, $ttl > 0 ? $ttl : 0);
 
-        if (function_exists('set_transient')) {
+        if (\function_exists('set_transient')) {
             set_transient($this->prefix . ':' . $key, $value, $ttl > 0 ? $ttl : 0);
         }
 
@@ -15461,11 +15436,11 @@ final class WpCache implements CacheInterface
 
     public function delete(string $key): bool
     {
-        if (function_exists('wp_cache_delete')) {
+        if (\function_exists('wp_cache_delete')) {
             wp_cache_delete($this->objectKey($key), $this->group);
         }
 
-        if (function_exists('delete_transient')) {
+        if (\function_exists('delete_transient')) {
             delete_transient($this->prefix . ':' . $key);
         }
 
@@ -15480,7 +15455,7 @@ final class WpCache implements CacheInterface
         $removed = 0;
 
         foreach ($keys as $key) {
-            if (is_string($key)) {
+            if (\is_string($key)) {
                 $this->delete($key);
                 $removed++;
             }
@@ -15500,14 +15475,14 @@ final class WpCache implements CacheInterface
     {
         $keys = Options::getArray(self::REGISTRY_KEY);
 
-        if (in_array($key, $keys, true)) {
+        if (\in_array($key, $keys, true)) {
             return;
         }
 
         $keys[] = $key;
 
-        if (count($keys) > self::REGISTRY_CAP) {
-            $keys = array_slice($keys, -self::REGISTRY_CAP);
+        if (\count($keys) > self::REGISTRY_CAP) {
+            $keys = \array_slice($keys, -self::REGISTRY_CAP);
         }
 
         Options::set(self::REGISTRY_KEY, $keys);
@@ -15530,9 +15505,8 @@ final class WpLogger extends AbstractLogger
 {
     public function __construct(
         private readonly string $channel = 'htmlphp',
-        private readonly string $minLevel = 'warning'
-    ) {
-    }
+        private readonly string $minLevel = 'warning',
+    ) {}
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $message, array $context = []): void
@@ -15552,8 +15526,8 @@ final class WpLogger extends AbstractLogger
             Logs::write($level, $line);
         }
 
-        if (defined('WP_DEBUG_LOG') && constant('WP_DEBUG_LOG')) {
-            error_log(sprintf('[%s] %s.%s', $this->channel, $level, $line));
+        if (\defined('WP_DEBUG_LOG') && \constant('WP_DEBUG_LOG')) {
+            error_log(\sprintf('[%s] %s.%s', $this->channel, $level, $line));
         }
     }
 }

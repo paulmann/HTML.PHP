@@ -5,15 +5,28 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  # Pinned tool versions — CI and local runs must analyse the same way.
+  PHPSTAN_VERSION: '2.1.32'
+  PHP_CS_FIXER_VERSION: 'v3.95.27'
+
 jobs:
+  # 14 combinations: PHP 8.3/8.4/8.5 × {src, php83 bundle} × intl {on, off}
+  # plus PHP 8.5 × php85 bundle × intl {on, off}.
+  #
+  # The extension set is pinned per leg: `mbstring, intl` vs `mbstring, :intl`
+  # (setup-php disable-syntax), so the runner never decides the outcome.
+  # The suite itself is extension-independent (Str::slugify is deterministic);
+  # both legs exist to keep it that way — any drift between them is a bug.
   tests:
-    name: PHP ${{ matrix.php }} ${{ matrix.target }}
+    name: PHP ${{ matrix.php }} ${{ matrix.target }} intl=${{ matrix.intl }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         php: ['8.3', '8.4', '8.5']
         target: ['src', 'php83', 'php85']
+        intl: ['on', 'off']
         exclude:
           - php: '8.3'
             target: 'php85'
@@ -26,45 +39,90 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring
+          extensions: ${{ matrix.intl == 'on' && 'mbstring, intl' || 'mbstring, :intl' }}
           coverage: none
 
-      - name: Build bundles
-        run: php tools/build.php
+      - name: Record the effective environment
+        run: |
+          php -v | head -1
+          php -r 'printf("intl loaded: %s, transliterator: %s\n", var_export(extension_loaded("intl"), true), var_export(function_exists("transliterator_transliterate"), true));'
 
-      - name: Bundle freshness (no drift between src/ and editions)
+      # Gate on the COMMITTED bundles: rebuild-then-check would mask drift.
+      - name: Bundle drift gate (src/ ↔ php83/ ↔ php85/)
         run: php tools/build.php --check
 
       - name: Test suite
         run: |
+          FLAGS=""
+          if [ "${{ matrix.intl }}" = "off" ]; then
+            FLAGS="-d disable_functions=transliterator_transliterate"
+          fi
           if [ "${{ matrix.target }}" = "src" ]; then
-            php tests/run.php
+            php $FLAGS tests/run.php
           else
-            php tests/run.php --lib=${{ matrix.target }}/html.php
+            php $FLAGS tests/run.php --lib=${{ matrix.target }}/html.php
           fi
 
-  static-analysis:
-    name: PHPStan
+  # End-to-end smoke of the public API surface (tests/smoke.php).
+  smoke:
+    name: Smoke (PHP ${{ matrix.php }})
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.5']
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
-          extensions: mbstring
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, intl
           coverage: none
-      - run: |
-          curl -sSLo phpstan.phar https://github.com/phpstan/phpstan/releases/latest/download/phpstan.phar
-          php phpstan.phar analyse --no-progress -c phpstan.neon || true
+      - run: php tests/smoke.php
 
-  coding-style:
-    name: PHP-CS-Fixer (dry run)
+  # MANDATORY gate: level 6 over the full src/ tree (WordPress layer included,
+  # analysed against the project's WP stubs), empty baseline, unmatched-ignore
+  # reporting on. A finding fails the build — fix it in code.
+  static-analysis:
+    name: PHPStan (mandatory)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          tools: php-cs-fixer
+          extensions: mbstring, intl
           coverage: none
-      - run: PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer fix --dry-run --diff || true
+      - name: Download pinned PHPStan
+        run: curl -sSLo phpstan.phar "https://github.com/phpstan/phpstan/releases/download/${PHPSTAN_VERSION}/phpstan.phar"
+      - run: php phpstan.phar --version
+      - run: php phpstan.phar analyse --no-progress -c phpstan.neon --memory-limit=1G
+
+  # MANDATORY gate: style must already be fixed in the working tree.
+  coding-style:
+    name: PHP-CS-Fixer (mandatory)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: php-cs-fixer:${{ env.PHP_CS_FIXER_VERSION }}
+          coverage: none
+      - run: php-cs-fixer --version
+      - run: PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer fix --dry-run --diff
+
+  # The GitHub wiki lives in its own repository; its internal links are
+  # validated with the checker from this repo so navigation cannot rot.
+  wiki-links:
+    name: Wiki link integrity
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: Clone the wiki repository
+        run: git clone --depth 1 https://github.com/paulmann/HTML.PHP.wiki.git wiki-checkout
+      - run: php tools/check-wiki-links.php wiki-checkout

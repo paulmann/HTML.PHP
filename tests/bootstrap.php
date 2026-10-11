@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Test suite bootstrap (v4).
  *
@@ -174,9 +175,29 @@ function isolated_library_include(): string
         : 'require ' . var_export(dirname(__DIR__) . '/autoload.php', true) . ';';
 }
 
+/**
+ * Compares two filesystem paths tolerantly: separators are normalised and,
+ * on case-insensitive platforms (Windows/macOS), case is folded. Used by
+ * assertions that compare fixture_path() (DIRECTORY_SEPARATOR) against
+ * helper-built paths (forward slashes).
+ */
+function same_path(string $expected, ?string $actual): bool
+{
+    if ($actual === null) {
+        return false;
+    }
+
+    $normalize = static function (string $path): string {
+        $path = str_replace('\\', '/', $path);
+
+        return PHP_OS_FAMILY === 'Windows' ? strtolower($path) : $path;
+    };
+
+    return $normalize($expected) === $normalize($actual);
+}
+
 // ---------------------------------------------------------------- test engine
 
-use HtmlPhp\Config\MissingVarPolicy;
 use HtmlPhp\Engine;
 use HtmlPhp\RequestContext;
 use HtmlPhp\Support\FrozenClock;
@@ -241,6 +262,6 @@ function test_options(?string $file = null, array $overrides = []): RenderOption
         cache: $overrides['cache'] ?? null,
         ttl: $overrides['ttl'] ?? null,
         locale: $overrides['locale'] ?? null,
-        ssiVars: $overrides['ssi_vars'] ?? null
+        ssiVars: $overrides['ssi_vars'] ?? null,
     );
 }

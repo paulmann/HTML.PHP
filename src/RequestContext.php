@@ -29,9 +29,8 @@ final class RequestContext
         public readonly string $userAgent = '',
         public readonly string $acceptLanguage = '',
         public readonly string $referer = '',
-        public readonly array $server = []
-    ) {
-    }
+        public readonly array $server = [],
+    ) {}
 
     /**
      * Builds a context from a `$_SERVER`-shaped array.
@@ -40,7 +39,7 @@ final class RequestContext
      */
     public static function fromServer(array $server): self
     {
-        $string = static fn(string $key): string => isset($server[$key]) && is_scalar($server[$key])
+        $string = static fn(string $key): string => isset($server[$key]) && \is_scalar($server[$key])
             ? (string) $server[$key]
             : '';
 
@@ -50,7 +49,7 @@ final class RequestContext
 
         $clean = [];
         foreach ($server as $key => $value) {
-            if (is_string($key) && is_scalar($value)) {
+            if (\is_string($key) && \is_scalar($value)) {
                 $clean[$key] = (string) $value;
             }
         }
@@ -59,17 +58,17 @@ final class RequestContext
             documentRoot: $string('DOCUMENT_ROOT'),
             scriptName: $scriptName,
             requestUri: $requestUri,
-            documentName: is_string($path) && $path !== ''
+            documentName: \is_string($path) && $path !== ''
                 ? basename($path)
                 : ($scriptName !== '' ? basename($scriptName) : ''),
-            documentUri: is_string($path) && $path !== '' ? $path : ($scriptName !== '' ? $scriptName : '/'),
+            documentUri: \is_string($path) && $path !== '' ? $path : ($scriptName !== '' ? $scriptName : '/'),
             queryString: $string('QUERY_STRING'),
             method: strtoupper($string('REQUEST_METHOD') ?: 'GET'),
             remoteAddr: $string('REMOTE_ADDR'),
             userAgent: $string('HTTP_USER_AGENT'),
             acceptLanguage: $string('HTTP_ACCEPT_LANGUAGE'),
             referer: $string('HTTP_REFERER'),
-            server: $clean
+            server: $clean,
         );
     }
 

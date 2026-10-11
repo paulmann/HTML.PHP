@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 08 — Structure tags: loops, conditionals, layout inheritance, partials,
  *      set/raw/comment, break/continue, guards.
@@ -9,7 +10,6 @@ declare(strict_types=1);
 use HtmlPhp\Diagnostics;
 use HtmlPhp\Exception\TemplateNotFoundException;
 use HtmlPhp\Exception\TemplateSyntaxException;
-use HtmlPhp\Template\RenderOptions;
 
 group('Loops');
 
@@ -18,7 +18,7 @@ test('rows mode iterates arrays with v3 shadowing semantics', function (): void 
 
     $out = $engine->renderString(
         '<!--@Loop rows-->%{_position}.%{name} <!--@EndLoop rows-->',
-        ['rows' => [['name' => 'a'], ['name' => 'b']], 'name' => 'outer']
+        ['rows' => [['name' => 'a'], ['name' => 'b']], 'name' => 'outer'],
     );
     assertSame('1.a 2.b ', $out);
 });
@@ -49,7 +49,7 @@ test('magic loop variables are complete', function (): void {
 
     $out = $engine->renderString(
         '<!--@Loop rows-->%{_index}:%{_position}:%{_key}:%{_first}:%{_last}:%{_count}:%{_odd}:%{_even}:%{loop.index}|<!--@EndLoop-->',
-        ['rows' => ['p' => 1, 'q' => 2]]
+        ['rows' => ['p' => 1, 'q' => 2]],
     );
     assertSame('0:1:p:1::2::1:1|1:2:q::1:2:1::2|', $out);
 });
@@ -89,7 +89,7 @@ test('nested loops keep separate scopes', function (): void {
         ['outer' => [
             ['name' => 'a', 'inner' => [['v' => 1], ['v' => 2]]],
             ['name' => 'b', 'inner' => [['v' => 3]]],
-        ]]
+        ]],
     );
     assertSame('(a:12)(b:3)', $out);
 });

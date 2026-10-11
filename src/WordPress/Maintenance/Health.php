@@ -6,15 +6,16 @@ namespace HtmlPhp\WordPress\Maintenance;
 
 final class Health
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * @return list<array{code: string, severity: 'info'|'warning'|'critical', message: string}>
      */
     /**
      * Runs every check; pass the engine to include its diagnostics backlog.
+     */
+    /**
+     * @return list<array{code: string, severity: string, message: string}>
      */
     public static function check(?\HtmlPhp\Engine $engine = null): array
     {
@@ -31,16 +32,16 @@ final class Health
         }
 
         // Memory limit.
-        $memory = self::iniBytes((string) ini_get('memory_limit'));
+        $memory = self::iniBytes((string) \ini_get('memory_limit'));
 
         if ($memory > 0 && $memory < 64 * 1024 * 1024) {
-            $issues[] = self::issue('memory-low', 'warning', 'memory_limit is below 64M (' . ini_get('memory_limit') . ').');
+            $issues[] = self::issue('memory-low', 'warning', 'memory_limit is below 64M (' . \ini_get('memory_limit') . ').');
         }
 
         // Disk space.
-        if (function_exists('wp_upload_dir')) {
+        if (\function_exists('wp_upload_dir')) {
             $uploads = wp_upload_dir();
-            $base = is_array($uploads) ? (string) ($uploads['basedir'] ?? '') : '';
+            $base = (string) ($uploads['basedir'] ?? '');
 
             if ($base !== '' && is_dir($base)) {
                 if (!is_writable($base)) {
@@ -60,7 +61,7 @@ final class Health
         // Database connectivity.
         $wpdb = $GLOBALS['wpdb'] ?? null;
 
-        if (is_object($wpdb) && method_exists($wpdb, 'check_connection')) {
+        if (\is_object($wpdb) && method_exists($wpdb, 'check_connection')) {
             if (!$wpdb->check_connection($silent = true)) {
                 $issues[] = self::issue('db-down', 'critical', 'The database connection is not alive.');
             }
@@ -72,7 +73,7 @@ final class Health
         }
 
         // Pending updates.
-        if (class_exists(Updates::class) && function_exists('get_site_transient')) {
+        if (class_exists(Updates::class) && \function_exists('get_site_transient')) {
             $pending = Updates::count();
 
             if ($pending > 0) {

@@ -30,9 +30,8 @@ final class FileCache implements CacheInterface
         private readonly int $defaultTtl = 0,
         private readonly bool $harden = true,
         private readonly ?ClockInterface $clock = null,
-        private readonly ?Diagnostics $diagnostics = null
-    ) {
-    }
+        private readonly ?Diagnostics $diagnostics = null,
+    ) {}
 
     public function get(string $key): ?string
     {
@@ -50,9 +49,9 @@ final class FileCache implements CacheInterface
 
         try {
             $meta = fgets($handle);
-            $decoded = is_string($meta) ? json_decode(trim($meta), true) : null;
+            $decoded = \is_string($meta) ? json_decode(trim($meta), true) : null;
 
-            if (!is_array($decoded)) {
+            if (!\is_array($decoded)) {
                 return null;
             }
 
@@ -64,7 +63,7 @@ final class FileCache implements CacheInterface
 
             $value = stream_get_contents($handle);
 
-            return is_string($value) ? $value : null;
+            return \is_string($value) ? $value : null;
         } finally {
             fclose($handle);
         }
@@ -79,7 +78,7 @@ final class FileCache implements CacheInterface
         $ttl = $ttl > 0 ? $ttl : $this->defaultTtl;
         $meta = json_encode(['e' => $ttl > 0 ? $this->now() + $ttl : 0]) . "\n";
         $path = $this->path($key);
-        $shard = dirname($path);
+        $shard = \dirname($path);
 
         if (!is_dir($shard) && !@mkdir($shard, 0775, true) && !is_dir($shard)) {
             $this->diagnostics?->record(Diagnostics::CACHE_IO, 'Cannot create cache shard.', ['dir' => $shard]);
@@ -150,7 +149,7 @@ final class FileCache implements CacheInterface
         }
 
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
         );
 
         /** @var \SplFileInfo $info */
@@ -182,8 +181,8 @@ final class FileCache implements CacheInterface
 
             $meta = fgets($handle);
             fclose($handle);
-            $decoded = is_string($meta) ? json_decode(trim($meta), true) : null;
-            $expiry = is_array($decoded) ? (int) ($decoded['e'] ?? 0) : 0;
+            $decoded = \is_string($meta) ? json_decode(trim($meta), true) : null;
+            $expiry = \is_array($decoded) ? (int) ($decoded['e'] ?? 0) : 0;
 
             if ($expiry !== 0 && $expiry <= $now) {
                 @unlink($file);
@@ -227,7 +226,7 @@ final class FileCache implements CacheInterface
                 $this->diagnostics?->record(
                     Diagnostics::CACHE_IO,
                     'Cannot harden cache directory; serve it outside the web root or deny access in your vhost.',
-                    ['dir' => $root]
+                    ['dir' => $root],
                 );
             }
         }

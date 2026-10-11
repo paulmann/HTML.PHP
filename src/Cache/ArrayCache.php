@@ -16,9 +16,7 @@ final class ArrayCache implements CacheInterface
     /** @var array<string, array{0: string, 1: int}> value + expiry (0 = never) */
     private array $entries = [];
 
-    public function __construct(private readonly ?ClockInterface $clock = null, private readonly int $defaultTtl = 0)
-    {
-    }
+    public function __construct(private readonly ?ClockInterface $clock = null, private readonly int $defaultTtl = 0) {}
 
     public function get(string $key): ?string
     {
@@ -60,7 +58,7 @@ final class ArrayCache implements CacheInterface
 
     public function clear(): int
     {
-        $count = count($this->entries);
+        $count = \count($this->entries);
         $this->entries = [];
 
         return $count;
@@ -68,7 +66,7 @@ final class ArrayCache implements CacheInterface
 
     public function count(): int
     {
-        return count($this->entries);
+        return \count($this->entries);
     }
 
     private function now(): int

@@ -48,9 +48,8 @@ final readonly class RenderOptions
          *
          * @var array<string, mixed>|null
          */
-        public ?array $ssiVars = null
-    ) {
-    }
+        public ?array $ssiVars = null,
+    ) {}
 
     /**
      * Convenience constructor from a v3-style options array (migration aid).
@@ -60,14 +59,14 @@ final readonly class RenderOptions
     public static function fromArray(array $options): self
     {
         return new self(
-            file: isset($options['file']) && is_string($options['file']) ? $options['file'] : null,
-            root: isset($options['root']) && is_string($options['root']) ? $options['root'] : null,
+            file: isset($options['file']) && \is_string($options['file']) ? $options['file'] : null,
+            root: isset($options['root']) && \is_string($options['root']) ? $options['root'] : null,
             ssi: isset($options['ssi']) ? (bool) $options['ssi'] : null,
             structure: isset($options['loops']) ? (bool) $options['loops'] : (isset($options['structure']) ? (bool) $options['structure'] : null),
             autoEscape: isset($options['escape']) ? (bool) $options['escape'] : null,
             cache: isset($options['cache']) ? (bool) $options['cache'] : null,
             ttl: isset($options['ttl']) ? (int) $options['ttl'] : null,
-            locale: isset($options['locale']) && is_string($options['locale']) ? $options['locale'] : null
+            locale: isset($options['locale']) && \is_string($options['locale']) ? $options['locale'] : null,
         );
     }
 }

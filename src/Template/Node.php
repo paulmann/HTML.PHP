@@ -35,9 +35,8 @@ final class Node
     public function __construct(
         public readonly string $kind,
         public readonly array $attributes = [],
-        public readonly array $children = []
-    ) {
-    }
+        public readonly array $children = [],
+    ) {}
 
     /** @param list<Node> $children */
     public function withChildren(array $children): self

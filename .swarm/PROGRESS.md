@@ -19,6 +19,23 @@ Legend: [ ] todo · [~] wip · [x] done. Overall % is weighted by stream.
 **OVERALL: 100%**
 
 ## Log
+- 2026-10-11 (CI-fix pass) AUTHORITATIVE FINAL STATE — measured on Debian 12 (bookworm),
+  PHP 8.3.35 / 8.4.26 / 8.5.11 (sury), mbstring+intl loaded, bare `php` = 8.5.11:
+  * src target:  330 passed, 0 failed, 0 skipped (968 assertions) — IDENTICAL with intl
+    (`php tests/run.php`) and without (`php -d disable_functions=transliterator_transliterate tests/run.php`)
+    on all three PHP versions.
+  * php83/php85 bundles: 328 passed, 0 failed, 2 skipped (964) — same in both intl modes;
+    the 2 skips are the src-only architecture scans (documented in 13_security.test.php).
+  * tools/run-matrix.sh: "executed 14 of 14 combinations, skipped 0, failed 0", exit 0.
+  * tools/build.php --check: OK php83/html.php, OK php85/html.php, exit 0.
+  * PHPStan 2.1.32 (pinned), level 6, FULL src incl. WordPress (WP stubs via bootstrapFiles),
+    empty baseline: [OK] No errors, exit 0.
+  * PHP-CS-Fixer v3.95.27 (pinned) --dry-run: 0 of 140 fixable, exit 0.
+  * tools/check-wiki-links.php against the published wiki repo: 21 pages / 102 links / 0 problems, exit 0.
+  * tests/smoke.php: green on 8.3 and 8.5 (wired into CI job `smoke` + `composer run smoke`).
+  Earlier "329/966, matrix 5/5" figures in this file were measured WITHOUT ext-intl and with
+  the env-dependent slugify test — superseded by this entry (see P0-1 in CHANGELOG [Unreleased]).
+
 - 2026-10-11 WS-10 done — PROJECT COMPLETE:
   Docs (EN): README, docs/{TEMPLATE-SYNTAX, SSI, I18N, API, CONFIGURATION, WORDPRESS, CLI,
   SECURITY, ARCHITECTURE, MIGRATION-3.x-TO-4.0}.md, CHANGELOG, wordpress/README.
@@ -28,7 +45,8 @@ Legend: [ ] todo · [~] wip · [x] done. Overall % is weighted by stream.
   .github/workflows/ci.yml (matrix 8.3/8.4/8.5 x src/php83/php85 + drift check + phpstan + cs-fixer),
   phpstan.neon level 6 + phpstan-baseline.neon (8 entries) -> [OK] No errors,
   .php-cs-fixer.dist.php, .gitignore/.gitattributes, LICENSE, tools/run-matrix.sh.
-  FINAL VERIFIED STATE: matrix 5/5 green (329/329 src on 8.3 & 8.5; 327/327 bundles),
+  FINAL VERIFIED STATE (of that session; measured WITHOUT ext-intl — superseded by the
+  2026-10-11 CI-fix entry below): matrix 5/5 green (329/329 src on 8.3 & 8.5; 327/327 bundles),
   build --check OK (no drift), phpstan OK, all examples + plugin admin view render on both PHPs.
   Late fixes: Auditor plural-source counting, plugin views/ registered as template root,
   bundled health.html view matched to AdminPage data, example 04 multi-path catalogue merge demo.

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 10 — Render API surface: render/renderFile/renderString/display,
  *      options, caching, stats, events, size guards.
@@ -127,7 +128,7 @@ test('stats count loops, includes, substitutions and timings', function (): void
     $engine->renderString(
         'x%{a}<!--@Loop r-->%{n}<!--@EndLoop--><!--@Include "stats/part.html"-->',
         ['a' => 1, 'r' => [['n' => 1], ['n' => 2]]],
-        test_options()
+        test_options(),
     );
 
     $stats = $engine->stats();

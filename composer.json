@@ -32,6 +32,7 @@
     ],
     "scripts": {
         "test": "php tests/run.php",
+        "smoke": "php tests/smoke.php",
         "test85": "php8.5 tests/run.php",
         "build": "php tools/build.php",
         "matrix": "bash tools/run-matrix.sh",

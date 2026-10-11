@@ -18,9 +18,7 @@ use HtmlPhp\Template\RenderOptions;
  */
 final class Shortcodes
 {
-    public function __construct(private readonly Engine $engine)
-    {
-    }
+    public function __construct(private readonly Engine $engine) {}
 
     /**
      * @param array<string, mixed> $defaults merged under the shortcode attributes
@@ -29,7 +27,7 @@ final class Shortcodes
     {
         $tag = preg_replace('~[^a-z0-9_-]~i', '', $tag) ?? '';
 
-        if ($tag === '' || !function_exists('add_shortcode')) {
+        if ($tag === '' || !\function_exists('add_shortcode')) {
             return;
         }
 
@@ -38,15 +36,15 @@ final class Shortcodes
         $handler = static function (mixed $atts, mixed $content = null) use ($engine, $template, $defaults): string {
             $vars = $defaults;
 
-            if (is_array($atts)) {
+            if (\is_array($atts)) {
                 foreach ($atts as $key => $value) {
-                    if (is_string($key) && Str::isValidVariableName($key)) {
-                        $vars[$key] = is_scalar($value) || $value === null ? $value : '';
+                    if (\is_string($key) && Str::isValidVariableName($key)) {
+                        $vars[$key] = \is_scalar($value) || $value === null ? $value : '';
                     }
                 }
             }
 
-            $vars['content'] = is_string($content) ? $content : '';
+            $vars['content'] = \is_string($content) ? $content : '';
 
             try {
                 $path = TemplateLoader::locate($template) ?? $template;
@@ -56,7 +54,7 @@ final class Shortcodes
                 $engine->diagnostics()->record(
                     Diagnostics::WP_BRIDGE,
                     'Shortcode render failed: ' . $error->getMessage(),
-                    ['template' => $template]
+                    ['template' => $template],
                 );
 
                 return '';

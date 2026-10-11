@@ -14,12 +14,10 @@ use HtmlPhp\Support\Str;
  */
 final class SizeFormat
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function format(int $bytes, string $style = 'abbrev'): string
     {
-        return Str::formatSize($bytes, in_array(strtolower($style), ['bytes', 'byte'], true) ? 'bytes' : 'abbrev');
+        return Str::formatSize($bytes, \in_array(strtolower($style), ['bytes', 'byte'], true) ? 'bytes' : 'abbrev');
     }
 }

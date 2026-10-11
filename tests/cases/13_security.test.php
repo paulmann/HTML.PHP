@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 12b — Security model: escaping defaults, containment, budgets and the
  *       architectural guarantee that the core never touches globals.
@@ -6,7 +7,6 @@
 
 declare(strict_types=1);
 
-use HtmlPhp\Ssi\DocumentInfo;
 
 group('Security: containment');
 
@@ -29,7 +29,7 @@ test('partial includes cannot escape the roots', function (): void {
     // unknown → TemplateNotFound, never a leak
     assertThrows(
         HtmlPhp\Exception\TemplateNotFoundException::class,
-        static fn() => $engine->renderString('<!--@Include "../../secret.txt"-->', [])
+        static fn() => $engine->renderString('<!--@Include "../../secret.txt"-->', []),
     );
 });
 
@@ -83,7 +83,7 @@ test('template size limit rejects huge documents', function (): void {
 
     assertThrows(
         HtmlPhp\Exception\TemplateException::class,
-        static fn() => $engine->renderString(str_repeat('<div>', 500))
+        static fn() => $engine->renderString(str_repeat('<div>', 500)),
     );
 });
 
@@ -102,7 +102,7 @@ test('expression length cap prevents parser abuse', function (): void {
 
     assertThrows(
         HtmlPhp\Exception\TemplateSyntaxException::class,
-        static fn() => $engine->renderString('<!--@If \'' . str_repeat('a', 200) . '\' == \'x\'-->y<!--@EndIf-->', [])
+        static fn() => $engine->renderString('<!--@If \'' . str_repeat('a', 200) . '\' == \'x\'-->y<!--@EndIf-->', []),
     );
 
     // Lenient mode: same guard, recorded as a diagnostic instead.
@@ -162,7 +162,7 @@ test('the library core contains no eval() and no superglobal reads', function ()
 
     $files = [];
     $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator(dirname(__DIR__, 2) . '/src', FilesystemIterator::SKIP_DOTS)
+        new RecursiveDirectoryIterator(dirname(__DIR__, 2) . '/src', FilesystemIterator::SKIP_DOTS),
     );
 
     foreach ($iterator as $file) {
@@ -243,7 +243,7 @@ test('every src file declares strict types', function (): void {
     }
 
     $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator(dirname(__DIR__, 2) . '/src', FilesystemIterator::SKIP_DOTS)
+        new RecursiveDirectoryIterator(dirname(__DIR__, 2) . '/src', FilesystemIterator::SKIP_DOTS),
     );
 
     $missing = [];

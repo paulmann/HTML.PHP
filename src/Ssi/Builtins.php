@@ -14,9 +14,7 @@ use HtmlPhp\Version;
  */
 final class Builtins
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function isBuiltin(string $name): bool
     {
@@ -39,7 +37,7 @@ final class Builtins
         $lastModified = '';
         $currentFile = $context->document->file;
 
-        if (is_string($currentFile) && $currentFile !== '' && is_file($currentFile)) {
+        if (\is_string($currentFile) && $currentFile !== '' && is_file($currentFile)) {
             $modified = @filemtime($currentFile);
 
             if ($modified !== false) {
@@ -79,7 +77,7 @@ final class Builtins
             $uri = self::fromFile($request->requestUri !== '' ? $request->requestUri : $request->scriptName);
         }
 
-        if ($uri === '' && is_string($file) && $file !== '') {
+        if ($uri === '' && \is_string($file) && $file !== '') {
             $real = realpath($file);
 
             if ($real !== false && $root !== '') {
@@ -87,7 +85,7 @@ final class Builtins
                 $rootNormalized = rtrim(str_replace('\\', '/', $root), '/');
 
                 if (str_starts_with($normalized, $rootNormalized . '/')) {
-                    return '/' . substr($normalized, strlen($rootNormalized) + 1);
+                    return '/' . substr($normalized, \strlen($rootNormalized) + 1);
                 }
             }
         }

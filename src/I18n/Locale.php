@@ -14,9 +14,7 @@ final class Locale
 {
     public const DEFAULT_LOCALE = 'en';
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Normalises any locale spelling to "ll_CC":
@@ -81,7 +79,7 @@ final class Locale
             $tag = self::normalize(trim((string) $segments[0]));
             $quality = 1.0;
 
-            foreach (array_slice($segments, 1) as $parameter) {
+            foreach (\array_slice($segments, 1) as $parameter) {
                 if (preg_match('~^\s*q\s*=\s*([0-9.]+)\s*$~i', $parameter, $m) === 1) {
                     $quality = max(0.0, min(1.0, (float) $m[1]));
                 }
@@ -111,7 +109,7 @@ final class Locale
     {
         $availableList = array_values(array_map(
             static fn(mixed $locale): string => self::normalize((string) $locale),
-            $available
+            $available,
         ));
 
         if ($availableList === []) {
@@ -127,7 +125,7 @@ final class Locale
                 continue;
             }
 
-            if (in_array($wanted, $availableList, true)) {
+            if (\in_array($wanted, $availableList, true)) {
                 return $wanted;
             }
 

@@ -31,9 +31,8 @@ final readonly class Security
         public ?array $allowedTags = null,
         public array $deniedExtensions = self::DENIED_EXTENSIONS_DEFAULT,
         public bool $denyPhpIncludes = true,
-        public bool $sanitizeExecOutput = true
-    ) {
-    }
+        public bool $sanitizeExecOutput = true,
+    ) {}
 
     /** @param array<string, mixed> $config */
     public static function fromArray(array $config): self
@@ -41,15 +40,15 @@ final readonly class Security
         $allowed = Config::arrayValue($config, 'allowed_tags', []);
 
         return new self(
-            allowedTags: $allowed === [] && !array_key_exists('allowed_tags', $config)
+            allowedTags: $allowed === [] && !\array_key_exists('allowed_tags', $config)
                 ? null
                 : self::normalizeTags($allowed),
             deniedExtensions: array_values(array_map(
                 static fn($ext): string => strtolower(ltrim((string) $ext, '.')),
-                Config::arrayValue($config, 'denied_extensions', self::DENIED_EXTENSIONS_DEFAULT)
+                Config::arrayValue($config, 'denied_extensions', self::DENIED_EXTENSIONS_DEFAULT),
             )),
             denyPhpIncludes: Config::bool($config, 'deny_php_includes', true),
-            sanitizeExecOutput: Config::bool($config, 'sanitize_exec_output', true)
+            sanitizeExecOutput: Config::bool($config, 'sanitize_exec_output', true),
         );
     }
 
@@ -62,7 +61,7 @@ final readonly class Security
         $normalized = [];
 
         foreach ($tags as $key => $value) {
-            $name = strtolower(trim((string) (is_int($key) ? $value : $key)));
+            $name = strtolower(trim((string) (\is_int($key) ? $value : $key)));
 
             if ($name !== '' && preg_match('/^[a-z][a-z0-9-]*$/', $name) === 1) {
                 $normalized[$name] = true;

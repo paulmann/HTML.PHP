@@ -53,7 +53,7 @@ final class RenderContext
         public readonly Diagnostics $diagnostics,
         bool $autoEscape,
         MissingVarPolicy $missingVar,
-        bool $structure
+        bool $structure,
     ) {
         $this->autoEscape = $autoEscape;
         $this->missingVar = $missingVar;

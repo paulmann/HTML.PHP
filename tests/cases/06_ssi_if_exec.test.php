@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 06 — SSI conditionals (#if/#elif/#else/#endif), expressions and #exec.
  */
@@ -6,7 +7,6 @@
 declare(strict_types=1);
 
 use HtmlPhp\Diagnostics;
-use HtmlPhp\Ssi\DocumentInfo;
 
 group('SSI: conditionals');
 

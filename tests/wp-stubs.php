@@ -1,11 +1,12 @@
 <?php
+
 /**
- * Minimal WordPress API stubs for testing html-wp.php without a real
+ * Minimal WordPress API stubs for testing the HtmlPhp\WordPress layer without a real
  * WordPress install. Only the surface used by the bridge and the
  * maintenance toolkit is emulated; behaviour mirrors the real functions
  * closely enough for unit assertions.
  *
- * Loaded by tests/cases/18_wordpress.test.php BEFORE wordpress/html-wp.php.
+ * Loaded by tests/run.php before every case; used by tests/cases/12_wordpress.test.php.
  * Loading order matters: this file defines ABSPATH, which switches the
  * engine's Translator into WordPress-delegation mode.
  */
@@ -51,9 +52,7 @@ $GLOBALS['wp_stub_locale'] ??= 'en_US';
 $GLOBALS['wp_stub_notices_queue'] ??= [];
 $GLOBALS['wp_version'] ??= '6.9-stub';
 
-final class WpStubRedirect extends RuntimeException
-{
-}
+final class WpStubRedirect extends RuntimeException {}
 
 // ------------------------------------------------------------------ escaping
 
@@ -210,13 +209,13 @@ function do_shortcode(string $content): string
         $content = (string) preg_replace_callback(
             '~\[' . $quoted . '((?:\s+[^\]]*)?)\](.*?)\[/' . $quoted . '\]~s',
             static fn(array $m): string => (string) $callback(wp_stub_atts($m[1]), $m[2]),
-            $content
+            $content,
         );
 
         $content = (string) preg_replace_callback(
             '~\[' . $quoted . '((?:\s+[^\]]*)?)\]~s',
             static fn(array $m): string => (string) $callback(wp_stub_atts($m[1]), null),
-            $content
+            $content,
         );
     }
 
@@ -405,7 +404,7 @@ function get_bloginfo(string $show = ''): string
 
 function wp_get_theme(): object
 {
-    return new class () {
+    return new class {
         public function get(string $key): string
         {
             return $key === 'Name' ? 'Stub Theme' : '';
@@ -468,7 +467,7 @@ final class WpdbStub
                     default => "'" . addslashes((string) $value) . "'",
                 };
             },
-            $sql
+            $sql,
         );
     }
 
@@ -583,9 +582,7 @@ function is_wp_error(mixed $thing): bool
 
 final class WP_Error
 {
-    public function __construct(public string $code = '', public string $message = '')
-    {
-    }
+    public function __construct(public string $code = '', public string $message = '') {}
 
     public function get_error_message(): string
     {

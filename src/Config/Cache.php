@@ -20,12 +20,12 @@ final readonly class Cache
         public int $ttl = 0,
         public string $prefix = 'htmlphp',
         public bool $lockWrites = true,
-        public bool $hardenDirectory = true
+        public bool $hardenDirectory = true,
     ) {
         if ($ttl < 0 || $ttl > 86400 * 30) {
             throw new \HtmlPhp\Exception\ConfigException(
                 'cache.ttl must be between 0 and 30 days (seconds).',
-                ['value' => $ttl]
+                ['value' => $ttl],
             );
         }
     }
@@ -40,13 +40,13 @@ final readonly class Cache
             driver: CacheDriver::tryFrom($driver)
                 ?? throw new \HtmlPhp\Exception\ConfigException(
                     'cache.driver must be one of: null, array, file, apcu, wordpress.',
-                    ['value' => $driver]
+                    ['value' => $driver],
                 ),
             directory: (string) Config::value($config, 'directory', ''),
             ttl: Config::int($config, 'ttl', 0),
             prefix: (string) Config::value($config, 'prefix', 'htmlphp'),
             lockWrites: Config::bool($config, 'lock_writes', true),
-            hardenDirectory: Config::bool($config, 'harden_directory', true)
+            hardenDirectory: Config::bool($config, 'harden_directory', true),
         );
     }
 

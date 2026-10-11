@@ -1,3 +1,11 @@
+# PHPStan level 6 over the FULL source tree — src/WordPress included.
+#
+# The WordPress layer is analysed against the project's own WP stubs
+# (tests/wp-stubs*.php, loaded via bootstrapFiles); tests/phpstan-bootstrap.php
+# provides the two harness symbols the stubs need at load time.
+#
+# Policy: phpstan-baseline.neon is intentionally EMPTY and may only stay that
+# way — fix findings in code, do not baseline them (see the file header).
 includes:
     - phpstan-baseline.neon
 
@@ -6,8 +14,9 @@ parameters:
     paths:
         - src
         - bin
-    excludePaths:
-        analyseAndScan:
-            - src/WordPress/*
+    bootstrapFiles:
+        - tests/phpstan-bootstrap.php
+        - tests/wp-stubs.php
+        - tests/wp-stubs-extra.php
     treatPhpDocTypesAsCertain: false
-    reportUnmatchedIgnoredErrors: false
+    reportUnmatchedIgnoredErrors: true

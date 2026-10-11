@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![PHP](https://img.shields.io/badge/php-8.3%20%7C%208.5-purple.svg)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
-![Tests](https://img.shields.io/badge/tests-329%20passing-success.svg)
+![Tests](https://img.shields.io/badge/tests-330%20passing-success.svg)
 ![PHPStan](https://img.shields.io/badge/PHPStan-level%206-success.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue.svg)
 
@@ -55,7 +55,8 @@ mapping table.
 
 Both are generated from the same PSR-4 source tree ([`src/`](src), with
 [`src-8.5/`](src-8.5) overlays) by [`tools/build.php`](tools/build.php), and
-both pass the identical test matrix (329 tests / ~960 assertions each).
+both pass the identical test matrix (330 tests / 968 assertions per leg,
+run with **and without** `ext-intl` — the suite is extension-independent).
 
 ## Installation
 

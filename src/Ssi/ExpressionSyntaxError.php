@@ -10,6 +10,4 @@ namespace HtmlPhp\Ssi;
  * Never escapes the engine: {@see Expression::evaluate()} catches it,
  * records a diagnostic and yields `false` (mod_include parity).
  */
-final class ExpressionSyntaxError extends \Exception
-{
-}
+final class ExpressionSyntaxError extends \Exception {}

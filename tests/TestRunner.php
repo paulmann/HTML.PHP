@@ -1,4 +1,5 @@
 <?php
+
 /**
  * TestRunner - a small, dependency-free test runner for the html.php library.
  *
@@ -19,7 +20,7 @@
  * reports with the test name, the origin file/line of the assertion and the
  * expected/actual values. The run continues with the next test.
  *
- * Every test runs with its own output buffer and with $GLOBALS/$_SERVER/... 
+ * Every test runs with its own output buffer and with $GLOBALS/$_SERVER/...
  * snapshotted and restored, so test order cannot matter.
  */
 
@@ -45,9 +46,7 @@ final class TestAssertionError extends Exception
 /**
  * Raised by skip()/skipIf() to abort a test without failing it.
  */
-final class TestSkipped extends Exception
-{
-}
+final class TestSkipped extends Exception {}
 
 /**
  * Returns [file, line] of the first stack frame outside this file.
@@ -96,9 +95,8 @@ final class TestRunner
     private function __construct(
         private readonly bool $verbose,
         private readonly bool $color,
-        private readonly ?string $filter
-    ) {
-    }
+        private readonly ?string $filter,
+    ) {}
 
     public static function create(bool $verbose = false, bool $color = true, ?string $filter = null): self
     {
@@ -127,7 +125,44 @@ final class TestRunner
     }
 
     /**
-     * Parses the command line options understood by run-tests.php.
+     * Prints every registered test (group, name, origin file:line) without
+     * executing anything. Honours --filter. Returns the number of tests
+     * listed and marks the run as finished so the shutdown guard stays quiet.
+     */
+    public function listTests(): int
+    {
+        $listed = 0;
+
+        foreach ($this->sections as $section) {
+            $groupPrinted = false;
+
+            foreach ($section['tests'] as $test) {
+                if (!$this->matches($section['name'], $test)) {
+                    continue;
+                }
+
+                if (!$groupPrinted) {
+                    $this->write($this->paint($section['name'], 'group') . "\n");
+                    $groupPrinted = true;
+                }
+
+                $location = $test['file'] !== ''
+                    ? basename($test['file']) . ':' . $test['line']
+                    : '-';
+
+                $this->write('  ' . $test['name'] . '  ' . $this->paint('(' . $location . ')', 'dim') . "\n");
+                ++$listed;
+            }
+        }
+
+        $this->write("\n" . $listed . " test(s) listed.\n");
+        $this->finished = true;
+
+        return $listed;
+    }
+
+    /**
+     * Parses the command line options understood by tests/run.php.
      *
      * @param array<int, string> $argv
      * @return array{verbose: bool, color: bool, filter: ?string, list: bool}
@@ -241,7 +276,7 @@ final class TestRunner
         foreach ($this->sections as $section) {
             $tests = array_values(array_filter(
                 $section['tests'],
-                fn(array $test): bool => $this->matches($section['name'], $test)
+                fn(array $test): bool => $this->matches($section['name'], $test),
             ));
 
             if ($tests === []) {
@@ -464,7 +499,7 @@ final class TestRunner
                     $failure['test'],
                     $failure['group'],
                     $failure['file'],
-                    $failure['line']
+                    $failure['line'],
                 ));
 
                 foreach (explode("\n", rtrim($failure['message'], "\n")) as $line) {
@@ -480,7 +515,7 @@ final class TestRunner
             $this->passed,
             $this->failed,
             $this->skipped,
-            $this->assertions
+            $this->assertions,
         );
 
         $this->write($this->paint($summary, $this->failed === 0 ? 'pass' : 'fail') . "\n");
@@ -570,7 +605,7 @@ function assertSame(mixed $expected, mixed $actual, string $message = ''): void
         var_export($expected, true),
         var_export($actual, true),
         get_debug_type($expected),
-        get_debug_type($actual)
+        get_debug_type($actual),
     ));
 }
 
@@ -585,7 +620,7 @@ function assertTrue(mixed $actual, string $message = ''): void
     TestRunner::runner()->fail(sprintf(
         "%sexpected: true\nactual:   %s",
         $message !== '' ? $message . "\n" : '',
-        var_export($actual, true)
+        var_export($actual, true),
     ));
 }
 
@@ -600,7 +635,7 @@ function assertFalse(mixed $actual, string $message = ''): void
     TestRunner::runner()->fail(sprintf(
         "%sexpected: false\nactual:   %s",
         $message !== '' ? $message . "\n" : '',
-        var_export($actual, true)
+        var_export($actual, true),
     ));
 }
 
@@ -615,7 +650,7 @@ function assertNull(mixed $actual, string $message = ''): void
     TestRunner::runner()->fail(sprintf(
         "%sexpected: null\nactual:   %s",
         $message !== '' ? $message . "\n" : '',
-        var_export($actual, true)
+        var_export($actual, true),
     ));
 }
 
@@ -631,7 +666,7 @@ function assertContains(string $needle, string $haystack, string $message = ''):
         "%shaystack does not contain the expected substring\nneedle:   %s\nhaystack: %s",
         $message !== '' ? $message . "\n" : '',
         var_export($needle, true),
-        var_export($haystack, true)
+        var_export($haystack, true),
     ));
 }
 
@@ -647,7 +682,7 @@ function assertNotContains(string $needle, string $haystack, string $message = '
         "%shaystack unexpectedly contains the substring\nneedle:   %s\nhaystack: %s",
         $message !== '' ? $message . "\n" : '',
         var_export($needle, true),
-        var_export($haystack, true)
+        var_export($haystack, true),
     ));
 }
 
@@ -666,7 +701,7 @@ function assertMatches(string $pattern, string $subject, string $message = ''): 
         $message !== '' ? $message . "\n" : '',
         var_export($pattern, true),
         var_export($subject, true),
-        $result === false ? preg_last_error_msg() : 'no match'
+        $result === false ? preg_last_error_msg() : 'no match',
     ));
 }
 
@@ -682,7 +717,7 @@ function assertThrows(string $class, callable $fn, ?string $messageContains = nu
                 "expected exception: %s\nactual exception:   %s (%s)",
                 $class,
                 get_class($error),
-                $error->getMessage()
+                $error->getMessage(),
             ));
         }
 
@@ -690,7 +725,7 @@ function assertThrows(string $class, callable $fn, ?string $messageContains = nu
             TestRunner::runner()->fail(sprintf(
                 "exception message does not contain the expected text\nexpected substring: %s\nactual message:     %s",
                 var_export($messageContains, true),
-                var_export($error->getMessage(), true)
+                var_export($error->getMessage(), true),
             ));
         }
 
@@ -699,7 +734,7 @@ function assertThrows(string $class, callable $fn, ?string $messageContains = nu
 
     TestRunner::runner()->fail(sprintf(
         "expected exception: %s\nactual:             nothing was thrown",
-        $class
+        $class,
     ));
 }
 
@@ -715,6 +750,6 @@ function assertInstanceOf(string $class, mixed $actual, string $message = ''): v
         "%sexpected instance of: %s\nactual:               %s",
         $message !== '' ? $message . "\n" : '',
         $class,
-        get_debug_type($actual)
+        get_debug_type($actual),
     ));
 }

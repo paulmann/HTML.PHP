@@ -17,7 +17,7 @@ final class Psr3Adapter extends AbstractLogger
     {
         if (!method_exists($this->logger, 'log')) {
             throw new \InvalidArgumentException(
-                'Psr3Adapter expects an object with a log($level, $message, array $context) method.'
+                'Psr3Adapter expects an object with a log($level, $message, array $context) method.',
             );
         }
     }

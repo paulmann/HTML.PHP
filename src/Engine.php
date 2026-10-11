@@ -13,11 +13,11 @@ use HtmlPhp\Ssi\DocumentInfo;
 use HtmlPhp\Ssi\Processor as SsiProcessor;
 use HtmlPhp\Support\ClockInterface;
 use HtmlPhp\Template\Filters;
-use HtmlPhp\Template\LintIssue;
 use HtmlPhp\Template\Linter;
+use HtmlPhp\Template\LintIssue;
+use HtmlPhp\Template\Renderer;
 use HtmlPhp\Template\RenderOptions;
 use HtmlPhp\Template\RenderStats;
-use HtmlPhp\Template\Renderer;
 use HtmlPhp\Template\TemplateLocator;
 
 /**
@@ -43,7 +43,7 @@ final class Engine
 
     public function __construct(
         private readonly Config $config,
-        ?Container $container = null
+        ?Container $container = null,
     ) {
         $this->container = $container ?? Container::withDefaults($config);
         $this->container->instance(self::class, $this);
@@ -86,7 +86,7 @@ final class Engine
         if ($path === null) {
             throw new Exception\TemplateNotFoundException(
                 "Template '{$name}' could not be located.",
-                ['template' => $name, 'roots' => $this->locator()->roots()]
+                ['template' => $name, 'roots' => $this->locator()->roots()],
             );
         }
 

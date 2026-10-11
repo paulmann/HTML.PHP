@@ -33,9 +33,8 @@ final class Linter
         private readonly Diagnostics $diagnostics,
         private readonly Filters $filters,
         private readonly TemplateLocator $locator,
-        private readonly ?Translator $translator = null
-    ) {
-    }
+        private readonly ?Translator $translator = null,
+    ) {}
 
     /**
      * Lints one template source.
@@ -98,7 +97,7 @@ final class Linter
         }
 
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS)
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
         );
 
         /** @var \SplFileInfo $info */
@@ -109,7 +108,7 @@ final class Linter
 
             $extension = strtolower($info->getExtension());
 
-            if (!in_array($extension, ['html', 'htm', 'txt', 'shtml', 'xhtml'], true)) {
+            if (!\in_array($extension, ['html', 'htm', 'txt', 'shtml', 'xhtml'], true)) {
                 continue;
             }
 
@@ -144,7 +143,7 @@ final class Linter
             '~<!--@([A-Za-z][A-Za-z0-9]*)(.*?)-->~s',
             $source,
             $matches,
-            PREG_OFFSET_CAPTURE | PREG_SET_ORDER
+            PREG_OFFSET_CAPTURE | PREG_SET_ORDER,
         );
 
         if ($count === 0 || $count === false) {
@@ -167,7 +166,7 @@ final class Linter
             if (!isset($known[$name])
                 && !isset($mids[$name])
                 && !isset(self::KNOWN_STANDALONE[$name])
-                && !in_array($name, ['endloop', 'endif', 'endunless', 'endsection', 'endtrans', 'endraw', 'endcomment'], true)
+                && !\in_array($name, ['endloop', 'endif', 'endunless', 'endsection', 'endtrans', 'endraw', 'endcomment'], true)
             ) {
                 $issues[] = new LintIssue('error', 'unknown-tag', 'Unknown template tag "@' . $name . '".', $origin, $line);
                 continue;
@@ -181,19 +180,19 @@ final class Linter
             $closes = array_search($name, $known, true);
 
             if ($closes !== false) {
-                $top = $open === [] ? null : $open[count($open) - 1];
+                $top = $open === [] ? null : $open[\count($open) - 1];
 
                 if ($top === null || $top[0] !== $closes) {
                     $issues[] = new LintIssue(
                         'error',
                         'unbalanced-tag',
-                        sprintf(
+                        \sprintf(
                             '"@%s" closes %s.',
                             $name,
-                            $top === null ? 'nothing' : 'an open "@' . $top[0] . '" from line ' . $top[1]
+                            $top === null ? 'nothing' : 'an open "@' . $top[0] . '" from line ' . $top[1],
                         ),
                         $origin,
-                        $line
+                        $line,
                     );
 
                     continue; // the opener stays open — it is still unclosed
@@ -310,7 +309,7 @@ final class Linter
 
                 return $m[1] . '{' . $payload . '}';
             },
-            $text
+            $text,
         );
     }
 
@@ -319,7 +318,7 @@ final class Linter
     {
         $spec = $node->attribute('spec');
 
-        if (!is_array($spec)) {
+        if (!\is_array($spec)) {
             return;
         }
 
@@ -329,7 +328,7 @@ final class Linter
             $span = abs((int) $spec['to'] - (int) $spec['source']);
 
             if ($span > $this->config->limits->maxLoopRows) {
-                $issues[] = new LintIssue('warning', 'loop-range-too-large', sprintf('Loop range spans %d rows (limit %d).', $span, $this->config->limits->maxLoopRows), $origin, $line);
+                $issues[] = new LintIssue('warning', 'loop-range-too-large', \sprintf('Loop range spans %d rows (limit %d).', $span, $this->config->limits->maxLoopRows), $origin, $line);
             }
         }
     }
@@ -369,10 +368,10 @@ final class Linter
             $issues[] = new LintIssue(
                 'error',
                 'unresolved-' . $node->kind,
-                sprintf('"%s" cannot be located in the configured template paths.', $template),
+                \sprintf('"%s" cannot be located in the configured template paths.', $template),
                 $origin,
                 $line,
-                ['template' => $template]
+                ['template' => $template],
             );
         }
     }
@@ -411,7 +410,7 @@ final class Linter
         $catalogue = $this->translator->catalogue($locale, $this->config->i18n->domain);
 
         if ($catalogue !== null && !$catalogue->has($msgid)) {
-            $issues[] = new LintIssue('warning', 'untranslated-message', sprintf('"%s" has no %s translation.', $msgid, $locale), $origin, $line, ['msgid' => $msgid]);
+            $issues[] = new LintIssue('warning', 'untranslated-message', \sprintf('"%s" has no %s translation.', $msgid, $locale), $origin, $line, ['msgid' => $msgid]);
         }
     }
 
@@ -438,10 +437,10 @@ final class Linter
 
         foreach ($matches as $match) {
             $name = strtolower((string) $match[1][0]);
-            $payload = (string) ($match[2][0] ?? '');
+            $payload = (string) $match[2][0];
             $line = substr_count($source, "\n", 0, (int) $match[0][1]) + 1;
 
-            if (!in_array($name, $known, true)) {
+            if (!\in_array($name, $known, true)) {
                 $issues[] = new LintIssue('warning', 'unknown-ssi-directive', 'Unknown SSI directive "#' . $name . '" (left in output).', $origin, $line);
                 continue;
             }
@@ -461,7 +460,7 @@ final class Linter
                 $before = $this->diagnostics->count(Diagnostics::SSI_EXPR_ERROR);
                 \HtmlPhp\Ssi\Expression::evaluate($expression, $this->lintContext());
 
-                foreach (array_slice($this->diagnostics->byCode(Diagnostics::SSI_EXPR_ERROR), $before) as $entry) {
+                foreach (\array_slice($this->diagnostics->byCode(Diagnostics::SSI_EXPR_ERROR), $before) as $entry) {
                     $issues[] = new LintIssue('error', 'ssi-bad-expr', $entry['message'], $origin, $line, ['expression' => $expression]);
                 }
                 continue;
@@ -496,7 +495,7 @@ final class Linter
             $this->config->limits,
             $this->diagnostics,
             new \HtmlPhp\Event\Dispatcher(),
-            new \HtmlPhp\Support\SystemClock()
+            new \HtmlPhp\Support\SystemClock(),
         );
     }
 

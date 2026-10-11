@@ -13,14 +13,12 @@ final class ArrayLogger extends AbstractLogger
     /** @var list<array{level: string, message: string, context: array<string, mixed>}> */
     private array $records = [];
 
-    public function __construct(private readonly int $cap = 1000)
-    {
-    }
+    public function __construct(private readonly int $cap = 1000) {}
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $message, array $context = []): void
     {
-        if (count($this->records) < $this->cap) {
+        if (\count($this->records) < $this->cap) {
             $this->records[] = ['level' => $level, 'message' => $message, 'context' => $context];
         }
     }

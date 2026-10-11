@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 05 — SSI core: #config, #set, #echo, #include, #fsize/#flastmod,
  *      #printenv, #block/stub, custom directives, built-ins.
@@ -20,7 +21,7 @@ function ssi(HtmlPhp\Engine $engine, string $content, ?string $file = null): str
     return $engine->processSsi($content, new DocumentInfo(
         file: $file,
         root: fixture_path('tpl'),
-        request: test_request()
+        request: test_request(),
     ));
 }
 
@@ -133,7 +134,7 @@ test('engine render scope is visible to SSI as document vars', function (): void
     $out = $engine->renderString(
         '<!--#if expr=\'$username = "bob"\' -->hi<!--#else-->no<!--#endif-->',
         ['username' => 'bob'],
-        test_options()
+        test_options(),
     );
     assertSame('hi', $out);
 });

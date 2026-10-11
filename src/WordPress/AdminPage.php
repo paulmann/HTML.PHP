@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace HtmlPhp\WordPress;
 
 use HtmlPhp\Engine;
-use HtmlPhp\I18n\Auditor;
-use HtmlPhp\I18n\Extractor;
 use HtmlPhp\WordPress\Maintenance\Health;
 use HtmlPhp\WordPress\Maintenance\Logs;
 use HtmlPhp\WordPress\Maintenance\Nonces;
@@ -28,15 +26,13 @@ final class AdminPage
 
     private static ?Engine $engine = null;
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function install(Engine $engine): void
     {
         self::$engine = $engine;
 
-        if (!function_exists('add_management_page')) {
+        if (!\function_exists('add_management_page')) {
             return;
         }
 
@@ -45,7 +41,7 @@ final class AdminPage
             'HTML.PHP',
             'manage_options',
             self::SLUG,
-            static fn(): string => self::renderPage()
+            static fn(): string => self::renderPage(),
         );
     }
 
@@ -97,8 +93,8 @@ final class AdminPage
                     'tabs' => self::tabs(),
                     'data' => self::tabData($engine, $tab),
                     'nonce_field' => Nonces::field(self::NONCE_ACTION),
-                    'admin_post_url' => function_exists('admin_url') ? admin_url('admin-post.php') : '',
-                    'page_url' => function_exists('admin_url') ? admin_url('tools.php?page=' . self::SLUG) : '',
+                    'admin_post_url' => \function_exists('admin_url') ? admin_url('admin-post.php') : '',
+                    'page_url' => \function_exists('admin_url') ? admin_url('tools.php?page=' . self::SLUG) : '',
                 ]);
             } catch (\Throwable) {
                 // fall through to the built-in markup
@@ -123,7 +119,7 @@ final class AdminPage
 
     private static function currentTab(): string
     {
-        $tab = isset($_GET['tab']) && is_scalar($_GET['tab']) ? (string) $_GET['tab'] : 'health';
+        $tab = isset($_GET['tab']) && \is_scalar($_GET['tab']) ? (string) $_GET['tab'] : 'health';
 
         foreach (self::tabs() as $entry) {
             if ($entry['id'] === $tab) {
@@ -169,7 +165,7 @@ final class AdminPage
             foreach ($engine->lintDirectory($root) as $file => $issues) {
                 $report[$file] = array_map(
                     static fn(\HtmlPhp\Template\LintIssue $issue): array => $issue->toArray(),
-                    $issues
+                    $issues,
                 );
             }
         }
@@ -180,17 +176,17 @@ final class AdminPage
     private static function builtinPage(Engine $engine, string $tab): string
     {
         $esc = static fn(mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $url = function_exists('admin_url') ? admin_url('tools.php?page=' . self::SLUG) : '';
+        $url = \function_exists('admin_url') ? admin_url('tools.php?page=' . self::SLUG) : '';
 
         $nav = '';
         foreach (self::tabs() as $entry) {
             $active = $entry['id'] === $tab ? ' class="current"' : '';
-            $nav .= sprintf(
+            $nav .= \sprintf(
                 '<a href="%s&amp;tab=%s"%s>%s</a> | ',
                 $esc($url),
                 $esc($entry['id']),
                 $active,
-                $esc($entry['label'])
+                $esc($entry['label']),
             );
         }
 
@@ -214,11 +210,11 @@ final class AdminPage
         $rows = '';
 
         foreach (Health::check($engine) as $finding) {
-            $rows .= sprintf(
+            $rows .= \sprintf(
                 '<li><strong>%s</strong> [%s] %s</li>',
                 htmlspecialchars((string) ($finding['code'] ?? ''), ENT_QUOTES, 'UTF-8'),
                 htmlspecialchars((string) ($finding['severity'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                htmlspecialchars((string) ($finding['message'] ?? ''), ENT_QUOTES, 'UTF-8')
+                htmlspecialchars((string) ($finding['message'] ?? ''), ENT_QUOTES, 'UTF-8'),
             );
         }
 
@@ -239,12 +235,12 @@ final class AdminPage
             $out .= '<li><code>' . htmlspecialchars((string) $file, ENT_QUOTES, 'UTF-8') . '</code><ul>';
 
             foreach ($issues as $issue) {
-                $out .= sprintf(
+                $out .= \sprintf(
                     '<li>[%s] line %d: %s (%s)</li>',
                     htmlspecialchars((string) ($issue['severity'] ?? ''), ENT_QUOTES, 'UTF-8'),
                     (int) ($issue['line'] ?? 0),
                     htmlspecialchars((string) ($issue['message'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                    htmlspecialchars((string) ($issue['code'] ?? ''), ENT_QUOTES, 'UTF-8')
+                    htmlspecialchars((string) ($issue['code'] ?? ''), ENT_QUOTES, 'UTF-8'),
                 );
             }
 
@@ -273,11 +269,11 @@ final class AdminPage
 
         foreach ($stats as $domain => $locales) {
             foreach ($locales as $locale => $count) {
-                $rows .= sprintf(
+                $rows .= \sprintf(
                     '<li><code>%s/%s</code>: %d message(s)</li>',
                     htmlspecialchars((string) $domain, ENT_QUOTES, 'UTF-8'),
                     htmlspecialchars((string) $locale, ENT_QUOTES, 'UTF-8'),
-                    (int) $count
+                    (int) $count,
                 );
             }
         }
@@ -308,10 +304,10 @@ final class AdminPage
             $out .= '<h3>' . htmlspecialchars((string) $section, ENT_QUOTES, 'UTF-8') . '</h3><ul>';
 
             foreach ((array) $values as $key => $value) {
-                $out .= sprintf(
+                $out .= \sprintf(
                     '<li><strong>%s</strong>: <code>%s</code></li>',
                     htmlspecialchars((string) $key, ENT_QUOTES, 'UTF-8'),
-                    htmlspecialchars(is_scalar($value) || $value === null ? (string) $value : (string) json_encode($value), ENT_QUOTES, 'UTF-8')
+                    htmlspecialchars(\is_scalar($value) || $value === null ? (string) $value : (string) json_encode($value), ENT_QUOTES, 'UTF-8'),
                 );
             }
 
@@ -323,7 +319,7 @@ final class AdminPage
 
     private static function postForm(string $action, string $label, string $tab): string
     {
-        $url = function_exists('admin_url') ? admin_url('admin-post.php') : '';
+        $url = \function_exists('admin_url') ? admin_url('admin-post.php') : '';
 
         return '<form method="post" action="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">'
             . '<input type="hidden" name="action" value="htmlphp_action">'
@@ -336,13 +332,13 @@ final class AdminPage
 
     private static function capable(): bool
     {
-        return !function_exists('current_user_can') || current_user_can('manage_options');
+        return !\function_exists('current_user_can') || current_user_can('manage_options');
     }
 
     /** @param array<string, string> $query */
     private static function redirect(string $status, array $query = []): void
     {
-        if (!function_exists('wp_safe_redirect') || !function_exists('admin_url')) {
+        if (!\function_exists('wp_safe_redirect') || !\function_exists('admin_url')) {
             return;
         }
 
@@ -354,7 +350,7 @@ final class AdminPage
 
         wp_safe_redirect($url);
 
-        if (function_exists('exit_after_redirect')) {
+        if (\function_exists('exit_after_redirect')) {
             exit_after_redirect();
         }
     }

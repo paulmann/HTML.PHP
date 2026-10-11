@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 09 — i18n: Locale, PluralForms, Catalog (PO/MO/JSON/PHP), Translator,
  *      Formats, Extractor, Auditor.
@@ -266,7 +267,7 @@ function v4_translator(array $config = []): Translator
     return new Translator(
         HtmlPhp\Config\I18n::fromArray($config),
         new HtmlPhp\Diagnostics(),
-        new HtmlPhp\Event\Dispatcher()
+        new HtmlPhp\Event\Dispatcher(),
     );
 }
 

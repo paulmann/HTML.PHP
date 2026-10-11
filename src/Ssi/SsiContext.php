@@ -68,7 +68,7 @@ final class SsiContext
         private readonly Diagnostics $diagnostics,
         private readonly Dispatcher $events,
         private readonly ClockInterface $clock,
-        private readonly int $now = 0
+        private readonly int $now = 0,
     ) {
         $this->timefmt = $config->timeFormat !== '' ? $config->timeFormat : TimeFormat::DEFAULT_FORMAT;
         $this->sizefmt = $config->sizeFormat->value;
@@ -127,7 +127,7 @@ final class SsiContext
             $this->diagnostics,
             $this->events,
             $this->clock,
-            $this->timestamp()
+            $this->timestamp(),
         );
 
         $child->depth = $this->depth + 1;
@@ -156,7 +156,7 @@ final class SsiContext
         $map = Builtins::map($this);
         $filtered = $this->events->filter('htmlphp.ssi.builtins', $map);
 
-        return $this->builtins = is_array($filtered) ? $filtered : $map;
+        return $this->builtins = \is_array($filtered) ? $filtered : $map;
     }
 
     public function resetBuiltins(): void
@@ -196,7 +196,7 @@ final class SsiContext
             return $this->builtins()[$name] ?? '';
         }
 
-        if (array_key_exists($name, $this->vars)) {
+        if (\array_key_exists($name, $this->vars)) {
             return $this->vars[$name];
         }
 
@@ -206,7 +206,7 @@ final class SsiContext
             return $value === null ? null : $value;
         }
 
-        if (array_key_exists($name, $this->document->vars)) {
+        if (\array_key_exists($name, $this->document->vars)) {
             return Str::stringify($this->document->vars[$name]);
         }
 
@@ -218,7 +218,7 @@ final class SsiContext
     {
         $allow = $this->config->echoAllow;
 
-        return $allow === [] || isset($allow[$name]) || in_array($name, $allow, true);
+        return $allow === [] || isset($allow[$name]) || \in_array($name, $allow, true);
     }
 
     /** True when `#set` may define this name. */
@@ -270,7 +270,7 @@ final class SsiContext
             return $current;
         }
 
-        $directory = dirname($current);
+        $directory = \dirname($current);
 
         return $directory === '' || $directory === '.' ? null : $directory;
     }
@@ -288,7 +288,7 @@ final class SsiContext
             $this->diagnostics->record(
                 Diagnostics::SSI_LIMIT_REACHED,
                 'SSI include depth limit reached.',
-                ['depth' => $this->depth]
+                ['depth' => $this->depth],
             );
 
             return false;
@@ -298,7 +298,7 @@ final class SsiContext
             $this->diagnostics->record(
                 Diagnostics::SSI_LIMIT_REACHED,
                 'SSI directive budget exhausted.',
-                ['processed' => $this->processed]
+                ['processed' => $this->processed],
             );
 
             return false;
@@ -448,6 +448,6 @@ final class SsiContext
             return true;
         }
 
-        return !in_array($extension, $this->security->deniedExtensions, true);
+        return !\in_array($extension, $this->security->deniedExtensions, true);
     }
 }

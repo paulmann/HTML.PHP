@@ -48,7 +48,9 @@ Substitution, Filters×46, TreeRenderer, layouts/partials/set/trans/break/contin
 Renderer pipeline, Linter×25 codes, RenderStats) · WS-5 i18n (+JSON/PHP catalogues, merge,
 Formats, Extractor, Auditor, fr/pt/kab plural fix) · WS-6 Engine facade · WS-7 WordPress
 (Bridge/WpCache/WpLogger/TemplateLoader/Shortcodes/Cli/AdminPage/Mailer + Maintenance×12 +
-plugin scaffold) · WS-8 tests (329 tests / 966 assertions; matrix 5/5 green) · WS-9 build tool
+plugin scaffold) · WS-8 tests (329 tests / 966 assertions as measured back then WITHOUT
+ext-intl; after the 2026-10-11 CI fix the suite is 330 tests / 968 assertions, identical WITH
+and WITHOUT intl — see PROGRESS.md final entry) · WS-9 build tool
 + both bundles + 8.5 overlays · WS-10 docs (10 EN docs + README + CHANGELOG + MIGRATION),
 examples×4, bench, CI, phpstan L6 clean, composer×3, LICENSE.
 

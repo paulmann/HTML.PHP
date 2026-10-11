@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace HtmlPhp\Config;
 
 use HtmlPhp\Config;
-
 use HtmlPhp\Exception\ConfigException;
 
 /**
@@ -36,13 +35,13 @@ final readonly class Ssi
         public string $execCgiMode = 'spawn',
         public mixed $execDelegate = null,
         public bool $processRenderedOutput = true,
-        public bool $printenvEnabled = true
+        public bool $printenvEnabled = true,
     ) {
         if ($execCgiMode !== 'spawn' && $execCgiMode !== 'include') {
             throw new ConfigException("ssi.exec_cgi_mode must be 'spawn' or 'include'.", ['value' => $execCgiMode]);
         }
 
-        if ($execDelegate !== null && !is_callable($execDelegate)) {
+        if ($execDelegate !== null && !\is_callable($execDelegate)) {
             throw new ConfigException('ssi.exec_delegate must be callable or null.');
         }
 
@@ -57,7 +56,7 @@ final readonly class Ssi
         $execMode = Config::value($config, 'exec_mode', ExecMode::Deny->value);
 
         // v3 stored a boolean master switch; accept `true/false` as deny/allows-nothing.
-        if (is_bool($execMode)) {
+        if (\is_bool($execMode)) {
             $execMode = $execMode ? ExecMode::AllowList->value : ExecMode::Deny->value;
         }
 
@@ -80,7 +79,7 @@ final readonly class Ssi
             execCgiMode: (string) Config::value($config, 'exec_cgi_mode', 'spawn'),
             execDelegate: Config::callableOrNull($config, 'exec_delegate'),
             processRenderedOutput: Config::bool($config, 'process_rendered_output', true),
-            printenvEnabled: Config::bool($config, 'printenv_enabled', true)
+            printenvEnabled: Config::bool($config, 'printenv_enabled', true),
         );
     }
 

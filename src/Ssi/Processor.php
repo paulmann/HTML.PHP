@@ -38,7 +38,7 @@ final class Processor
         private readonly Diagnostics $diagnostics,
         private readonly Dispatcher $events,
         private readonly Escaper $escaper,
-        private readonly ClockInterface $clock
+        private readonly ClockInterface $clock,
     ) {
         $this->exec = new Exec($config->ssi, $config->limits, $config->security, $diagnostics);
         $this->registry = new DirectiveRegistry();
@@ -72,7 +72,7 @@ final class Processor
             $this->config->limits,
             $this->diagnostics,
             $this->events,
-            $this->clock
+            $this->clock,
         );
 
         $output = (new Scanner($context, $this->escaper, $this->exec, $this->registry))->run($html);
@@ -113,7 +113,7 @@ final class Processor
             $this->config->limits,
             $this->diagnostics,
             $this->events,
-            $this->clock
+            $this->clock,
         );
 
         return $context->builtins();

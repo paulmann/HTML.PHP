@@ -42,9 +42,8 @@ final class Scanner
         private readonly SsiContext $context,
         private readonly Escaper $escaper,
         private readonly Exec $exec,
-        private readonly DirectiveRegistry $registry
-    ) {
-    }
+        private readonly DirectiveRegistry $registry,
+    ) {}
 
     public function run(string $html): string
     {
@@ -75,7 +74,7 @@ final class Scanner
 
                 return '';
             },
-            $html
+            $html,
         );
 
         return $result;
@@ -89,14 +88,14 @@ final class Scanner
 
         $parts = preg_split(self::DIRECTIVE_PATTERN, $html, -1, PREG_SPLIT_DELIM_CAPTURE);
 
-        if ($parts === false || count($parts) === 1) {
+        if ($parts === false || \count($parts) === 1) {
             return $html;
         }
 
         // preg_split with two capture groups yields: text, body, rest, text, …
         // Text outside the currently active conditional branch is dropped.
         $output = $this->active() ? $parts[0] : '';
-        $count = count($parts);
+        $count = \count($parts);
 
         for ($index = 1; $index + 2 < $count; $index += 3) {
             $body = (string) $parts[$index];
@@ -158,7 +157,7 @@ final class Scanner
         $this->context->diagnostics()->record(
             Diagnostics::SSI_UNKNOWN_DIRECTIVE,
             'Unknown SSI directive left in output.',
-            ['directive' => $name]
+            ['directive' => $name],
         );
 
         return $original;
@@ -172,7 +171,7 @@ final class Scanner
 
     private function parentActive(): bool
     {
-        $depth = count($this->frames);
+        $depth = \count($this->frames);
 
         return $depth === 0 || $this->frames[$depth - 1]['active'];
     }
@@ -180,7 +179,7 @@ final class Scanner
     /** Activity of the frames below the top one (used by #elif/#else). */
     private function parentActiveExcludingTop(): bool
     {
-        $depth = count($this->frames);
+        $depth = \count($this->frames);
 
         return $depth <= 1 || $this->frames[$depth - 2]['active'];
     }
@@ -203,7 +202,7 @@ final class Scanner
         }
 
         if ($name === 'if') {
-            if (count($this->frames) >= self::MAX_CONDITIONAL_DEPTH) {
+            if (\count($this->frames) >= self::MAX_CONDITIONAL_DEPTH) {
                 $diagnostics->record(Diagnostics::SSI_EXPR_ERROR, 'SSI conditional nesting is too deep.');
                 $this->frames[] = ['active' => false, 'taken' => true];
 
@@ -223,7 +222,7 @@ final class Scanner
             return;
         }
 
-        $top = &$this->frames[count($this->frames) - 1];
+        $top = &$this->frames[\count($this->frames) - 1];
 
         if ($name === 'else') {
             $top['active'] = $this->parentActiveExcludingTop() && !$top['taken'];
@@ -269,7 +268,7 @@ final class Scanner
             $this->context->sizefmt = strtolower($attributes['sizefmt']);
         }
 
-        if (array_key_exists('errmsg', $attributes)) {
+        if (\array_key_exists('errmsg', $attributes)) {
             $this->context->errmsg = $attributes['errmsg'];
         }
 
@@ -288,7 +287,7 @@ final class Scanner
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_EXEC_DENIED,
                 'SSI #set target name is reserved or invalid.',
-                ['name' => $name]
+                ['name' => $name],
             );
         }
 
@@ -323,7 +322,7 @@ final class Scanner
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_INCLUDE_FAILED,
                 'SSI include could not be resolved or is outside the document root.',
-                ['target' => $label]
+                ['target' => $label],
             );
 
             return $fallback();
@@ -336,7 +335,7 @@ final class Scanner
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_INCLUDE_CYCLE,
                 'SSI include cycle detected.',
-                ['target' => $label, 'path' => $path]
+                ['target' => $label, 'path' => $path],
             );
 
             return $fallback();
@@ -348,7 +347,7 @@ final class Scanner
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_INCLUDE_FAILED,
                 'SSI include could not be read.',
-                ['path' => $path]
+                ['path' => $path],
             );
 
             return $fallback();
@@ -381,7 +380,7 @@ final class Scanner
             $this->context->diagnostics()->record(
                 Diagnostics::SSI_INCLUDE_FAILED,
                 'SSI include stub block was not found in this document.',
-                ['target' => $label, 'stub' => $stub]
+                ['target' => $label, 'stub' => $stub],
             );
         }
 
@@ -510,7 +509,7 @@ final class Scanner
         }
 
         foreach ($this->context->document->vars as $name => $value) {
-            if (is_string($name) && !isset($variables[$name]) && !isset(SsiContext::RESERVED[$name])) {
+            if (\is_string($name) && !isset($variables[$name]) && !isset(SsiContext::RESERVED[$name])) {
                 $variables[$name] = Str::stringify($value);
             }
         }
@@ -550,7 +549,7 @@ final class Scanner
         // Default (Apache): the current document.
         $current = $this->context->document->file;
 
-        return is_string($current) && $current !== '' && is_file($current) ? $current : null;
+        return \is_string($current) && $current !== '' && is_file($current) ? $current : null;
     }
 
     // ------------------------------------------------------------- variables
@@ -585,7 +584,7 @@ final class Scanner
 
                 return $context->resolve($name) ?? $matches[0];
             },
-            $protected
+            $protected,
         );
 
         return str_replace("\x01", '$', $expanded);

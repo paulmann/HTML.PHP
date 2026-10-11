@@ -41,9 +41,8 @@ final class Diagnostics
     public function __construct(
         private readonly int $cap = 100,
         private readonly ?LoggerInterface $logger = null,
-        private readonly ?Dispatcher $events = null
-    ) {
-    }
+        private readonly ?Dispatcher $events = null,
+    ) {}
 
     /**
      * Records one entry. Entries beyond the cap are silently dropped — the
@@ -53,7 +52,7 @@ final class Diagnostics
      */
     public function record(string $code, string $message, array $context = []): void
     {
-        if (count($this->entries) < $this->cap) {
+        if (\count($this->entries) < $this->cap) {
             $this->entries[] = [
                 'code' => $code,
                 'message' => $message,
@@ -86,13 +85,13 @@ final class Diagnostics
 
         return array_values(array_filter(
             $this->entries,
-            static fn(array $entry): bool => $entry['code'] === $code
+            static fn(array $entry): bool => $entry['code'] === $code,
         ));
     }
 
     public function count(string $code = ''): int
     {
-        return $code === '' ? count($this->entries) : count($this->byCode($code));
+        return $code === '' ? \count($this->entries) : \count($this->byCode($code));
     }
 
     /** @return array{code: string, message: string, context: array<string, mixed>, where: string, time: int}|null */

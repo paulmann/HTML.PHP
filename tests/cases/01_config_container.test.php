@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 01 — Config value object, Container, Diagnostics, Scope, RequestContext.
  */

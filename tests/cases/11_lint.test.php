@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 11 — Linter and diagnostics workflows.
  */
@@ -91,7 +92,7 @@ test('untranslated @{} messages are flagged for the active locale', function ():
 
     assertSame([], lint_codes(array_values(array_filter(
         $engine->lintString('@{known}'),
-        static fn(LintIssue $i): bool => $i->code === 'untranslated-message'
+        static fn(LintIssue $i): bool => $i->code === 'untranslated-message',
     ))));
 
     assertHas('untranslated-message', lint_codes($engine->lintString('@{absent.key}')));

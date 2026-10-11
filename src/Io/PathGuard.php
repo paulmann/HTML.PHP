@@ -32,12 +32,12 @@ final class PathGuard
     public function __construct(
         array $roots,
         array $deniedExtensions = SecurityConfig::DENIED_EXTENSIONS_DEFAULT,
-        private readonly bool $allowParentPaths = false
+        private readonly bool $allowParentPaths = false,
     ) {
         $resolved = [];
 
         foreach ($roots as $root) {
-            if (!is_string($root) || $root === '') {
+            if (!\is_string($root) || $root === '') {
                 continue;
             }
 

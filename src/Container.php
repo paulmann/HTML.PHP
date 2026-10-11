@@ -57,7 +57,7 @@ final class Container
 
     public function get(string $id): mixed
     {
-        if (array_key_exists($id, $this->instances)) {
+        if (\array_key_exists($id, $this->instances)) {
             return $this->instances[$id];
         }
 
@@ -82,7 +82,7 @@ final class Container
         if (!$service instanceof $id) {
             throw new ContainerException(
                 "Service '{$id}' resolved to " . get_debug_type($service) . '.',
-                ['id' => $id]
+                ['id' => $id],
             );
         }
 
@@ -119,7 +119,7 @@ final class Container
         $container->factory(Diagnostics::class, static fn(Container $c): Diagnostics => new Diagnostics(
             $c->service(Config::class)->limits->maxDiagnostics,
             $c->service(Config::class)->log->forwardDiagnostics ? $c->service(Log\LoggerInterface::class) : null,
-            $c->service(Event\Dispatcher::class)
+            $c->service(Event\Dispatcher::class),
         ));
 
         $container->factory(Event\Dispatcher::class, static fn(): Event\Dispatcher => new Event\Dispatcher());
@@ -127,7 +127,7 @@ final class Container
         $container->factory(Contracts\CacheInterface::class, static fn(Container $c): Contracts\CacheInterface
             => Cache\CacheFactory::create(
                 $c->service(Config::class)->cache,
-                $c->service(Diagnostics::class)
+                $c->service(Diagnostics::class),
             ));
 
         $container->factory(Html\Escaper::class, static fn(): Html\Escaper => new Html\Escaper());
@@ -135,7 +135,7 @@ final class Container
         $container->factory(I18n\Formats::class, static fn(Container $c): I18n\Formats
             => new I18n\Formats(
                 $c->service(Config::class)->i18n,
-                $c->service(Support\ClockInterface::class)
+                $c->service(Support\ClockInterface::class),
             ));
 
         $container->factory(Template\Filters::class, static fn(Container $c): Template\Filters => new Template\Filters(
@@ -144,13 +144,13 @@ final class Container
             $c->service(Html\Escaper::class),
             $c->service(I18n\TranslatorInterface::class),
             $c->service(I18n\Formats::class),
-            $c->service(Config::class)->syntax->strict
+            $c->service(Config::class)->syntax->strict,
         ));
 
         $container->factory(Template\TemplateLocator::class, static fn(Container $c): Template\TemplateLocator
             => new Template\TemplateLocator(
                 $c->service(Config::class)->templates,
-                $c->service(Config::class)->security
+                $c->service(Config::class)->security,
             ));
 
         $container->factory(I18n\TranslatorInterface::class, static fn(Container $c): I18n\TranslatorInterface
@@ -161,7 +161,7 @@ final class Container
             $c->service(Diagnostics::class),
             $c->service(Event\Dispatcher::class),
             $c->service(Html\Escaper::class),
-            $c->service(Support\ClockInterface::class)
+            $c->service(Support\ClockInterface::class),
         ));
 
         $container->factory(Template\Renderer::class, static fn(Container $c): Template\Renderer => new Template\Renderer(
@@ -173,7 +173,7 @@ final class Container
             $c->service(Template\Filters::class),
             $c->service(I18n\TranslatorInterface::class),
             $c->service(Html\Escaper::class),
-            $c->service(Template\TemplateLocator::class)
+            $c->service(Template\TemplateLocator::class),
         ));
 
         $container->factory(Template\Linter::class, static fn(Container $c): Template\Linter => new Template\Linter(
@@ -181,12 +181,12 @@ final class Container
             $c->service(Diagnostics::class),
             $c->service(Template\Filters::class),
             $c->service(Template\TemplateLocator::class),
-            ($t = $c->service(I18n\TranslatorInterface::class)) instanceof I18n\Translator ? $t : null
+            ($t = $c->service(I18n\TranslatorInterface::class)) instanceof I18n\Translator ? $t : null,
         ));
 
         $container->factory(Engine::class, static fn(Container $c): Engine => new Engine(
             $c->service(Config::class),
-            $c
+            $c,
         ));
 
         return $container;
