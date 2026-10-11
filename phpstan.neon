@@ -1,0 +1,35 @@
+# Static analysis configuration.
+#
+#   php tools/phpstan.sh          # downloads phpstan.phar if needed and runs
+#
+# Level 5 over every deliverable. The WordPress stubs are scanned so the
+# bridge and the plugin analyse against the real WP signatures we support.
+parameters:
+    level: 5
+    paths:
+        - php83/html.php
+        - wordpress/html-wp.php
+        - wordpress/html-php-maintenance/html-php-maintenance.php
+    scanFiles:
+        - tests/wp-stubs.php
+    ignoreErrors:
+        #
+        # Documented, intentional patterns:
+        #
+        # 1. The version guard compares PHP_VERSION_ID against the literal
+        #    MIN_PHP constant — "always true" on a matching runtime is the
+        #    point of the check.
+        -
+            message: '#Strict comparison using (===|!==) between \d+ and \d+#'
+            path: php83/html.php
+        # 2. TemplateException::withContext() uses new static deliberately
+        #    (late static binding for TemplateExceptionMissing).
+        -
+            message: '#Unsafe usage of new static#'
+            path: php83/html.php
+        # 3. Defensive type guards around values that arrive from templates,
+        #    $GLOBALS and superglobals: PHPStan sees the annotated type, the
+        #    guard protects against hosts that break the annotation.
+        -
+            message: '#(Call to function (is_string|is_int|is_array|is_bool|is_float|is_object)\(\)|Strict comparison using (===|!==)|(?:Negated )?(?:boolean|integer) (?:comparison|expression)|Result of (&&|\|\|) (?:is always|will be)|Offset .+ on left side of \?\?|always exists and is not nullable|is already a list, call has no effect|is not nullable)#'
+            reportUnmatched: false

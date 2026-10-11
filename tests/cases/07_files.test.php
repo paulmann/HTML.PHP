@@ -146,6 +146,8 @@ test('WriteFile() throws for a non existent output directory', function (): void
 });
 
 test('WriteFile() throws for a read only destination file', function (): void {
+    skipIf(running_as_root(), 'root bypasses file permissions');
+
     $target = fixture_path('write/readonly.txt');
     WriteFile($target, 'first');
     chmod($target, 0o444);

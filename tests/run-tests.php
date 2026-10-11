@@ -8,6 +8,7 @@
  *   php tests/run-tests.php --verbose
  *   php tests/run-tests.php --filter=include --verbose
  *   php tests/run-tests.php --list
+ *   php tests/run-tests.php --lib=php83/html.php   (explicit library under test)
  *
  * Exit codes:
  *   0  every selected test passed
@@ -24,9 +25,14 @@ $root = __DIR__;
 
 try {
     require_once $root . DIRECTORY_SEPARATOR . 'TestRunner.php';
-    require_once $root . DIRECTORY_SEPARATOR . 'bootstrap.php';
 
     $options = TestRunner::parseArguments($argv ?? []);
+
+    if (is_string($options['lib']) && $options['lib'] !== '') {
+        define('HTML_PHP_LIB', $options['lib']);
+    }
+
+    require_once $root . DIRECTORY_SEPARATOR . 'bootstrap.php';
     $runner = TestRunner::create($options['verbose'], $options['color'], $options['filter']);
     $loaded = $runner->loadCaseDirectory($root . DIRECTORY_SEPARATOR . 'cases');
 

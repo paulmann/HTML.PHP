@@ -12,17 +12,45 @@
 
 declare(strict_types=1);
 
-require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'html.php';
-
-date_default_timezone_set('UTC');
-
 /**
- * Absolute path of the library under test.
+ * Resolves the library under test.
+ *
+ * Priority: --lib=PATH (defines HTML_PHP_LIB before this file loads),
+ * then the HTML_PHP_LIB environment variable, then the edition matching
+ * the running PHP (php85/html.php on PHP 8.5+, php83/html.php otherwise).
  */
 function library_path(): string
 {
-    return dirname(__DIR__) . DIRECTORY_SEPARATOR . 'html.php';
+    static $resolved = null;
+
+    if ($resolved !== null) {
+        return $resolved;
+    }
+
+    if (defined('HTML_PHP_LIB') && is_string(HTML_PHP_LIB) && HTML_PHP_LIB !== '') {
+        $candidate = HTML_PHP_LIB;
+    } else {
+        $candidate = (string) getenv('HTML_PHP_LIB');
+    }
+
+    if ($candidate === '' || !is_file($candidate)) {
+        $root = dirname(__DIR__);
+        $edition = PHP_VERSION_ID >= 80500 ? 'php85' : 'php83';
+        $candidate = $root . DIRECTORY_SEPARATOR . $edition . DIRECTORY_SEPARATOR . 'html.php';
+    }
+
+    if (!is_file($candidate)) {
+        throw new RuntimeException("Library under test not found: '{$candidate}'.");
+    }
+
+    $resolved = realpath($candidate) ?: $candidate;
+
+    return $resolved;
 }
+
+require_once library_path();
+
+date_default_timezone_set('UTC');
 
 /**
  * Absolute path of the runtime scratch directory (tests/tmp).

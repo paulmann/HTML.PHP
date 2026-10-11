@@ -43,6 +43,13 @@ final class TestAssertionError extends Exception
 }
 
 /**
+ * Raised by skip()/skipIf() to abort a test without failing it.
+ */
+final class TestSkipped extends Exception
+{
+}
+
+/**
  * Returns [file, line] of the first stack frame outside this file.
  *
  * @return array{0: string, 1: int}
@@ -127,7 +134,7 @@ final class TestRunner
      */
     public static function parseArguments(array $argv): array
     {
-        $options = ['verbose' => false, 'color' => true, 'filter' => null, 'list' => false];
+        $options = ['verbose' => false, 'color' => true, 'filter' => null, 'list' => false, 'lib' => null];
 
         foreach ($argv as $argument) {
             if ($argument === '--verbose' || $argument === '-v') {
@@ -138,6 +145,8 @@ final class TestRunner
                 $options['list'] = true;
             } elseif (str_starts_with($argument, '--filter=')) {
                 $options['filter'] = substr($argument, strlen('--filter='));
+            } elseif (str_starts_with($argument, '--lib=')) {
+                $options['lib'] = substr($argument, strlen('--lib='));
             }
         }
 
@@ -277,6 +286,10 @@ final class TestRunner
             }
 
             $this->write("\n");
+        } catch (TestSkipped $skipped) {
+            ++$this->skipped;
+            $this->write($this->paint('  SKIP  ', 'dim') . $test['name']);
+            $this->write($this->paint('   (' . $skipped->getMessage() . ')', 'dim') . "\n");
         } catch (Throwable $error) {
             ++$this->failed;
 
@@ -315,6 +328,13 @@ final class TestRunner
 
             $this->restoreSuperglobals($superglobals);
             $this->restoreGlobals($snapshot);
+
+            // Reset in-memory library state (catalogues, hooks, filters,
+            // collected diagnostics) so tests stay isolated.
+            if (function_exists('html_reset_state')) {
+                html_reset_state();
+            }
+
             $this->currentTest = '';
         }
     }
@@ -415,6 +435,14 @@ final class TestRunner
         $this->write($this->paint('html.php test suite', 'header') . "\n");
         $this->write(sprintf("PHP %s | %s\n", PHP_VERSION, PHP_OS_FAMILY));
 
+        if (function_exists('library_path')) {
+            $this->write($this->paint('library: ' . library_path(), 'dim') . "\n");
+        }
+
+        if (function_exists('html_version')) {
+            $this->write($this->paint('version: ' . html_version(), 'dim') . "\n");
+        }
+
         if ($this->filter !== null) {
             $this->write('filter: ' . $this->filter . "\n");
         }
@@ -448,9 +476,10 @@ final class TestRunner
         }
 
         $summary = sprintf(
-            'SUMMARY: %d passed, %d failed (%d assertion(s))',
+            'SUMMARY: %d passed, %d failed, %d skipped (%d assertion(s))',
             $this->passed,
             $this->failed,
+            $this->skipped,
             $this->assertions
         );
 
@@ -489,6 +518,37 @@ function group(string $name): void
 function test(string $name, callable $fn): void
 {
     TestRunner::runner()->addTest($name, $fn);
+}
+
+/**
+ * Aborts the current test as skipped (environment-dependent expectations).
+ */
+function skip(string $reason): never
+{
+    throw new TestSkipped($reason);
+}
+
+/**
+ * Skips the current test when $condition is true.
+ */
+function skipIf(bool $condition, string $reason): void
+{
+    if ($condition) {
+        skip($reason);
+    }
+}
+
+/**
+ * True when the test process runs with root privileges (permission-based
+ * expectations do not hold for uid 0).
+ */
+function running_as_root(): bool
+{
+    if (function_exists('posix_geteuid')) {
+        return posix_geteuid() === 0;
+    }
+
+    return false;
 }
 
 function fail(string $message = 'test failed'): never

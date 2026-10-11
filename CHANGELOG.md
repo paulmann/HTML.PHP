@@ -5,127 +5,160 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Section headings carry both the semantic version declared in `html.php`
-(`Library version: 2.0.1`) and the file version of that release.
+## [3.0.0] - 2026-10-11
 
-## [2.0.1] - 2026-09-20.2
-
-### Fixed
-
-* `normalize()` no longer destroys its own `<br>` marker. The `\x01` sentinel
-  byte is stripped from the input (instead of only the full marker literal) so
-  the marker can only come from this function, and `\x01` is excluded from the
-  control-character strip so the restore step finds it again.
-  `normalize('<p>a<br>b</p>')` is now `a<br>b` instead of `aHTML_BRb`.
-* `Read_HTML()` no longer overwrites a block that a `<!--@block N-->` marker
-  already published with the residual text. The residual is only used as a
-  fallback when the requested block is undefined; a marker-less template still
-  returns its whole trimmed content (legacy behaviour).
-* `WriteFile()` suppresses the warning of its locked in-place fallback
-  (`@file_put_contents`), matching the surrounding `@chmod`/`@rename`/`@unlink`
-  and the `RuntimeException` that already reports the failure.
-* `clean_html()` drops `<script>…</script>` and `<style>…</style>` elements
-  together with their contents, including an unterminated opener. Those tags
-  are not allow-listed, so the leftover code was never usable and surfaced as
-  visible text. Every other removed tag still keeps its inner text.
-
-## [2.0.1] - 2026-09-20.1
+Full professional refactor of 2.0.1. The entire legacy public API is
+preserved byte-for-byte in behaviour (the 2.0.1 test suite passes against
+3.0.0); the suite grows from 276 tests / 748 assertions to **501 tests /
+1276 assertions** and now runs as a matrix across PHP 8.3/8.4/8.5 and both
+editions.
 
 ### Added
 
-* `declare(strict_types=1)` at the top of the library file.
-* `HTML_Sanitized_Input()`, returning sanitized copies of `$_GET`, `$_POST`,
-  `$_COOKIE` and `$_REQUEST` without mutating them.
-* Generic SSI attribute parsing (`_htmlParseSsiAttributes()`), so attribute
-  order no longer matters: `<!--#set value="VAL" var="NAME" -->` and a
-  reordered `#config` both work.
-* `HTML_MAX_INCLUDE_BYTES` is now enforced for every included partial, and the
-  `%h` time token maps to the abbreviated month name.
+* **Two editions**: `php83/html.php` (portable, PHP 8.3–8.5, refuses older
+  runtimes with a clear `RuntimeException`) and `php85/html.php` (modern,
+  PHP 8.5 property hooks, readonly + asymmetric-visibility promotion, pipe
+  operator, `array_first()`/`array_last()`, first-class callable syntax,
+  typed class constants, `#[\NoDiscard]`). Identical API and behaviour.
+* **Apache SSI completeness**: `#if`/`#elif`/`#else`/`#endif` with a safe
+  expression evaluator (comparisons, `/regex/` matching, `&&`/`||`/`!`,
+  parentheses, `$VAR`/`${VAR}`, file tests `-f -d -e -s -x -r -w`);
+  `#exec cmd=`/`cgi=` (deny-by-default, allow-listed, shell-free argv
+  spawning, timeout and output caps); `#fsize` and `#flastmod`;
+  `#config sizefmt=` and `#config errmsg=`; `#include file=`;
+  `#echo encoding=none|entity|url`; unquoted attribute values; new built-in
+  variables (`REQUEST_METHOD`, `REMOTE_ADDR`, `SERVER_SOFTWARE`,
+  `SERVER_PROTOCOL`, `REQUEST_URI`, `SCRIPT_NAME`, `CONTENT_TYPE`).
+* **i18n subsystem**: gettext PO/MO catalogue parsers (contexts, plurals,
+  fuzzy flags, charset conversion, bounds-checked MO), safe plural-form
+  expression evaluator with built-in rules for 60+ languages, text domains,
+  fallback chains, Accept-Language negotiation, `{named}` + sprintf
+  interpolation; `html_t()/html_n()/html_x()/html_nx()`,
+  `html_set_locale()/html_get_locale()/html_detect_locale()/
+  html_load_translations()`; legacy `@{KEY}`/`Translate.KEY` now consult
+  catalogues; WordPress delegation to `__()/_n()/_x()/_nx()`.
+* **Modern rendering**: scoped `html_render()/html_render_file()` (dot
+  notation, objects, ArrayAccess), 20+ built-in variable filters with
+  chains and quoted arguments, custom filters via `html_var_filter()`,
+  `<!--@Loop-->`/`<!--@If-->` blocks with row scoping and magic variables,
+  file-backed render cache with TTL and atomic writes
+  (`html_cache_clear()`), missing-variable policies (`keep`, `placeholder`,
+  `exception`), capped diagnostics log `html_errors()` with 14 codes.
+* **Hook system**: `html_add_filter()/html_apply_filters()/
+  html_add_action()/html_do_action()/html_remove_filter()` and eight engine
+  hook points (`htmlphp_render`, `htmlphp_translate`, `htmlphp_error`,
+  `htmlphp_ssi_builtins`, `htmlphp_ssi_include_path`, `htmlphp_ssi_echo`,
+  `htmlphp_missing_var`, `htmlphp_filter_apply`).
+* **Helpers**: `html_escape()/html_escape_attr()/html_escape_url()` (with
+  `HTML_ESCAPER` override), `html_slugify()` (intl or built-in
+  Cyrillic/European transliteration), `html_truncate()`,
+  `html_config()`, `html_version()`, `html_ssi()`, `html_ssi_variables()`,
+  `html_reset_state()`.
+* **WordPress bridge & maintenance toolkit** (`wordpress/html-wp.php`):
+  bridge boot (escaper install, i18n delegation, locale sync, catalogue
+  loading), template loader (theme hierarchy + `.ssi.htm` suffixes +
+  isolated PHP includes), template shortcodes with scoped attributes,
+  nonces, typed options/transients with `remember()`, one-shot admin
+  notices, `$wpdb` prepared-query helpers and table statistics, idempotent
+  cron scheduling, rotating daily logs, system-info snapshot, pending
+  updates report, health checks, filemtime cache-busted assets, REST route
+  registration with enforced permission callbacks, WP-CLI commands
+  (`wp htmlphp info|health|updates|render|cache|logs`).
+* **Ready-made maintenance plugin** (`wordpress/html-php-maintenance/`):
+  Tools page rendered by the engine itself, daily health cron with critical
+  notices, dashboard widget, lifecycle logging, nonce-protected actions.
+* Composer packages for both editions and the WordPress bridge; `dist/`
+  single-file downloads; `tests/run-matrix.sh` verification matrix;
+  eight runnable examples; English documentation set
+  (`docs/API|SSI|I18N|WORDPRESS|SECURITY|MIGRATION.md`).
 
 ### Changed
 
-* Safer defaults: `HTML_SSI_ECHO_ESCAPE` is now `true` and
-  `HTML_AUTO_SANITIZE_INPUT` is now `false`, so request superglobals are only
-  mutated on explicit opt-in.
-* `_htmlSsiStrftimeToDate()` escapes literal characters, so plain text in a
-  time format (`'Updated at %H:%M'`) is no longer reinterpreted as `date()`
-  tokens.
-* Include containment normalizes separators and case for the case-insensitive
-  Windows/macOS filesystems.
-* `WriteFile()` makes the umask handling explicit and keeps the atomic
-  write-then-rename with a locked in-place fallback.
-* `Show_HTML()` accepts `'0'` as a block selector.
-
-### Security
-
-* A stricter `$GLOBALS` name gate: `_htmlValidVariableName()` rejects empty
-  names, null bytes and path-like or syntactically broken names before any
-  template-driven read or write reaches `$GLOBALS`.
-* `clean_html()` no longer publishes a temporary `$GLOBALS['TAGS']`; `clean()`
-  keeps reading that global for legacy callers.
-
-## [2.0.0] - 2026-09-16.1
-
-### Added
-
-* Apache SSI parity for the directives used by the conbat.ru site.
-  * `<!--#set var="NAME" value="VAL" -->` writes into `$GLOBALS` and is removed
-    from the output. `$VAR`/`${VAR}` references inside `VAL` are expanded once
-    against the built-in SSI variables and `$GLOBALS`; undefined names are left
-    untouched and `\$` escapes a literal dollar sign.
-  * `<!--#echo var="NAME" -->` (single or double quotes) outputs the built-in
-    SSI variables (`DATE_LOCAL`, `DATE_GMT`, `DOCUMENT_URI`, `DOCUMENT_NAME`,
-    `DOCUMENT_ROOT`, `QUERY_STRING`, `SERVER_NAME`, `HTTP_USER_AGENT`,
-    `LAST_MODIFIED`) or template variables, honouring `HTML_RESERVED_GLOBALS`
-    and the optional `HTML_SSI_ECHO_ALLOW` allow-list. The legacy
-    `<!--##echo var="NAME" -->` directive is unchanged and now accepts both
-    quote styles.
-  * `<!--#config timefmt="FMT" -->` stores the format in `HTML_SSI_TIMEFMT`.
-    `strftime()` tokens are converted to `date()` tokens (`%Y %m %d %H %M %S %j
-    %B %b %A %a %p %I %Z %z %D %F %T %R %r %c %n %t %%` and friends).
-  * Relative includes (`"ssi/x.htm"`, `"./ssi/x.htm"`) resolve against the
-    directory of the file containing the directive, with a fallback to the
-    document root; absolute paths (`"/ssi/x.htm"`) resolve from the document
-    root. The current file travels through the new optional second argument of
-    `processSSI()`, so the legacy `processSSI($html)` call keeps working.
-  * Directive evaluation order inside one file is `#config`, `#set`, includes,
-    `#echo`/`##echo`, `<!--@var-->`, so variables set at the top of a template
-    are visible to the partials included below them.
-
-## [1.x] - 2026-09-04.2
+* Internals moved from ~40 global `_html*()` functions to namespaced final
+  classes (`HtmlPhp\Support\Str`, `Ssi\Processor`, `I18n\Translator`,
+  `Template\Renderer`, …); seven internals used by third-party tests remain
+  as deprecated wrappers.
+* SSI processing is now a **single sequential document-order scanner**
+  (Apache semantics) instead of five regex passes; conditional frames are
+  tracked on a stack, so false branches are parsed but never executed.
+* `Read_HTML()`/`WriteFile()` failures throw `HtmlPhp\TemplateException`
+  (extends `RuntimeException`).
+* Configuration gained a typed catalogue (`HtmlPhp\Config`) with bounds and
+  defaults; `$GLOBALS` remains the single source of truth.
+* Test harness: `--lib=` selection, `skip()/skipIf()` (root-aware
+  permission tests), per-test engine-state reset, banner shows the library
+  under test.
 
 ### Fixed
 
-* `normalize()` and `clean_html()` no longer lose content when the input is not
-  valid UTF-8: Unicode patterns fall back to byte-safe patterns.
-* `_htmlCleanRound()` handles values outside the platform integer range and no
-  longer produces wrapped or scientific output.
-* `WriteFile()` applies umask-based permissions to newly created files instead
-  of inheriting the `0600` mode of the temporary file, sanitizes the temporary
-  prefix and verifies that the whole payload was written.
-* `Show_HTML()` validates `$GLOBALS['html']`, accepts `'0'` as an exec symbol
-  and falls back to direct output when the requested handle is unusable.
-* `HTML_MAX_PRECISION` can be configured to `0` again.
+* `sizefmt=bytes` renders exact digits (Apache parity) instead of grouped
+  numbers; `abbrev` matches Apache (`512`, `2K`, `3.1M`).
+* Filter arguments may contain `:` when quoted (`%{ts|date:'H:i'}`).
+* `Escaper::url()` pattern no longer collides with its own delimiter.
+* Expression tokenizer handles `!=` as one operator (previously split into
+  `!` + `=` producing spurious trailing-input errors).
+* Plural-form evaluator preserves literal branch indices (`plural=…?1:2` no
+  longer collapses `2` to `1`).
 
 ### Security
 
-* SSI directives can no longer overwrite superglobals or library
-  configuration: reserved names are rejected, and an optional allow-list plus
-  output escaping are available for `<!--##echo-->`.
+* `#exec` sandbox: master switch off by default, binary allow-list,
+  shell-free argv spawning, document-root containment for CGI scripts,
+  extension allow-list, hard timeout and output caps, denials recorded.
+* `#if` file tests honour include containment; expressions length-bounded;
+  invalid regexes degrade to `false` with a diagnostic.
+* All 2.0.1 guard rails preserved: escaping by default, name gate, reserved
+  globals, traversal-safe case-insensitive containment, byte/recursion
+  limits, atomic writes, no superglobal mutation by default.
 
-## [1.x] - 2026-09-03.1
-
-### Added
-
-* Locale-aware `Round`, `Clean Round`, `Div`, `Round Div` and
-  `Clean Round Div` template directives.
-* Bounded SSI recursion, include limits and traversal protection.
-* Atomic file output, quote-aware normalization and tag allow-listing.
-* Brace-safe variable parsing, indirect variables and translations.
+## [2.0.1] - 2026-09-20
 
 ### Fixed
 
-* Removed the nested `LoadVar()` declaration that fataled on a second call.
+* `normalize()` no longer destroys its own `<br>` marker (`\x01` sentinel
+  stripped from input and excluded from the control-character strip).
+* `Read_HTML()` no longer overwrites a marker-published block with the
+  residual text.
+* `WriteFile()` suppresses the warning of its locked in-place fallback.
+* `clean_html()` drops `<script>`/`<style>` elements with their contents,
+  including an unterminated opener.
 
-> The `1.x` entries predate the semantic version declared in the library header
-> and are listed under their file version identifiers.
+## [2.0.1] - 2026-09-20 (hardening pass)
+
+### Added
+
+* `declare(strict_types=1)`; stricter `$GLOBALS` name gate via
+  `_htmlValidVariableName()`.
+* Safe defaults: `HTML_SSI_ECHO_ESCAPE=true`, `HTML_AUTO_SANITIZE_INPUT=false`;
+  `HTML_Sanitized_Input()` returns sanitized copies without mutation.
+* Generic SSI attribute parsing (order-independent), escaped literal
+  characters in `timefmt` conversion, `%h` → abbreviated month.
+* Include containment normalises separators and case; enforces
+  `HTML_MAX_INCLUDE_BYTES`; explicit umask handling in `WriteFile()`;
+  `Show_HTML()` accepts `'0'` selectors; `HTML_MAX_PRECISION` may be 0.
+
+## [2.0.1] - 2026-09-16
+
+### Added
+
+* Apache SSI parity for the conbat.ru site: `#set` with `$VAR` expansion,
+  `#echo` (built-ins + allow-list + escaping), legacy `##echo`,
+  `#config timefmt` with a strftime→date converter, document-relative
+  include resolution, fixed evaluation order (#config → #set → includes →
+  echoes → `<!--@var-->`).
+
+## [2.0.0] - 2026-09-04 and earlier
+
+### Added / Fixed
+
+* Security and edge-case audit: UTF-8 fallbacks in `normalize()`/
+  `clean_html()`, bounded `_htmlCleanRound()`, umask-aware `WriteFile()`,
+  reserved-name protection for SSI writes, hardened `Show_HTML()`.
+* Alignment with html4.pl: locale-aware `Round`/`Clean Round`/`Div`/
+  `Round Div`/`Clean Round Div`, bounded SSI recursion, include limits,
+  traversal protection, atomic file output, quote-aware normalisation, tag
+  allow-listing, brace-safe variable parsing, indirect variables and
+  translations.
+
+[3.0.0]: https://github.com/paulmann/HTML.PHP/releases/tag/v3.0.0
+[2.0.1]: https://github.com/paulmann/HTML.PHP/releases/tag/v2.0.1

@@ -10,9 +10,7 @@
 
 declare(strict_types=1);
 
-require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'html.php';
-
-date_default_timezone_set('UTC');
+require_once __DIR__ . DIRECTORY_SEPARATOR . '_bootstrap.php';
 
 /**
  * Prints one labelled example.

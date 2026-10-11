@@ -1,0 +1,19 @@
+{
+    "name": "paulmann/html-php85",
+    "description": "Single-file PHP 8.5 template engine (modern edition): property hooks, pipe operator, asymmetric visibility, #[\\NoDiscard] — Apache SSI directives, i18n (PO/MO, plural forms), loops, filters, render cache, html4.pl-compatible legacy API, WordPress bridge. Zero dependencies.",
+    "type": "library",
+    "keywords": ["template", "ssi", "i18n", "gettext", "wordpress", "html4.pl", "single-file", "php85"],
+    "license": "MIT",
+    "authors": [
+        { "name": "Mikhail Deynekin", "email": "Mikhail@Deynekin.com", "homepage": "https://Deynekin.com" }
+    ],
+    "require": {
+        "php": ">=8.5"
+    },
+    "autoload": {
+        "files": ["html.php"]
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

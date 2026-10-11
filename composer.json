@@ -1,0 +1,20 @@
+{
+    "name": "paulmann/html-php-monorepo",
+    "description": "Monorepo metadata for HTML.PHP — install one of the edition packages instead: paulmann/html-php (PHP 8.3+) or paulmann/html-php85 (PHP 8.5). The wordpress/ directory ships the bridge and a ready-made maintenance plugin.",
+    "type": "metapackage",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.3"
+    },
+    "suggest": {
+        "paulmann/html-php": "Portable single-file edition (PHP 8.3, 8.4, 8.5)",
+        "paulmann/html-php85": "Modern single-file edition (PHP 8.5 language features)",
+        "paulmann/html-php-wordpress": "WordPress bridge & maintenance toolkit"
+    },
+    "scripts": {
+        "test": "bash tests/run-matrix.sh",
+        "test83": "php8.3 tests/run-tests.php --lib=php83/html.php",
+        "test85": "php8.5 tests/run-tests.php --lib=php85/html.php",
+        "examples": "bash examples/run-all.sh"
+    }
+}

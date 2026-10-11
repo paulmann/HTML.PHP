@@ -87,12 +87,22 @@ test('A bracketed reference survives the second evaluation pass', function (): v
 });
 
 test('The bracketed form #[] is unescaped to #{NAME}', function (): void {
-    // _htmlProcessVariables() rewrites the bracket form using the active symbol.
-    assertSame('#{NAME}', _htmlProcessVariables('#[NAME]', static fn(string $name): string => 'x', '#'));
+    // Substitution::process() rewrites the bracket form using the active symbol.
+    $result = HtmlPhp\Template\Substitution::process(
+        '#[NAME]',
+        static fn(string $name): string => 'x',
+        '#'
+    );
+
+    assertSame('#{NAME}', $result);
 });
 
 test('A custom exec symbol replaces the default one', function (): void {
-    $result = _htmlProcessVariables('#{NAME}', static fn(string $name): string => 'x', '#');
+    $result = HtmlPhp\Template\Substitution::process(
+        '#{NAME}',
+        static fn(string $name): string => 'x',
+        '#'
+    );
 
     assertSame('x', $result);
 });

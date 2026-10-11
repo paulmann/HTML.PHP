@@ -22,33 +22,73 @@ test('The library file contains no byte order mark', function (): void {
 test('The library reports its version strings', function (): void {
     $source = (string) file_get_contents(library_path());
 
-    assertContains('VERSION: 2026-09-20.2', $source);
-    assertContains('Library version: 2.0.1', $source);
+    assertContains('VERSION: 3.0.0', $source);
+    assertContains("VERSION = '3.0.0'", $source);
+    assertContains('3.0.0', html_version());
+    assertContains(HtmlPhp\Version::EDITION . ' edition', html_version());
 });
 
 test('The library guards the minimum PHP version', function (): void {
     $source = (string) file_get_contents(library_path());
 
-    assertContains('PHP_VERSION_ID < 80300', $source);
-    assertTrue(PHP_VERSION_ID >= 80300, 'the test interpreter must satisfy the library requirement');
+    assertContains('PHP_VERSION_ID < self::MIN_PHP', $source);
+    assertContains((string) HtmlPhp\Version::MIN_PHP, $source);
+    assertTrue(PHP_VERSION_ID >= HtmlPhp\Version::MIN_PHP, 'the test interpreter must satisfy the library requirement');
 });
 
 test('The library documents its change log in the file header', function (): void {
     $source = (string) file_get_contents(library_path());
 
-    assertContains('CHANGE LOG:', $source);
-    assertContains('2026-09-20.2', $source);
-    assertContains('2026-09-20.1', $source);
-    assertContains('2026-09-16.1', $source);
-    assertContains('2026-09-04.2', $source);
-    assertContains('2026-09-03.1', $source);
+    assertContains('CHANGE LOG', $source);
+    assertContains('3.0.0 - Major refactor', $source);
+    assertContains('CHANGELOG.md', $source);
 });
 
 test('The library is a single dependency-free file', function (): void {
     $source = (string) file_get_contents(library_path());
 
     assertSame(0, preg_match('~^\s*(require|include)(_once)?\s*[(\'"]~m', $source), 'the library must not require or include other files');
-    assertNotContains('namespace ', $source, 'the library exposes plain global functions');
+    assertContains('namespace HtmlPhp', $source, 'the internals live in the HtmlPhp namespace');
+    assertSame(0, preg_match('~\buse Composer\b|vendor/autoload~', $source), 'no Composer dependency');
+});
+
+test('The library keeps every legacy global function', function (): void {
+    foreach ([
+        'LoadTemplate', 'LoadVar', 'processHtml', 'HTML', 'update_template',
+        'sanitizeXSS', 'HTML_Sanitized_Input', 'processSSI', 'Read_HTML',
+        'Show_HTML', 'Divide', 'lc_Tags', 'normalize', 'clean', 'clean_html',
+        'WriteFile', 'TrimSpaces',
+    ] as $function) {
+        assertTrue(function_exists($function), $function . ' must remain callable');
+    }
+});
+
+test('The library exposes the modern v3 API', function (): void {
+    foreach ([
+        'html_version', 'html_config', 'html_render', 'html_render_file',
+        'html_ssi', 'html_ssi_variables', 'html_t', 'html_n', 'html_x',
+        'html_nx', 'html_set_locale', 'html_get_locale', 'html_detect_locale',
+        'html_load_translations', 'html_add_filter', 'html_apply_filters',
+        'html_remove_filter', 'html_add_action', 'html_do_action',
+        'html_var_filter', 'html_escape', 'html_escape_attr', 'html_escape_url',
+        'html_slugify', 'html_truncate', 'html_errors', 'html_clear_errors',
+        'html_cache_clear', 'html_reset_state',
+    ] as $function) {
+        assertTrue(function_exists($function), $function . ' must be part of the v3 API');
+    }
+});
+
+test('The deprecated internal wrappers keep working', function (): void {
+    assertSame('5', _htmlStringify(5));
+    assertSame(2.5, _htmlNumericValue('2.5'));
+    assertSame('2.50', _htmlRound(2.5, 2));
+    assertSame('3', _htmlCleanRound(3.0, 2));
+    assertSame(100, _htmlPrecision(5000)); // capped by HTML_MAX_PRECISION
+    assertSame(5, _htmlPositiveLimit('HTML_TEST_UNSET_LIMIT', 5, 10));
+    $GLOBALS['HTML_MAX_SSI_DEPTH'] = 3;
+    assertSame(3, _htmlPositiveLimit('HTML_MAX_SSI_DEPTH', 5, 10));
+    assertTrue(_htmlValidVariableName('Translate.some-key_1'));
+    assertFalse(_htmlValidVariableName('../etc/passwd'));
 });
 
 group('Foundation: public API surface');
