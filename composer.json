@@ -2,7 +2,7 @@
     "name": "paulmann/html-php",
     "description": "Production template engine + Apache SSI processor + gettext i18n for PHP 8.3+. Zero dependencies. WordPress bridge included.",
     "type": "library",
-    "license": "MIT",
+    "license": "PolyForm-Noncommercial-1.0.0",
     "keywords": ["template", "ssi", "i18n", "gettext", "wordpress", "escaping", "lint"],
     "authors": [
         {
