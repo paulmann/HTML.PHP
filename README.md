@@ -191,4 +191,4 @@ the APCu cache driver.
 
 ## License
 
-MIT © Mikhail Deynekin — see [LICENSE](LICENSE).
+PolyForm Noncommercial 1.0.0 © Mikhail Deynekin — see [LICENSE](LICENSE).
