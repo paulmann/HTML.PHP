@@ -1,7 +1,6 @@
 # HTML.PHP — Template Processing Library 🧩⚡
 
 ![Version](https://img.shields.io/badge/version-5.0.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![PHP](https://img.shields.io/badge/php-8.3%20%7C%208.5-purple.svg)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 ![Tests](https://img.shields.io/badge/tests-386%20passing-success.svg)
